@@ -12,6 +12,7 @@ app.use('/api/auth',    require('./routes/auth'));
 app.use('/api/profile', require('./routes/profile'));
 app.use('/api/design',  require('./routes/design'));
 app.use('/api/links',   require('./routes/links'));
+app.use('/api/admin',   require('./routes/admin'));
 
 // Serve the built Vite client in production
 const clientDist = path.join(__dirname, '../client/dist');

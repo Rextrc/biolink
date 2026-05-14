@@ -32,8 +32,8 @@ router.post('/login', (req, res) => {
   if (!email || !password) return res.status(400).json({ error: 'All fields required' });
   const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email.toLowerCase());
   if (!user || !bcrypt.compareSync(password, user.password_hash)) return res.status(401).json({ error: 'Invalid credentials' });
-  const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' });
-  res.json({ token, username: user.username });
+  const token = jwt.sign({ userId: user.id, isAdmin: !!user.is_admin }, process.env.JWT_SECRET, { expiresIn: '7d' });
+  res.json({ token, username: user.username, isAdmin: !!user.is_admin });
 });
 
 module.exports = router;

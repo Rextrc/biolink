@@ -27,4 +27,13 @@ export const api = {
   updateLink: (id, body) => apiFetch(`/links/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
   deleteLink: (id) => apiFetch(`/links/${id}`, { method: 'DELETE' }),
   reorderLinks: (order) => apiFetch('/links/reorder', { method: 'PUT', body: JSON.stringify({ order }) }),
+  admin: {
+    stats: () => apiFetch('/admin/stats'),
+    users: () => apiFetch('/admin/users'),
+    user: (id) => apiFetch(`/admin/users/${id}`),
+    updateProfile: (id, body) => apiFetch(`/admin/users/${id}/profile`, { method: 'PUT', body: JSON.stringify(body) }),
+    resetPassword: (id, password) => apiFetch(`/admin/users/${id}/password`, { method: 'PUT', body: JSON.stringify({ password }) }),
+    toggleAdmin: (id) => apiFetch(`/admin/users/${id}/admin`, { method: 'PUT' }),
+    deleteUser: (id) => apiFetch(`/admin/users/${id}`, { method: 'DELETE' }),
+  },
 };

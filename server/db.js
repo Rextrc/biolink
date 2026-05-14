@@ -185,6 +185,9 @@ async function init() {
   // Migrations for existing databases
   try { _sql.run('ALTER TABLE design ADD COLUMN social_icon_color TEXT DEFAULT NULL'); } catch {}
   try { _sql.run('ALTER TABLE profiles ADD COLUMN banner_url TEXT DEFAULT NULL'); } catch {}
+  try { _sql.run('ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0'); } catch {}
+  // Grant admin to the owner account
+  try { _sql.run(`UPDATE users SET is_admin = 1 WHERE email = 'oliverk5578@gmail.com'`); } catch {}
 
   save();
   return db;
