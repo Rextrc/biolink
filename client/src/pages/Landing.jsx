@@ -90,7 +90,7 @@ export default function Landing() {
             <div className="px-5 py-3 flex flex-col items-center gap-3">
               <div className="relative">
                 <img
-                  src="https://i.pravatar.cc/150?img=32"
+                  src="https://scontent-mia3-2.cdninstagram.com/v/t51.82787-19/639778373_18035639270717019_8788809374271189271_n.jpg?efg=eyJ2ZW5jb2RlX3RhZyI6InByb2ZpbGVfcGljLmRqYW5nby4zMjAuYzIifQ&_nc_ht=scontent-mia3-2.cdninstagram.com&_nc_cat=103&_nc_oc=Q6cZ2gEtpjIAJUNHKbnhUWPnyDm2rwQMZZXlYXy2TifJl4r1TbxeNyb7y_aeNTaKeOFW_iM&_nc_ohc=OP5lpxWlBLEQ7kNvwHqtXhA&_nc_gid=M404KjCehi0EM04C8aJlYg&edm=ALGbJPMBAAAA&ccb=7-5&oh=00_Af6YjllZeME6Q2D1wJBIfBoiWAZjlor2hSOn7I4g5eDZLA&oe=6A0C1DCA&_nc_sid=7d3ac5"
                   alt=""
                   style={{ width: 72, height: 72, boxShadow: '0 0 28px rgba(139,92,246,0.55)' }}
                   className="rounded-full border-2 border-purple-400/60"
@@ -98,7 +98,7 @@ export default function Landing() {
                 <div className="absolute inset-0 rounded-full ring-1 ring-purple-400/20" />
               </div>
               <div className="text-center">
-                <div className="font-semibold text-sm text-white">@olik</div>
+                <div className="font-semibold text-sm text-white flex items-center justify-center gap-1">@olik <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="12" fill="#6366f1"/><path d="M7 12.5l3.5 3.5 6.5-7" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg></div>
                 <div className="text-xs mt-0.5 text-purple-300/80">Creator · Designer · Dreamer ✨</div>
               </div>
               <div className="w-full flex flex-col gap-2.5 mt-1">
