@@ -22,7 +22,21 @@
       "mcp__Claude_in_Chrome__computer",
       "Bash(git --version)",
       "Bash(gh --version)",
-      "Bash(railway --version)"
+      "Bash(railway --version)",
+      "Bash(railway whoami *)",
+      "Bash(railway init *)",
+      "Read(//c/Users/oli/AppData/Roaming/railway/**)",
+      "Read(//c/Users/oli/.railway/**)",
+      "Bash(curl *)",
+      "Bash(RAILWAY_TOKEN=\"JRl62LmywLsd-rknqMfnYSGz3GoTTFwfWCAOyxdpdiu\" railway init --name biolink)",
+      "Bash(RAILWAY_API_TOKEN=\"JRl62LmywLsd-rknqMfnYSGz3GoTTFwfWCAOyxdpdiu\" railway init --name biolink)",
+      "Bash(dir C:UsersoliDesktopbio *)",
+      "PowerShell(gh *)",
+      "PowerShell(winget install *)",
+      "PowerShell(gh auth *)",
+      "PowerShell(gh repo *)",
+      "PowerShell(git *)",
+      "PowerShell(railway status *)"
     ]
   }
 }

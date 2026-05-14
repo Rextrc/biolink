@@ -4,7 +4,12 @@ const cors    = require('cors');
 const path    = require('path');
 const app     = express();
 
-app.use(cors({ origin: process.env.CLIENT_URL }));
+const allowedOrigins = [
+  process.env.CLIENT_URL,
+  'https://olik.app',
+  'https://www.olik.app',
+].filter(Boolean);
+app.use(cors({ origin: (origin, cb) => cb(null, !origin || allowedOrigins.includes(origin)) }));
 app.use(express.json());
 
 // API routes

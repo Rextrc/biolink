@@ -188,6 +188,9 @@ async function init() {
   try { _sql.run('ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0'); } catch {}
   try { _sql.run('ALTER TABLE users ADD COLUMN signup_ip TEXT'); } catch {}
   try { _sql.run('ALTER TABLE users ADD COLUMN last_ip TEXT'); } catch {}
+  try { _sql.run('ALTER TABLE users ADD COLUMN email_verified INTEGER DEFAULT 0'); } catch {}
+  try { _sql.run('ALTER TABLE users ADD COLUMN verify_code TEXT'); } catch {}
+  try { _sql.run('ALTER TABLE users ADD COLUMN verify_expires INTEGER'); } catch {}
   // Grant admin to the owner account
   try { _sql.run(`UPDATE users SET is_admin = 1 WHERE email = 'oliverk5578@gmail.com'`); } catch {}
 

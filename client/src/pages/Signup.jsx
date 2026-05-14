@@ -21,8 +21,12 @@ export default function Signup() {
     setError(''); setLoading(true);
     try {
       const data = await api.signup(form);
-      setAuth(data.token, data.username, data.isAdmin);
-      navigate('/dashboard');
+      if (data.needsVerification) {
+        navigate(`/verify?username=${data.username}`);
+      } else {
+        setAuth(data.token, data.username, data.isAdmin);
+        navigate('/dashboard');
+      }
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
   };

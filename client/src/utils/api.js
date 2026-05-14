@@ -18,6 +18,8 @@ export async function apiFetch(path, opts = {}) {
 
 export const api = {
   signup: (body) => apiFetch('/auth/signup', { method: 'POST', body: JSON.stringify(body) }),
+  verifyEmail: (body) => apiFetch('/auth/verify', { method: 'POST', body: JSON.stringify(body) }),
+  resendCode: (username) => apiFetch('/auth/resend-code', { method: 'POST', body: JSON.stringify({ username }) }),
   login: (body) => apiFetch('/auth/login', { method: 'POST', body: JSON.stringify(body) }),
   getPublicProfile: (username) => apiFetch(`/profile/${username}`),
   updateProfile: (body) => apiFetch('/profile', { method: 'PUT', body: JSON.stringify(body) }),
