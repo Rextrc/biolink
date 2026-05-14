@@ -59,7 +59,7 @@ export default function Signup() {
                 type="text"
                 value={form.username}
                 onChange={e => setForm(p => ({ ...p, username: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '') }))}
-                className="w-full bg-white/4 border border-white/8 hover:border-white/14 focus:border-indigo-500/60 rounded-xl pl-24 pr-10 py-3 text-sm outline-none transition-colors placeholder:text-white/20"
+                className="w-full bg-white/4 border border-white/8 hover:border-white/14 focus:border-indigo-500/60 rounded-xl pl-24 pr-10 py-3 text-sm text-white outline-none transition-colors placeholder:text-white/20"
                 placeholder="yourname"
                 required
               />
@@ -80,7 +80,7 @@ export default function Signup() {
               type="email"
               value={form.email}
               onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
-              className="w-full bg-white/4 border border-white/8 hover:border-white/14 focus:border-indigo-500/60 rounded-xl px-4 py-3 text-sm outline-none transition-colors placeholder:text-white/20"
+              className="w-full bg-white/4 border border-white/8 hover:border-white/14 focus:border-indigo-500/60 rounded-xl px-4 py-3 text-sm text-white outline-none transition-colors placeholder:text-white/20"
               placeholder="you@example.com"
               required
             />
@@ -92,7 +92,7 @@ export default function Signup() {
               type="password"
               value={form.password}
               onChange={e => setForm(p => ({ ...p, password: e.target.value }))}
-              className="w-full bg-white/4 border border-white/8 hover:border-white/14 focus:border-indigo-500/60 rounded-xl px-4 py-3 text-sm outline-none transition-colors placeholder:text-white/20"
+              className="w-full bg-white/4 border border-white/8 hover:border-white/14 focus:border-indigo-500/60 rounded-xl px-4 py-3 text-sm text-white outline-none transition-colors placeholder:text-white/20"
               placeholder="Min 6 characters"
               required
             />
