@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../utils/api';
 import { getAuth } from '../utils/auth';
-import { Users, Trash2, Shield, ShieldOff, KeyRound, ExternalLink, BarChart2, Zap } from 'lucide-react';
+import { Users, Trash2, Shield, ShieldOff, KeyRound, ExternalLink, Zap } from 'lucide-react';
 
 export default function Admin() {
   const navigate = useNavigate();
@@ -36,7 +36,7 @@ export default function Admin() {
   }
 
   async function deleteUser(id) {
-    if (!confirm('Delete this user and all their data? This cannot be undone.')) return;
+    if (!confirm('Delete this user and all their data? Cannot be undone.')) return;
     await api.admin.deleteUser(id);
     setSelected(null);
     setDetail(null);
@@ -56,119 +56,90 @@ export default function Admin() {
     setPwInput('');
   }
 
-  const stat = (label, val, icon) => (
-    <div style={{ background: '#111', border: '1px solid #222', borderRadius: 12, padding: '16px 20px', flex: 1, minWidth: 120 }}>
-      <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>{label}</div>
-      <div style={{ fontSize: 28, fontWeight: 700, color: '#fff' }}>{val ?? '—'}</div>
+  const Row = ({ label, value, mono }) => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1 }}>{label}</span>
+      <span style={{ fontSize: 12, color: '#fff', fontFamily: mono ? 'monospace' : 'inherit', wordBreak: 'break-all' }}>{value || '—'}</span>
     </div>
   );
 
   return (
     <div style={{ minHeight: '100vh', background: '#0a0a0a', color: '#fff', fontFamily: 'Inter, sans-serif' }}>
       {/* Header */}
-      <div style={{ borderBottom: '1px solid #1a1a1a', padding: '16px 24px', display: 'flex', alignItems: 'center', gap: 10 }}>
-        <Zap size={18} color="#6366f1" />
-        <span style={{ fontWeight: 700, fontSize: 16 }}>olik</span>
-        <span style={{ color: '#444', margin: '0 6px' }}>/</span>
-        <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14 }}>God Mode</span>
-        <div style={{ marginLeft: 'auto' }}>
-          <button onClick={() => navigate('/dashboard')} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid #222', color: 'rgba(255,255,255,0.6)', borderRadius: 8, padding: '6px 14px', fontSize: 13, cursor: 'pointer' }}>
-            Dashboard
-          </button>
-        </div>
+      <div style={{ borderBottom: '1px solid #1a1a1a', padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 10 }}>
+        <Zap size={16} color="#6366f1" />
+        <span style={{ fontWeight: 700 }}>olik</span>
+        <span style={{ color: '#333', margin: '0 4px' }}>/</span>
+        <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>God Mode</span>
+        <button onClick={() => navigate('/dashboard')} style={{ marginLeft: 'auto', background: 'rgba(255,255,255,0.05)', border: '1px solid #222', color: 'rgba(255,255,255,0.5)', borderRadius: 8, padding: '5px 12px', fontSize: 12, cursor: 'pointer' }}>
+          Dashboard
+        </button>
       </div>
 
-      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '28px 24px' }}>
+      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '24px 16px' }}>
         {/* Stats */}
-        <div style={{ display: 'flex', gap: 12, marginBottom: 28, flexWrap: 'wrap' }}>
-          {stat('Total Users', stats?.total_users)}
-          {stat('Total Links', stats?.total_links)}
-          {stat('New Today', stats?.new_today)}
+        <div style={{ display: 'flex', gap: 10, marginBottom: 24, flexWrap: 'wrap' }}>
+          {[['Total Users', stats?.total_users], ['Total Links', stats?.total_links], ['New Today', stats?.new_today]].map(([label, val]) => (
+            <div key={label} style={{ flex: 1, minWidth: 100, background: '#111', border: '1px solid #1e1e1e', borderRadius: 12, padding: '14px 18px' }}>
+              <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>{label}</div>
+              <div style={{ fontSize: 26, fontWeight: 700 }}>{val ?? '—'}</div>
+            </div>
+          ))}
         </div>
 
-        <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+        <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start', flexWrap: 'wrap' }}>
           {/* User list */}
-          <div style={{ flex: 1, background: '#111', border: '1px solid #1e1e1e', borderRadius: 14, overflow: 'hidden' }}>
-            <div style={{ padding: '14px 18px', borderBottom: '1px solid #1e1e1e', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Users size={15} color="#6366f1" />
-              <span style={{ fontWeight: 600, fontSize: 14 }}>All Users</span>
-              <span style={{ marginLeft: 'auto', background: '#1e1e2e', color: '#6366f1', borderRadius: 20, padding: '2px 10px', fontSize: 12 }}>{users.length}</span>
+          <div style={{ flex: 1, minWidth: 280, background: '#111', border: '1px solid #1e1e1e', borderRadius: 14, overflow: 'hidden' }}>
+            <div style={{ padding: '12px 16px', borderBottom: '1px solid #1e1e1e', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Users size={14} color="#6366f1" />
+              <span style={{ fontWeight: 600, fontSize: 13 }}>All Users</span>
+              <span style={{ marginLeft: 'auto', background: '#1a1a2e', color: '#6366f1', borderRadius: 20, padding: '2px 8px', fontSize: 11 }}>{users.length}</span>
             </div>
-            {users.length === 0 && (
-              <div style={{ padding: 32, textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: 13 }}>No users yet</div>
-            )}
             {users.map(u => (
-              <div
-                key={u.id}
-                onClick={() => openUser(u.id)}
-                style={{
-                  padding: '12px 18px', borderBottom: '1px solid #161616', cursor: 'pointer',
-                  background: selected === u.id ? 'rgba(99,102,241,0.08)' : 'transparent',
-                  display: 'flex', alignItems: 'center', gap: 10, transition: 'background 0.15s'
-                }}
-              >
-                {u.avatar_url
-                  ? <img src={u.avatar_url} style={{ width: 34, height: 34, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
-                  : <div style={{ width: 34, height: 34, borderRadius: '50%', background: '#1e1e2e', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 600, color: '#6366f1', flexShrink: 0 }}>
-                      {u.username[0].toUpperCase()}
-                    </div>
-                }
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 500, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    {u.username}
-                    {u.is_admin ? <Shield size={11} color="#6366f1" /> : null}
-                  </div>
-                  <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11, marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.email}</div>
+              <div key={u.id} onClick={() => openUser(u.id)} style={{ padding: '10px 16px', borderBottom: '1px solid #161616', cursor: 'pointer', background: selected === u.id ? 'rgba(99,102,241,0.07)' : 'transparent', display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#1a1a2e', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#6366f1', flexShrink: 0 }}>
+                  {u.username[0].toUpperCase()}
                 </div>
-                <div style={{ color: 'rgba(255,255,255,0.25)', fontSize: 11, flexShrink: 0 }}>{u.link_count} links</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 5 }}>
+                    {u.username}
+                    {u.is_admin ? <Shield size={10} color="#6366f1" /> : null}
+                  </div>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.email}</div>
+                </div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', flexShrink: 0 }}>{u.link_count}L</div>
               </div>
             ))}
+            {users.length === 0 && <div style={{ padding: 28, textAlign: 'center', color: 'rgba(255,255,255,0.2)', fontSize: 13 }}>No users</div>}
           </div>
 
-          {/* User detail panel */}
+          {/* Detail panel */}
           {detail && (
-            <div style={{ width: 340, background: '#111', border: '1px solid #1e1e1e', borderRadius: 14, overflow: 'hidden', flexShrink: 0 }}>
-              <div style={{ padding: '14px 18px', borderBottom: '1px solid #1e1e1e', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontWeight: 600, fontSize: 14 }}>@{detail.username}</span>
-                <a href={`/${detail.username}`} target="_blank" rel="noreferrer" style={{ marginLeft: 'auto', color: 'rgba(255,255,255,0.3)' }}><ExternalLink size={13} /></a>
+            <div style={{ width: 320, background: '#111', border: '1px solid #1e1e1e', borderRadius: 14, overflow: 'hidden', flexShrink: 0 }}>
+              {/* Top bar */}
+              <div style={{ padding: '12px 16px', borderBottom: '1px solid #1e1e1e', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontWeight: 600, fontSize: 13 }}>@{detail.username}</span>
+                <a href={`https://olik.app/${detail.username}`} target="_blank" rel="noreferrer" style={{ marginLeft: 'auto', color: 'rgba(255,255,255,0.25)' }}><ExternalLink size={13} /></a>
               </div>
 
-              <div style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
-                {/* Info */}
-                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <div>ID: {detail.id}</div>
-                  <div>Email: {detail.email}</div>
-                  <div>Joined: {new Date(detail.created_at).toLocaleDateString()}</div>
-                  <div>Links: {detail.links?.length ?? 0}</div>
-                </div>
+              <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {/* Info rows */}
+                <Row label="Email" value={detail.email} />
+                <Row label="Profile URL" value={`olik.app/${detail.username}`} mono />
+                <Row label="Signup IP" value={detail.signup_ip} mono />
+                <Row label="Last Login IP" value={detail.last_ip} mono />
+                <Row label="Joined" value={detail.created_at ? new Date(detail.created_at).toLocaleString() : null} />
+                <Row label="Links" value={detail.links?.length ?? 0} />
 
-                <hr style={{ border: 'none', borderTop: '1px solid #1e1e1e' }} />
-
-                {/* Reset Password */}
-                <div>
-                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }}>Reset Password</div>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <input
-                      value={pwInput}
-                      onChange={e => setPwInput(e.target.value)}
-                      placeholder="New password"
-                      style={{ flex: 1, background: '#161616', border: '1px solid #2a2a2a', borderRadius: 8, padding: '7px 10px', color: '#fff', fontSize: 12, outline: 'none' }}
-                    />
-                    <button onClick={() => resetPw(detail.id)} style={{ background: '#1e1e2e', border: '1px solid #2a2a2a', color: '#6366f1', borderRadius: 8, padding: '7px 12px', cursor: 'pointer', fontSize: 12 }}>
-                      <KeyRound size={13} />
-                    </button>
-                  </div>
-                  {msg && <div style={{ fontSize: 11, color: '#6ee7b7', marginTop: 4 }}>{msg}</div>}
-                </div>
-
-                {/* Links */}
+                {/* Links list */}
                 {detail.links?.length > 0 && (
                   <div>
-                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }}>Links</div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 140, overflowY: 'auto' }}>
+                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>All Links</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 3, maxHeight: 120, overflowY: 'auto' }}>
                       {detail.links.map(l => (
-                        <div key={l.id} style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', background: '#161616', borderRadius: 6, padding: '5px 8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {l.title || l.url}
+                        <div key={l.id} style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', background: '#161616', borderRadius: 6, padding: '4px 8px', display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.title || l.url}</span>
+                          <a href={l.url} target="_blank" rel="noreferrer" style={{ color: '#6366f1', flexShrink: 0 }}><ExternalLink size={10} /></a>
                         </div>
                       ))}
                     </div>
@@ -177,19 +148,27 @@ export default function Admin() {
 
                 <hr style={{ border: 'none', borderTop: '1px solid #1e1e1e' }} />
 
+                {/* Reset password */}
+                <div>
+                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Reset Password</div>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <input value={pwInput} onChange={e => setPwInput(e.target.value)} placeholder="New password" style={{ flex: 1, background: '#161616', border: '1px solid #2a2a2a', borderRadius: 8, padding: '7px 10px', color: '#fff', fontSize: 12, outline: 'none' }} />
+                    <button onClick={() => resetPw(detail.id)} style={{ background: '#1a1a2e', border: '1px solid #2a2a3e', color: '#6366f1', borderRadius: 8, padding: '7px 10px', cursor: 'pointer' }}>
+                      <KeyRound size={13} />
+                    </button>
+                  </div>
+                  {msg && <div style={{ fontSize: 11, color: '#6ee7b7', marginTop: 4 }}>{msg}</div>}
+                </div>
+
+                <hr style={{ border: 'none', borderTop: '1px solid #1e1e1e' }} />
+
                 {/* Actions */}
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <button
-                    onClick={() => toggleAdmin(detail.id)}
-                    style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: '#1e1e2e', border: '1px solid #2a2a3e', color: '#6366f1', borderRadius: 8, padding: '8px 0', fontSize: 12, cursor: 'pointer' }}
-                  >
-                    {detail.is_admin ? <><ShieldOff size={13} /> Remove Admin</> : <><Shield size={13} /> Make Admin</>}
+                  <button onClick={() => toggleAdmin(detail.id)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, background: '#1a1a2e', border: '1px solid #2a2a3e', color: '#6366f1', borderRadius: 8, padding: '8px 0', fontSize: 12, cursor: 'pointer' }}>
+                    {detail.is_admin ? <><ShieldOff size={12} /> Remove Admin</> : <><Shield size={12} /> Make Admin</>}
                   </button>
-                  <button
-                    onClick={() => deleteUser(detail.id)}
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#f87171', borderRadius: 8, padding: '8px 14px', fontSize: 12, cursor: 'pointer' }}
-                  >
-                    <Trash2 size={13} />
+                  <button onClick={() => deleteUser(detail.id)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.2)', color: '#f87171', borderRadius: 8, padding: '8px 14px', fontSize: 12, cursor: 'pointer' }}>
+                    <Trash2 size={13} /> Delete
                   </button>
                 </div>
               </div>

@@ -9,7 +9,7 @@ router.use(adminAuth);
 // List all users
 router.get('/users', (req, res) => {
   const users = db.prepare(`
-    SELECT u.id, u.username, u.email, u.is_admin, u.created_at,
+    SELECT u.id, u.username, u.email, u.is_admin, u.created_at, u.signup_ip, u.last_ip,
            p.display_name, p.avatar_url, p.bio,
            (SELECT COUNT(*) FROM links WHERE user_id = u.id) AS link_count
     FROM users u
@@ -22,7 +22,7 @@ router.get('/users', (req, res) => {
 // Get single user detail
 router.get('/users/:id', (req, res) => {
   const user = db.prepare(`
-    SELECT u.id, u.username, u.email, u.is_admin, u.created_at,
+    SELECT u.id, u.username, u.email, u.is_admin, u.created_at, u.signup_ip, u.last_ip,
            p.display_name, p.avatar_url, p.bio, p.banner_url
     FROM users u LEFT JOIN profiles p ON p.user_id = u.id
     WHERE u.id = ?
