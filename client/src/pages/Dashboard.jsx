@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Zap, User, Link2, Palette, ExternalLink, LogOut,
   Plus, Trash2, Eye, EyeOff, GripVertical, Search,
-  ChevronDown, X, Save, Check,
+  ChevronDown, X, Save, Check, Home, Upload,
 } from 'lucide-react';
 import { api } from '../utils/api';
 import { getAuth, clearAuth } from '../utils/auth';
@@ -207,18 +207,18 @@ function SortableRow({ link, onToggle, onDelete, onEdit }) {
 }
 
 /* ══ Sidebar ════════════════════════════════════════════════════ */
-const SIDEBAR_ITEMS = [
-  { icon: User,         id: 's-profile', title: 'Profile'  },
-  { icon: Link2,        id: 's-links',   title: 'Links'    },
-  { icon: Palette,      id: 's-design',  title: 'Design'   },
-];
+function Sidebar({ username, onLogout, view, setView }) {
+  const navItems = [
+    { icon: Home,    id: 'home',      title: 'Home'    },
+    { icon: User,    id: 's-profile', title: 'Profile' },
+    { icon: Link2,   id: 's-links',   title: 'Links'   },
+    { icon: Palette, id: 's-design',  title: 'Design'  },
+  ];
 
-function Sidebar({ username, onLogout }) {
-  const [active, setActive] = useState('s-profile');
-
-  const scrollTo = (id) => {
-    setActive(id);
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const handleClick = (id) => {
+    if (id === 'home') { setView('home'); return; }
+    setView('edit');
+    setTimeout(() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
   };
 
   return (
@@ -228,45 +228,120 @@ function Sidebar({ username, onLogout }) {
       paddingTop: 18, paddingBottom: 18, gap: 3,
       position: 'sticky', top: 0, height: '100vh', zIndex: 60,
     }}>
-      {/* Logo */}
-      <div style={{ marginBottom: 18 }}>
-        <Zap size={19} color={ACCENT} />
-      </div>
-
-      {SIDEBAR_ITEMS.map(({ icon: Icon, id, title }) => {
-        const isActive = active === id;
+      <div style={{ marginBottom: 18 }}><Zap size={19} color={ACCENT} /></div>
+      {navItems.map(({ icon: Icon, id, title }) => {
+        const isActive = id === 'home' ? view === 'home' : view === 'edit';
         return (
-          <button key={id} onClick={() => scrollTo(id)} title={title}
-            style={{
-              width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: isActive ? `${ACCENT}20` : 'none', border: 'none', cursor: 'pointer',
-              color: isActive ? ACCENT : 'rgba(255,255,255,0.3)',
-              transition: 'all 0.15s',
-            }}
-            onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'rgba(255,255,255,0.7)'; } }}
-            onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'rgba(255,255,255,0.3)'; } }}
-          >
+          <button key={id} onClick={() => handleClick(id)} title={title}
+            style={{ width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: isActive && (id === 'home' ? view === 'home' : view === 'edit') ? `${ACCENT}20` : 'none', border: 'none', cursor: 'pointer', color: isActive ? ACCENT : 'rgba(255,255,255,0.3)', transition: 'all 0.15s' }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'rgba(255,255,255,0.7)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = isActive ? ACCENT : 'rgba(255,255,255,0.3)'; }}>
             <Icon size={16} />
           </button>
         );
       })}
-
       <div style={{ flex: 1 }} />
-
-      {/* View bio */}
       <a href={`/${username}`} target="_blank" rel="noreferrer" title="View Bio"
         style={{ width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.3)', textDecoration: 'none' }}
         onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = '#fff'; }}
         onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'rgba(255,255,255,0.3)'; }}>
         <ExternalLink size={15} />
       </a>
-      {/* Logout */}
       <button onClick={onLogout} title="Logout"
         style={{ width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.3)', transition: 'all 0.15s' }}
         onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = '#fff'; }}
         onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'rgba(255,255,255,0.3)'; }}>
         <LogOut size={15} />
       </button>
+    </div>
+  );
+}
+
+/* ══ Image Upload Button ════════════════════════════════════════ */
+function ImageUpload({ value, onChange, shape = 'circle', label }) {
+  const [uploading, setUploading] = useState(false);
+  const inputRef = useState(null);
+
+  const pick = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/upload', { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: form });
+      const data = await res.json();
+      if (data.url) onChange(data.url);
+    } catch {}
+    finally { setUploading(false); }
+  };
+
+  const isCircle = shape === 'circle';
+  return (
+    <label style={{ display: 'block', cursor: 'pointer', position: 'relative' }}>
+      <input type="file" accept="image/*" onChange={pick} style={{ display: 'none' }} />
+      {value ? (
+        <div style={{ position: 'relative', display: 'inline-block' }}>
+          <img src={value} alt="" style={{ width: isCircle ? 72 : '100%', height: isCircle ? 72 : 80, borderRadius: isCircle ? '50%' : 10, objectFit: 'cover', border: `2px solid ${BORDER}`, display: 'block' }} />
+          <div style={{ position: 'absolute', inset: 0, borderRadius: isCircle ? '50%' : 10, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'opacity 0.2s' }}
+            onMouseEnter={e => e.currentTarget.style.opacity = 1}
+            onMouseLeave={e => e.currentTarget.style.opacity = 0}>
+            <Upload size={16} color="#fff" />
+          </div>
+        </div>
+      ) : (
+        <div style={{ width: isCircle ? 72 : '100%', height: isCircle ? 72 : 80, borderRadius: isCircle ? '50%' : 10, border: `2px dashed rgba(255,255,255,0.15)`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, color: 'rgba(255,255,255,0.3)', fontSize: 11 }}>
+          {uploading ? <div className="w-4 h-4 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" /> : <><Upload size={16} />{label}</>}
+        </div>
+      )}
+      {uploading && <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div className="w-4 h-4 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" /></div>}
+    </label>
+  );
+}
+
+/* ══ Home screen ════════════════════════════════════════════════ */
+function HomeScreen({ username, profile, links, setView }) {
+  const totalLinks = links.length;
+  const visibleLinks = links.filter(l => l.visible).length;
+
+  return (
+    <div style={{ maxWidth: 600, margin: '0 auto', padding: '48px 24px' }}>
+      {/* Profile card */}
+      <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 20, padding: '32px 28px', marginBottom: 20, textAlign: 'center' }}>
+        {profile.avatar_url ? (
+          <img src={profile.avatar_url} alt="" style={{ width: 80, height: 80, borderRadius: '50%', objectFit: 'cover', margin: '0 auto 14px', display: 'block', border: `2px solid ${BORDER}` }} />
+        ) : (
+          <div style={{ width: 80, height: 80, borderRadius: '50%', background: '#1a1a2e', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px', fontSize: 28, fontWeight: 700, color: ACCENT }}>
+            {username?.[0]?.toUpperCase()}
+          </div>
+        )}
+        <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 4 }}>{profile.display_name || `@${username}`}</div>
+        {profile.bio && <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginBottom: 16, lineHeight: 1.5 }}>{profile.bio}</div>}
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 8, padding: '6px 12px', fontSize: 12, color: '#818cf8' }}>
+          olik.app/{username}
+        </div>
+      </div>
+
+      {/* Stats row */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
+        {[['Total Links', totalLinks], ['Visible', visibleLinks]].map(([label, val]) => (
+          <div key={label} style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 14, padding: '18px 20px' }}>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>{label}</div>
+            <div style={{ fontSize: 28, fontWeight: 700 }}>{val}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Actions */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <button onClick={() => setView('edit')} style={{ width: '100%', background: ACCENT, border: 'none', color: '#fff', borderRadius: 12, padding: '14px', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+          Edit Profile & Links
+        </button>
+        <a href={`/${username}`} target="_blank" rel="noreferrer" style={{ display: 'block', width: '100%', background: 'rgba(255,255,255,0.05)', border: `1px solid ${BORDER}`, color: 'rgba(255,255,255,0.7)', borderRadius: 12, padding: '13px', fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'none', textAlign: 'center' }}>
+          View My Page
+        </a>
+      </div>
     </div>
   );
 }
@@ -302,6 +377,7 @@ export default function Dashboard() {
   const { username } = getAuth();
   const navigate = useNavigate();
 
+  const [view,     setView]     = useState('home');
   const [loading,  setLoading]  = useState(true);
   const [saving,   setSaving]   = useState(false);
   const [saved,    setSaved]    = useState(false);
@@ -401,10 +477,12 @@ export default function Dashboard() {
     <div style={{ display: 'flex', minHeight: '100vh', background: BG, color: '#fff', fontFamily: "'Inter', sans-serif" }}>
 
       {/* ─── Sidebar ──────────────────────────────── */}
-      <Sidebar username={username} onLogout={() => { clearAuth(); navigate('/'); }} />
+      <Sidebar username={username} onLogout={() => { clearAuth(); navigate('/'); }} view={view} setView={setView} />
 
       {/* ─── Main content ─────────────────────────── */}
       <div style={{ flex: 1, minWidth: 0, overflowY: 'auto' }}>
+        {view === 'home' && <HomeScreen username={username} profile={profile} links={links} setView={setView} />}
+        {view === 'edit' && (<>
 
         {/* Sticky top bar */}
         <div style={{
@@ -462,20 +540,14 @@ export default function Dashboard() {
 
               {/* Avatar */}
               <div>
-                <Label>Avatar URL</Label>
-                <SInput value={profile.avatar_url} onChange={v => setProfile(p => ({ ...p, avatar_url: v }))} placeholder="https://…" />
-                {profile.avatar_url && (
-                  <img src={profile.avatar_url} alt="" style={{ marginTop: 10, width: 52, height: 52, borderRadius: '50%', objectFit: 'cover', border: `2px solid ${BORDER}` }} />
-                )}
+                <Label>Avatar</Label>
+                <ImageUpload value={profile.avatar_url} onChange={v => setProfile(p => ({ ...p, avatar_url: v }))} shape="circle" label="Upload photo" />
               </div>
 
               {/* Banner */}
               <div>
-                <Label>Banner URL <span style={{ textTransform: 'none', letterSpacing: 0, fontWeight: 400, color: 'rgba(255,255,255,0.2)' }}>— wide image (blurs as background)</span></Label>
-                <SInput value={profile.banner_url} onChange={v => setProfile(p => ({ ...p, banner_url: v }))} placeholder="https://…" />
-                {profile.banner_url && (
-                  <img src={profile.banner_url} alt="" style={{ marginTop: 10, width: '100%', height: 72, borderRadius: 8, objectFit: 'cover', border: `1px solid ${BORDER}` }} />
-                )}
+                <Label>Banner</Label>
+                <ImageUpload value={profile.banner_url} onChange={v => setProfile(p => ({ ...p, banner_url: v }))} shape="banner" label="Upload banner" />
               </div>
 
               {/* Display name */}
@@ -715,6 +787,7 @@ export default function Dashboard() {
             </div>
           )}
         </div>
+        </>)}
       </div>
     </div>
   );
