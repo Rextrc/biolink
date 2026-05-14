@@ -10,7 +10,7 @@ import { getAuth, clearAuth } from '../utils/auth';
 import { PLATFORMS } from '../utils/platforms';
 import { SocialIconSvg } from '../utils/social-icons.jsx';
 import {
-  DndContext, closestCenter, PointerSensor, useSensor, useSensors,
+  DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors,
 } from '@dnd-kit/core';
 import {
   SortableContext, verticalListSortingStrategy, useSortable, arrayMove,
@@ -314,7 +314,10 @@ export default function Dashboard() {
   const [addingPlatform,  setAddingPlatform]  = useState(null);
   const [handleInput,     setHandleInput]     = useState('');
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } })
+  );
 
   useEffect(() => {
     Promise.all([api.getPublicProfile(username), api.getDesign()])

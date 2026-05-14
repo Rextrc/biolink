@@ -7,10 +7,21 @@
 body {
   background: #0a0a0a;
   color: #fff;
-  /* emoji-aware font stack */
   font-family: 'Inter', 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* prevent elastic overscroll on iOS */
+  overscroll-behavior: none;
+}
+
+/* Prevent iOS from zooming in on inputs (requires font-size >= 16px) */
+input, textarea, select {
+  font-size: 16px !important;
+}
+
+/* Safe area padding for iPhone notch / home bar */
+#root {
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 /* ── Animated gradient bg ──────────────────────────────────────── */
