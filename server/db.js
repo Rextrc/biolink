@@ -12,7 +12,7 @@
 const path   = require('path');
 const fs     = require('fs');
 
-const DB_PATH = path.join(__dirname, 'bio.db');
+const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'bio.db');
 
 let _sql  = null;   // raw sql.js Database instance
 let _inTx = false;  // suppresses per-statement save() inside transactions
