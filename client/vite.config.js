@@ -5,8 +5,18 @@ import legacy from '@vitejs/plugin-legacy'
 export default defineConfig({
   plugins: [
     react(),
-    legacy({ targets: ['ios >= 13', 'safari >= 13'] }),
+    legacy({ targets: ['ios >= 15', 'safari >= 15'] }),
   ],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          react: ['react', 'react-dom', 'react-router-dom'],
+          dnd: ['@dnd-kit/core', '@dnd-kit/sortable', '@dnd-kit/utilities'],
+        }
+      }
+    }
+  },
   server: {
     proxy: {
       '/api': 'http://localhost:3001'
