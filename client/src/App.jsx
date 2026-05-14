@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
 import Admin from './pages/Admin';
 import Verify from './pages/Verify';
+import Inbox from './pages/Inbox';
 import { getAuth } from './utils/auth';
 
 function PrivateRoute({ children }) {
@@ -37,6 +38,7 @@ export default function App() {
         <Route path="/verify" element={<Verify />} />
         <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
         <Route path="/god" element={<AdminRoute><Admin /></AdminRoute>} />
+        <Route path="/inbox" element={<AdminRoute><Inbox /></AdminRoute>} />
         <Route path="/:username" element={<Profile />} />
       </Routes>
     </BrowserRouter>

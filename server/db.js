@@ -186,6 +186,20 @@ async function init() {
   try { _sql.run('ALTER TABLE design ADD COLUMN social_icon_color TEXT DEFAULT NULL'); } catch {}
   try { _sql.run('ALTER TABLE profiles ADD COLUMN banner_url TEXT DEFAULT NULL'); } catch {}
   try { _sql.run('ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0'); } catch {}
+  try {
+    _sql.run(`CREATE TABLE IF NOT EXISTS emails (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      direction   TEXT NOT NULL DEFAULT 'in',
+      from_email  TEXT,
+      from_name   TEXT,
+      to_email    TEXT,
+      subject     TEXT,
+      body_text   TEXT,
+      body_html   TEXT,
+      is_read     INTEGER DEFAULT 0,
+      received_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
+  } catch {}
   try { _sql.run('ALTER TABLE users ADD COLUMN signup_ip TEXT'); } catch {}
   try { _sql.run('ALTER TABLE users ADD COLUMN last_ip TEXT'); } catch {}
   try { _sql.run('ALTER TABLE users ADD COLUMN email_verified INTEGER DEFAULT 0'); } catch {}

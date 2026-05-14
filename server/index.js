@@ -18,6 +18,7 @@ app.use('/api/profile', require('./routes/profile'));
 app.use('/api/design',  require('./routes/design'));
 app.use('/api/links',   require('./routes/links'));
 app.use('/api/admin',   require('./routes/admin'));
+app.use('/api/inbox',   require('./routes/inbox'));
 app.use('/api/upload',  require('./routes/upload'));
 
 // Serve uploaded images
