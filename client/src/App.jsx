@@ -12,6 +12,13 @@ function PrivateRoute({ children }) {
   return isLoggedIn ? children : <Navigate to="/login" />;
 }
 
+function AdminRoute({ children }) {
+  const { isLoggedIn, isAdmin } = getAuth();
+  if (!isLoggedIn) return <Navigate to="/login" />;
+  if (!isAdmin) return <Navigate to="/dashboard" />;
+  return children;
+}
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -20,7 +27,7 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
-        <Route path="/god" element={<PrivateRoute><Admin /></PrivateRoute>} />
+        <Route path="/god" element={<AdminRoute><Admin /></AdminRoute>} />
         <Route path="/:username" element={<Profile />} />
       </Routes>
     </BrowserRouter>

@@ -15,7 +15,7 @@ export default function Login() {
     setError(''); setLoading(true);
     try {
       const data = await api.login(form);
-      setAuth(data.token, data.username);
+      setAuth(data.token, data.username, data.isAdmin);
       navigate('/dashboard');
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
