@@ -25,7 +25,7 @@ export default function Landing() {
       <nav className="relative flex items-center justify-between px-6 py-5 max-w-6xl mx-auto">
         <div className="flex items-center gap-2">
           <Zap className="text-indigo-400" size={22} />
-          <span className="font-bold text-lg tracking-tight">BioLink</span>
+          <span className="font-bold text-lg tracking-tight">olik</span>
         </div>
         <div className="flex gap-3">
           <Link to="/login" className="text-sm text-white/50 hover:text-white px-4 py-2 transition-colors">Log in</Link>
@@ -50,7 +50,7 @@ export default function Landing() {
 
           <form onSubmit={handleClaim} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto lg:mx-0">
             <div className="flex-1 flex items-center bg-white/5 border border-white/10 hover:border-white/20 rounded-full px-5 py-3 transition-colors focus-within:border-indigo-500/60">
-              <span className="text-white/25 text-sm mr-1 shrink-0">biolink.me/</span>
+              <span className="text-white/25 text-sm mr-1 shrink-0">olik.app/</span>
               <input
                 type="text"
                 value={username}
@@ -165,7 +165,7 @@ export default function Landing() {
               <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[400px] h-[200px] rounded-full bg-indigo-600/10 blur-[80px]" />
             </div>
             <h2 className="relative text-3xl font-bold tracking-tight mb-3">Ready to get started?</h2>
-            <p className="relative text-white/38 mb-8 text-base">Join thousands of creators already using BioLink.</p>
+            <p className="relative text-white/38 mb-8 text-base">Join thousands of creators already using olik.</p>
             <Link
               to="/signup"
               className="relative inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 px-9 py-3.5 rounded-full font-medium transition-all hover:scale-105 hover:shadow-xl hover:shadow-indigo-500/30 text-sm"

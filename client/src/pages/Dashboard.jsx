@@ -451,7 +451,7 @@ export default function Dashboard() {
                 <Label>Your URL</Label>
                 <div style={{ display: 'flex', borderRadius: 8, border: `1px solid ${INPUT_B}`, overflow: 'hidden' }}>
                   <span style={{ padding: '10px 12px', background: '#141414', color: 'rgba(255,255,255,0.25)', fontSize: 13, whiteSpace: 'nowrap', borderRight: `1px solid ${INPUT_B}` }}>
-                    biolink.me/
+                    olik.app/
                   </span>
                   <input readOnly value={username || ''} style={{ flex: 1, background: '#141414', border: 'none', color: 'rgba(255,255,255,0.35)', fontSize: 13, padding: '10px 12px', outline: 'none', fontFamily: 'inherit' }} />
                 </div>

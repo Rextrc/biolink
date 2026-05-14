@@ -38,7 +38,7 @@ export default function Signup() {
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2 mb-7">
             <Zap size={20} className="text-indigo-400" />
-            <span className="font-bold text-white text-lg tracking-tight">BioLink</span>
+            <span className="font-bold text-white text-lg tracking-tight">olik</span>
           </Link>
           <h1 className="text-2xl font-bold tracking-tight">Create your page</h1>
           <p className="text-white/38 text-sm mt-1.5">Free forever, no credit card needed</p>
@@ -54,7 +54,7 @@ export default function Signup() {
           <div className="flex flex-col gap-1.5">
             <label className="text-white/45 text-xs font-medium tracking-wide uppercase">Username</label>
             <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/25 text-sm pointer-events-none">biolink.me/</span>
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/25 text-sm pointer-events-none">olik.app/</span>
               <input
                 type="text"
                 value={form.username}

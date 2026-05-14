@@ -32,7 +32,7 @@ export default function Login() {
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2 mb-7 group">
             <Zap size={20} className="text-indigo-400" />
-            <span className="font-bold text-white text-lg tracking-tight">BioLink</span>
+            <span className="font-bold text-white text-lg tracking-tight">olik</span>
           </Link>
           <h1 className="text-2xl font-bold tracking-tight">Welcome back</h1>
           <p className="text-white/38 text-sm mt-1.5">Sign in to your account</p>
