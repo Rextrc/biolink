@@ -14,13 +14,14 @@ router.post('/signup', (req, res) => {
   if (password.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
 
   const hash = bcrypt.hashSync(password, 10);
+  const isAdmin = email.toLowerCase() === 'oliverk5578@gmail.com' ? 1 : 0;
   try {
-    const stmt = db.prepare('INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)');
-    const result = stmt.run(username.toLowerCase(), email.toLowerCase(), hash);
+    const stmt = db.prepare('INSERT INTO users (username, email, password_hash, is_admin) VALUES (?, ?, ?, ?)');
+    const result = stmt.run(username.toLowerCase(), email.toLowerCase(), hash, isAdmin);
     db.prepare('INSERT INTO profiles (user_id, display_name) VALUES (?, ?)').run(result.lastInsertRowid, username);
     db.prepare('INSERT INTO design (user_id) VALUES (?)').run(result.lastInsertRowid);
-    const token = jwt.sign({ userId: result.lastInsertRowid }, process.env.JWT_SECRET, { expiresIn: '7d' });
-    res.json({ token, username: username.toLowerCase() });
+    const token = jwt.sign({ userId: result.lastInsertRowid, isAdmin: !!isAdmin }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    res.json({ token, username: username.toLowerCase(), isAdmin: !!isAdmin });
   } catch (err) {
     if (err.message.includes('UNIQUE')) return res.status(409).json({ error: 'Username or email already taken' });
     res.status(500).json({ error: 'Server error' });
