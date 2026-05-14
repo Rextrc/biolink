@@ -98,7 +98,7 @@ export default function Landing() {
                 <div className="absolute inset-0 rounded-full ring-1 ring-purple-400/20" />
               </div>
               <div className="text-center">
-                <div className="font-semibold text-sm text-white">Alex Rivers</div>
+                <div className="font-semibold text-sm text-white">@olik</div>
                 <div className="text-xs mt-0.5 text-purple-300/80">Creator · Designer · Dreamer ✨</div>
               </div>
               <div className="w-full flex flex-col gap-2.5 mt-1">
