@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(where msbuild *)",
+      "Bash(where cl *)",
+      "Bash(node -e \"console.log\\(process.arch, process.platform, process.version\\)\")",
+      "Bash(node -e \"const db = require\\('./db'\\); console.log\\('DB OK'\\);\")",
+      "Bash(npm uninstall *)",
+      "Bash(node -e \"const s = require\\('sql.js'\\); console.log\\(typeof s\\);\")",
+      "Bash(timeout 8 node index.js)",
+      "Bash(npm run *)",
+      "Bash(node index.js)",
+      "Bash(curl -s -X POST http://localhost:3001/api/auth/signup -H \"Content-Type: application/json\" -d \"{\\\\\"username\\\\\":\\\\\"testuser\\\\\",\\\\\"email\\\\\":\\\\\"test@test.com\\\\\",\\\\\"password\\\\\":\\\\\"secret123\\\\\"}\")",
+      "Bash(node -e \"const d=JSON.parse\\(require\\('fs'\\).readFileSync\\('/dev/stdin','utf8'\\)\\); console.log\\('signup token?', !!d.token, '| username:', d.username\\)\")",
+      "Bash(curl -s -X POST http://localhost:3001/api/auth/signup -H \"Content-Type: application/json\" -d \"{\\\\\"username\\\\\":\\\\\"testuser2\\\\\",\\\\\"email\\\\\":\\\\\"test2@test.com\\\\\",\\\\\"password\\\\\":\\\\\"secret123\\\\\"}\")",
+      "Bash(curl -sv http://localhost:3001/api/profile/testuser2)",
+      "Bash(taskkill /F /IM node.exe)",
+      "Bash(start /B node index.js)",
+      "Bash(curl -s http://localhost:3001/api/profile/testuser2)",
+      "mcp__Claude_in_Chrome__navigate",
+      "mcp__Claude_in_Chrome__computer",
+      "Bash(git --version)",
+      "Bash(gh --version)",
+      "Bash(railway --version)"
+    ]
+  }
+}

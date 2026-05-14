@@ -1,0 +1,30 @@
+const BASE = '/api';
+
+function getToken() {
+  return localStorage.getItem('token');
+}
+
+function headers() {
+  const t = getToken();
+  return { 'Content-Type': 'application/json', ...(t ? { Authorization: `Bearer ${t}` } : {}) };
+}
+
+export async function apiFetch(path, opts = {}) {
+  const res = await fetch(`${BASE}${path}`, { ...opts, headers: { ...headers(), ...(opts.headers || {}) } });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Request failed');
+  return data;
+}
+
+export const api = {
+  signup: (body) => apiFetch('/auth/signup', { method: 'POST', body: JSON.stringify(body) }),
+  login: (body) => apiFetch('/auth/login', { method: 'POST', body: JSON.stringify(body) }),
+  getPublicProfile: (username) => apiFetch(`/profile/${username}`),
+  updateProfile: (body) => apiFetch('/profile', { method: 'PUT', body: JSON.stringify(body) }),
+  getDesign: () => apiFetch('/design'),
+  updateDesign: (body) => apiFetch('/design', { method: 'PUT', body: JSON.stringify(body) }),
+  addLink: (body) => apiFetch('/links', { method: 'POST', body: JSON.stringify(body) }),
+  updateLink: (id, body) => apiFetch(`/links/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+  deleteLink: (id) => apiFetch(`/links/${id}`, { method: 'DELETE' }),
+  reorderLinks: (order) => apiFetch('/links/reorder', { method: 'PUT', body: JSON.stringify({ order }) }),
+};

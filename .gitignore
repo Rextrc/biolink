@@ -1,0 +1,16 @@
+# Dependencies
+node_modules/
+client/node_modules/
+
+# Build output
+client/dist/
+
+# Environment — never commit secrets
+.env
+
+# SQLite database — lives on the server's persistent volume
+server/bio.db
+
+# OS junk
+.DS_Store
+Thumbs.db
