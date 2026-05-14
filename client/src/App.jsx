@@ -1,4 +1,6 @@
+import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { api } from './utils/api';
 import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
@@ -13,9 +15,14 @@ function PrivateRoute({ children }) {
 }
 
 function AdminRoute({ children }) {
-  const { isLoggedIn, isAdmin } = getAuth();
-  if (!isLoggedIn) return <Navigate to="/login" />;
-  if (!isAdmin) return <Navigate to="/dashboard" />;
+  const { isLoggedIn } = getAuth();
+  const [status, setStatus] = useState('loading');
+  useEffect(() => {
+    if (!isLoggedIn) { setStatus('deny'); return; }
+    api.admin.stats().then(() => setStatus('ok')).catch(() => setStatus('deny'));
+  }, []);
+  if (status === 'loading') return null;
+  if (status === 'deny') return <Navigate to={isLoggedIn ? '/dashboard' : '/login'} />;
   return children;
 }
 
