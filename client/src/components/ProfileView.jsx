@@ -82,6 +82,28 @@ function SocialLink({ link, overrideColor }) {
   );
 }
 
+/* ══ Spotify embed ═══════════════════════════════════════════════ */
+function SpotifyPlayer({ url }) {
+  if (!url) return null;
+  // Extract embed URL from any Spotify link
+  const match = url.match(/spotify\.com\/(track|album|playlist|episode)\/([a-zA-Z0-9]+)/);
+  if (!match) return null;
+  const embedUrl = `https://open.spotify.com/embed/${match[1]}/${match[2]}?utm_source=generator&theme=0`;
+  return (
+    <div style={{ width: '100%', marginTop: 16, borderRadius: 12, overflow: 'hidden' }}>
+      <iframe
+        src={embedUrl}
+        width="100%"
+        height="80"
+        frameBorder="0"
+        allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+        loading="lazy"
+        style={{ display: 'block', borderRadius: 12 }}
+      />
+    </div>
+  );
+}
+
 /* ══ Main ProfileView ════════════════════════════════════════════ */
 export default function ProfileView({ data, minHeight = '100%' }) {
   const { profile, design: d, links } = data;
@@ -163,7 +185,9 @@ export default function ProfileView({ data, minHeight = '100%' }) {
           border: hasBanner ? '1px solid rgba(255,255,255,0.07)' : 'none',
           borderRadius: hasBanner ? 20 : 0,
           overflow: 'visible',
-          boxShadow: hasBanner ? '0 32px 80px rgba(0,0,0,0.6), 0 0 0 0.5px rgba(255,255,255,0.04)' : 'none',
+          boxShadow: hasBanner
+            ? `0 32px 80px rgba(0,0,0,0.6), 0 0 0 0.5px rgba(255,255,255,0.04)${d?.card_glow ? `, 0 0 60px ${d.card_glow_color || '#6366f1'}50` : ''}`
+            : d?.card_glow ? `0 0 60px ${d.card_glow_color || '#6366f1'}50` : 'none',
         }}>
 
           {/* ── Banner image ───────────────────────────── */}
@@ -311,6 +335,9 @@ export default function ProfileView({ data, minHeight = '100%' }) {
                 ))}
               </div>
             )}
+
+            {/* Spotify player */}
+            {profile?.spotify_url && <SpotifyPlayer url={profile.spotify_url} />}
 
             {/* Empty-state hint (preview only) */}
             {!profile?.display_name && !profile?.bio && customLinks.length === 0 && socialLinks.length === 0 && (

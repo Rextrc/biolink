@@ -18,9 +18,9 @@ router.get('/:username', (req, res) => {
 });
 
 router.put('/', authMiddleware, (req, res) => {
-  const { display_name, bio, avatar_url, banner_url } = req.body;
-  db.prepare('UPDATE profiles SET display_name = ?, bio = ?, avatar_url = ?, banner_url = ? WHERE user_id = ?')
-    .run(display_name, bio, avatar_url, banner_url ?? null, req.userId);
+  const { display_name, bio, avatar_url, banner_url, spotify_url } = req.body;
+  db.prepare('UPDATE profiles SET display_name = ?, bio = ?, avatar_url = ?, banner_url = ?, spotify_url = ? WHERE user_id = ?')
+    .run(display_name, bio, avatar_url, banner_url ?? null, spotify_url ?? null, req.userId);
   res.json({ success: true });
 });
 

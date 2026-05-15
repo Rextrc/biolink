@@ -185,6 +185,9 @@ async function init() {
   // Migrations for existing databases
   try { _sql.run('ALTER TABLE design ADD COLUMN social_icon_color TEXT DEFAULT NULL'); } catch {}
   try { _sql.run('ALTER TABLE profiles ADD COLUMN banner_url TEXT DEFAULT NULL'); } catch {}
+  try { _sql.run('ALTER TABLE profiles ADD COLUMN spotify_url TEXT DEFAULT NULL'); } catch {}
+  try { _sql.run('ALTER TABLE design ADD COLUMN card_glow INTEGER DEFAULT 0'); } catch {}
+  try { _sql.run('ALTER TABLE design ADD COLUMN card_glow_color TEXT DEFAULT "#6366f1"'); } catch {}
   try { _sql.run('ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0'); } catch {}
   try {
     _sql.run(`CREATE TABLE IF NOT EXISTS invite_keys (

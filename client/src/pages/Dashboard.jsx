@@ -568,8 +568,14 @@ export default function Dashboard() {
 
               {/* Banner */}
               <div>
-                <Label>Banner</Label>
-                <ImageUpload value={profile.banner_url} onChange={v => setProfile(p => ({ ...p, banner_url: v }))} shape="banner" label="Upload banner" />
+                <Label>Banner <span style={{ textTransform: 'none', letterSpacing: 0, fontWeight: 400, color: 'rgba(255,255,255,0.2)', fontSize: 10 }}>supports GIF</span></Label>
+                <ImageUpload value={profile.banner_url} onChange={v => setProfile(p => ({ ...p, banner_url: v }))} shape="banner" label="Upload banner / GIF" />
+              </div>
+
+              {/* Spotify */}
+              <div>
+                <Label>Spotify Track / Playlist URL</Label>
+                <SInput value={profile.spotify_url} onChange={v => setProfile(p => ({ ...p, spotify_url: v }))} placeholder="https://open.spotify.com/track/..." />
               </div>
 
               {/* Display name */}
@@ -776,6 +782,15 @@ export default function Dashboard() {
                 <Toggle label="Glow effect" checked={!!design.avatar_glow} onChange={v => setD('avatar_glow', v ? 1 : 0)} />
                 {!!design.avatar_glow && (
                   <ColorBlock label="Glow Color" value={design.avatar_glow_color} onChange={v => setD('avatar_glow_color', v)} />
+                )}
+
+                <Divider />
+
+                {/* Card glow */}
+                <SubHead>Card</SubHead>
+                <Toggle label="Card glow" checked={!!design.card_glow} onChange={v => setD('card_glow', v ? 1 : 0)} />
+                {!!design.card_glow && (
+                  <ColorBlock label="Card Glow Color" value={design.card_glow_color} onChange={v => setD('card_glow_color', v)} />
                 )}
 
                 <Divider />
