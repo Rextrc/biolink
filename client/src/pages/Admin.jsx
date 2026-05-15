@@ -15,6 +15,7 @@ export default function Admin() {
   const [keys, setKeys] = useState([]);
   const [tab, setTab] = useState('users');
   const [genDuration, setGenDuration] = useState('');
+  const [genCustom, setGenCustom] = useState('');
   const [expiryInput, setExpiryInput] = useState('');
 
   useEffect(() => {
@@ -33,7 +34,7 @@ export default function Admin() {
   }
 
   async function genKey() {
-    const dur = genDuration !== '' ? Number(genDuration) : null;
+    const dur = genDuration === 'custom' ? (genCustom ? Number(genCustom) : null) : (genDuration !== '' ? Number(genDuration) : null);
     const { key } = await api.admin.genKey('', dur);
     setKeys(k => [{ key, id: Date.now(), used_by: null, created_at: new Date().toISOString(), duration_days: dur }, ...k]);
   }
@@ -131,16 +132,18 @@ export default function Admin() {
             <div style={{ padding: '12px 18px', borderBottom: '1px solid #1e1e1e', display: 'flex', alignItems: 'center', gap: 8 }}>
               <KeyRound size={14} color="#6366f1" />
               <span style={{ fontWeight: 600, fontSize: 13 }}>Invite Keys</span>
-              <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <select value={genDuration} onChange={e => setGenDuration(e.target.value)} style={{ background: '#1a1a2e', border: '1px solid #2a2a3e', color: 'rgba(255,255,255,0.6)', borderRadius: 6, padding: '5px 8px', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
-                  <option value="">Lifetime</option>
-                  <option value="7">7 days</option>
-                  <option value="30">30 days</option>
-                  <option value="90">90 days</option>
-                  <option value="365">365 days</option>
-                </select>
+              <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                {[['', '∞'], ['7', '7d'], ['30', '30d'], ['90', '90d'], ['365', '1yr'], ['custom', '…']].map(([val, label]) => (
+                  <button key={val} onClick={() => setGenDuration(val)}
+                    style={{ padding: '4px 10px', borderRadius: 6, border: `1px solid ${genDuration === val ? '#6366f1' : '#2a2a3e'}`, background: genDuration === val ? 'rgba(99,102,241,0.2)' : '#1a1a2e', color: genDuration === val ? '#a5b4fc' : 'rgba(255,255,255,0.4)', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
+                    {label}
+                  </button>
+                ))}
+                {genDuration === 'custom' && (
+                  <input value={genCustom} onChange={e => setGenCustom(e.target.value.replace(/\D/g, ''))} placeholder="days" style={{ width: 52, background: '#111', border: '1px solid #2a2a3e', borderRadius: 6, padding: '4px 8px', color: '#fff', fontSize: 11, outline: 'none', fontFamily: 'inherit' }} />
+                )}
                 <button onClick={genKey} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#6366f1', border: 'none', color: '#fff', borderRadius: 8, padding: '6px 14px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
-                  <Plus size={12} /> Generate Key
+                  <Plus size={12} /> Generate
                 </button>
               </div>
             </div>
@@ -149,13 +152,14 @@ export default function Admin() {
               <div key={k.id} style={{ padding: '12px 18px', borderBottom: '1px solid #161616', display: 'flex', alignItems: 'center', gap: 12 }}>
                 <code style={{ flex: 1, fontSize: 13, color: k.used_by ? 'rgba(255,255,255,0.2)' : '#a5b4fc', letterSpacing: 2, textDecoration: k.used_by ? 'line-through' : 'none' }}>{k.key}</code>
                 {!k.used_by ? (
-                  <select value={k.duration_days ?? ''} onChange={e => updateKeyDuration(k.id, e.target.value)} style={{ background: '#1a1a2e', border: '1px solid #2a2a3e', color: 'rgba(255,255,255,0.5)', borderRadius: 6, padding: '3px 6px', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
-                    <option value="">Lifetime</option>
-                    <option value="7">7 days</option>
-                    <option value="30">30 days</option>
-                    <option value="90">90 days</option>
-                    <option value="365">365 days</option>
-                  </select>
+                  <div style={{ display: 'flex', gap: 3 }}>
+                    {[['', '∞'], ['7', '7d'], ['30', '30d'], ['90', '90d'], ['365', '1yr']].map(([val, label]) => (
+                      <button key={val} onClick={() => updateKeyDuration(k.id, val)}
+                        style={{ padding: '3px 7px', borderRadius: 5, border: `1px solid ${String(k.duration_days ?? '') === val ? '#6366f1' : '#222'}`, background: String(k.duration_days ?? '') === val ? 'rgba(99,102,241,0.2)' : 'transparent', color: String(k.duration_days ?? '') === val ? '#a5b4fc' : 'rgba(255,255,255,0.3)', fontSize: 10, cursor: 'pointer', fontFamily: 'inherit' }}>
+                        {label}
+                      </button>
+                    ))}
+                  </div>
                 ) : (
                   <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', flexShrink: 0 }}>{k.duration_days ? `${k.duration_days}d` : '∞'}</span>
                 )}
