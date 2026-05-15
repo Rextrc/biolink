@@ -107,7 +107,7 @@ function SpotifyPlayer({ url }) {
 
 /* ══ Main ProfileView ════════════════════════════════════════════ */
 export default function ProfileView({ data, minHeight = '100%' }) {
-  const { profile, design: d, links } = data;
+  const { profile, design: d, links, is_admin } = data;
   const bannerUrl  = profile?.banner_url;
   const avatarUrl  = profile?.avatar_url;
   const hasBanner  = !!bannerUrl;
@@ -136,7 +136,8 @@ export default function ProfileView({ data, minHeight = '100%' }) {
         ...getBgStyle(d),
         minHeight,
         position: 'relative',
-        overflow: 'hidden',
+        overflowX: 'hidden',
+        overflowY: 'auto',
         fontFamily: fontB,
       }}
     >
@@ -262,21 +263,32 @@ export default function ProfileView({ data, minHeight = '100%' }) {
 
             {/* Name */}
             {profile?.display_name && (
-              <h1
-                className="fade-in-delay-1"
-                style={{
-                  fontFamily: fontH,
-                  color: d?.text_color || '#fff',
-                  fontSize: d?.font_size === 'large' ? '1.45rem' : '1.25rem',
-                  fontWeight: 700,
-                  letterSpacing: '-0.02em',
-                  margin: 0,
-                  textAlign: bioAlign,
-                  width: '100%',
-                }}
-              >
-                {profile.display_name}
-              </h1>
+              <div className="fade-in-delay-1" style={{ display: 'flex', alignItems: 'center', justifyContent: bioAlign === 'left' ? 'flex-start' : 'center', gap: 6, width: '100%' }}>
+                <h1
+                  style={{
+                    fontFamily: fontH,
+                    color: d?.text_color || '#fff',
+                    fontSize: d?.font_size === 'large' ? '1.45rem' : '1.25rem',
+                    fontWeight: 700,
+                    letterSpacing: '-0.02em',
+                    margin: 0,
+                  }}
+                >
+                  {profile.display_name}
+                </h1>
+                {is_admin && (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" title="Verified Developer">
+                    <circle cx="12" cy="12" r="12" fill="url(#vgrad)"/>
+                    <defs>
+                      <linearGradient id="vgrad" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+                        <stop offset="0%" stopColor="#6366f1"/>
+                        <stop offset="100%" stopColor="#a855f7"/>
+                      </linearGradient>
+                    </defs>
+                    <path d="M7 12.5l3.5 3.5 6.5-7" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                )}
+              </div>
             )}
 
             {/* Bio */}

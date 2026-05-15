@@ -9,12 +9,12 @@ router.get('/me', authMiddleware, (req, res) => {
 });
 
 router.get('/:username', (req, res) => {
-  const user = db.prepare('SELECT id, username FROM users WHERE username = ?').get(req.params.username.toLowerCase());
+  const user = db.prepare('SELECT id, username, is_admin FROM users WHERE username = ?').get(req.params.username.toLowerCase());
   if (!user) return res.status(404).json({ error: 'User not found' });
   const profile = db.prepare('SELECT * FROM profiles WHERE user_id = ?').get(user.id);
   const design = db.prepare('SELECT * FROM design WHERE user_id = ?').get(user.id);
   const links = db.prepare('SELECT * FROM links WHERE user_id = ? ORDER BY position ASC').all(user.id);
-  res.json({ username: user.username, profile, design, links });
+  res.json({ username: user.username, is_admin: !!user.is_admin, profile, design, links });
 });
 
 router.put('/', authMiddleware, (req, res) => {
