@@ -76,6 +76,41 @@ function TermLine({ text, delay, visible }) {
   );
 }
 
+/* ── Glitch word transition ─────────────────────────────────── */
+const GLITCH_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ01';
+function GlitchWord({ from, to }) {
+  const [text, setText] = useState(from);
+  const [glitching, setGlitching] = useState(false);
+
+  useEffect(() => {
+    const start = setTimeout(() => {
+      setGlitching(true);
+      let iter = 0;
+      const interval = setInterval(() => {
+        setText(to.split('').map((char, i) => {
+          if (char === ' ') return ' ';
+          if (i < iter) return to[i];
+          return GLITCH_CHARS[Math.floor(Math.random() * GLITCH_CHARS.length)];
+        }).join(''));
+        if (iter >= to.length) {
+          setText(to);
+          setGlitching(false);
+          clearInterval(interval);
+        }
+        iter += 0.4;
+      }, 40);
+      return () => clearInterval(interval);
+    }, 1400);
+    return () => clearTimeout(start);
+  }, []);
+
+  return (
+    <span style={{ display: 'block', marginBottom: 8, fontFamily: glitching ? 'monospace' : 'inherit', letterSpacing: glitching ? '-0.02em' : '-0.05em', transition: 'letter-spacing 0.4s', color: glitching ? '#a5b4fc' : '#fff' }}>
+      {text}
+    </span>
+  );
+}
+
 export default function Landing() {
   const [username, setUsername] = useState('');
   const navigate = useNavigate();
@@ -165,7 +200,7 @@ export default function Landing() {
           </div>
 
           <h1 style={{ fontSize: 'clamp(48px,8vw,96px)', fontWeight: 900, lineHeight: 0.95, letterSpacing: '-0.05em', marginBottom: 28 }}>
-            <span className="glitch-text" style={{ display: 'block', marginBottom: 8 }}>One link.</span>
+            <GlitchWord from="OLIK" to="One link." />
             <span style={{ display: 'block', background: 'linear-gradient(135deg, #818cf8 0%, #a78bfa 40%, #f472b6 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
               Infinite reach.
             </span>
