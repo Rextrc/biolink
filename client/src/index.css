@@ -2,6 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
+:root { color-scheme: dark; }
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
@@ -62,3 +64,12 @@ body {
 
 /* ── Smooth image loading ──────────────────────────────────────── */
 img { transition: opacity 0.3s ease; }
+
+/* ── Kill browser autofill white background ────────────────────── */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px #111118 inset !important;
+  -webkit-text-fill-color: #fff !important;
+  caret-color: #fff;
+}
