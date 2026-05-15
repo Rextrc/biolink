@@ -67,7 +67,7 @@ input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,
 input:-webkit-autofill:active {
-  -webkit-box-shadow: 0 0 0 1000px #0d0d0d inset !important;
+  -webkit-box-shadow: 0 0 0 1000px #161616 inset !important;
   -webkit-text-fill-color: #fff !important;
   caret-color: #fff;
   /* Safari: delay the autofill color from ever visibly applying */
