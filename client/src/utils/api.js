@@ -21,6 +21,7 @@ export const api = {
   verifyEmail: (body) => apiFetch('/auth/verify', { method: 'POST', body: JSON.stringify(body) }),
   resendCode: (username) => apiFetch('/auth/resend-code', { method: 'POST', body: JSON.stringify({ username }) }),
   login: (body) => apiFetch('/auth/login', { method: 'POST', body: JSON.stringify(body) }),
+  me: () => apiFetch('/profile/me'),
   getPublicProfile: (username) => apiFetch(`/profile/${username}`),
   updateProfile: (body) => apiFetch('/profile', { method: 'PUT', body: JSON.stringify(body) }),
   getDesign: () => apiFetch('/design'),
@@ -38,7 +39,9 @@ export const api = {
     toggleAdmin: (id) => apiFetch(`/admin/users/${id}/admin`, { method: 'PUT' }),
     deleteUser: (id) => apiFetch(`/admin/users/${id}`, { method: 'DELETE' }),
     keys: () => apiFetch('/admin/keys'),
-    genKey: (note) => apiFetch('/admin/keys', { method: 'POST', body: JSON.stringify({ note }) }),
+    genKey: (note, duration_days) => apiFetch('/admin/keys', { method: 'POST', body: JSON.stringify({ note, duration_days }) }),
+    updateKey: (id, duration_days) => apiFetch(`/admin/keys/${id}`, { method: 'PUT', body: JSON.stringify({ duration_days }) }),
     deleteKey: (id) => apiFetch(`/admin/keys/${id}`, { method: 'DELETE' }),
+    updateUserExpiry: (id, key_expires_at) => apiFetch(`/admin/users/${id}/expiry`, { method: 'PUT', body: JSON.stringify({ key_expires_at }) }),
   },
 };

@@ -301,9 +301,23 @@ function ImageUpload({ value, onChange, shape = 'circle', label }) {
 }
 
 /* ══ Home screen ════════════════════════════════════════════════ */
-function HomeScreen({ username, profile, links, setView }) {
+function HomeScreen({ username, profile, links, setView, keyExpiry }) {
   const totalLinks = links.length;
   const visibleLinks = links.filter(l => l.visible).length;
+
+  const daysLeft = keyExpiry != null
+    ? Math.ceil((new Date(keyExpiry) - Date.now()) / (1000 * 60 * 60 * 24))
+    : null;
+
+  const expiryColor = daysLeft === null ? '#6ee7b7'
+    : daysLeft <= 7 ? '#f87171'
+    : daysLeft <= 30 ? '#fbbf24'
+    : '#6ee7b7';
+
+  const expiryLabel = daysLeft === null ? 'Lifetime access'
+    : daysLeft <= 0 ? 'Access expired'
+    : daysLeft === 1 ? '1 day left'
+    : `${daysLeft} days left`;
 
   return (
     <div style={{ maxWidth: 600, margin: '0 auto', padding: '48px 24px' }}>
@@ -324,13 +338,19 @@ function HomeScreen({ username, profile, links, setView }) {
       </div>
 
       {/* Stats row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 20 }}>
         {[['Total Links', totalLinks], ['Visible', visibleLinks]].map(([label, val]) => (
           <div key={label} style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 14, padding: '18px 20px' }}>
             <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>{label}</div>
             <div style={{ fontSize: 28, fontWeight: 700 }}>{val}</div>
           </div>
         ))}
+        {keyExpiry !== undefined && (
+          <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 14, padding: '18px 20px' }}>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Access</div>
+            <div style={{ fontSize: daysLeft === null ? 22 : 28, fontWeight: 700, color: expiryColor }}>{expiryLabel}</div>
+          </div>
+        )}
       </div>
 
       {/* Actions */}
@@ -384,6 +404,7 @@ export default function Dashboard() {
   const [profile,  setProfile]  = useState({ display_name: '', bio: '', avatar_url: '', banner_url: '' });
   const [design,   setDesign]   = useState(null);
   const [links,    setLinks]    = useState([]);
+  const [keyExpiry, setKeyExpiry] = useState(undefined);
 
   const [showPlatforms,   setShowPlatforms]   = useState(false);
   const [platformSearch,  setPlatformSearch]  = useState('');
@@ -396,11 +417,12 @@ export default function Dashboard() {
   );
 
   useEffect(() => {
-    Promise.all([api.getPublicProfile(username), api.getDesign()])
-      .then(([pub, des]) => {
+    Promise.all([api.getPublicProfile(username), api.getDesign(), api.me()])
+      .then(([pub, des, me]) => {
         setProfile(pub.profile || {});
         setDesign(des);
         setLinks(pub.links || []);
+        setKeyExpiry(me.key_expires_at || null);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -481,7 +503,7 @@ export default function Dashboard() {
 
       {/* ─── Main content ─────────────────────────── */}
       <div style={{ flex: 1, minWidth: 0, overflowY: 'auto' }}>
-        {view === 'home' && <HomeScreen username={username} profile={profile} links={links} setView={setView} />}
+        {view === 'home' && <HomeScreen username={username} profile={profile} links={links} setView={setView} keyExpiry={keyExpiry} />}
         {view === 'edit' && (<>
 
         {/* Sticky top bar */}

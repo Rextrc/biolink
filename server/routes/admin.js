@@ -24,13 +24,20 @@ router.get('/users', (req, res) => {
 router.get('/users/:id', (req, res) => {
   const user = db.prepare(`
     SELECT u.id, u.username, u.email, u.is_admin, u.created_at, u.signup_ip, u.last_ip,
-           p.display_name, p.avatar_url, p.bio, p.banner_url
+           u.key_expires_at, p.display_name, p.avatar_url, p.bio, p.banner_url
     FROM users u LEFT JOIN profiles p ON p.user_id = u.id
     WHERE u.id = ?
   `).get(req.params.id);
   if (!user) return res.status(404).json({ error: 'User not found' });
   const links = db.prepare('SELECT * FROM links WHERE user_id = ? ORDER BY position').all(req.params.id);
   res.json({ ...user, links });
+});
+
+// Set user key expiry directly
+router.put('/users/:id/expiry', (req, res) => {
+  const { key_expires_at } = req.body;
+  db.prepare('UPDATE users SET key_expires_at=? WHERE id=?').run(key_expires_at || null, req.params.id);
+  res.json({ ok: true });
 });
 
 // Update any user's profile
@@ -73,8 +80,26 @@ router.get('/keys', (req, res) => {
   res.json(db.prepare('SELECT * FROM invite_keys ORDER BY created_at DESC').all());
 });
 router.post('/keys', (req, res) => {
-  const key = generateKey(req.body.note || '');
+  const { note, duration_days } = req.body;
+  const dur = duration_days != null && duration_days !== '' ? Number(duration_days) : null;
+  const key = generateKey(note || '', dur);
   res.json({ key });
+});
+router.put('/keys/:id', (req, res) => {
+  const { duration_days } = req.body;
+  const dur = duration_days != null && duration_days !== '' ? Number(duration_days) : null;
+  const row = db.prepare('SELECT * FROM invite_keys WHERE id=?').get(req.params.id);
+  if (!row) return res.status(404).json({ error: 'Not found' });
+  db.prepare('UPDATE invite_keys SET duration_days=? WHERE id=?').run(dur, req.params.id);
+  if (row.used_by) {
+    if (dur != null) {
+      const expiresAt = new Date(new Date(row.used_at).getTime() + dur * 24 * 60 * 60 * 1000).toISOString();
+      db.prepare('UPDATE users SET key_expires_at=? WHERE username=?').run(expiresAt, row.used_by);
+    } else {
+      db.prepare('UPDATE users SET key_expires_at=NULL WHERE username=?').run(row.used_by);
+    }
+  }
+  res.json({ ok: true });
 });
 router.delete('/keys/:id', (req, res) => {
   db.prepare('DELETE FROM invite_keys WHERE id=?').run(req.params.id);

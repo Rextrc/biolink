@@ -14,6 +14,8 @@ export default function Admin() {
   const [msg, setMsg] = useState('');
   const [keys, setKeys] = useState([]);
   const [tab, setTab] = useState('users');
+  const [genDuration, setGenDuration] = useState('');
+  const [expiryInput, setExpiryInput] = useState('');
 
   useEffect(() => {
     const auth = getAuth();
@@ -31,8 +33,21 @@ export default function Admin() {
   }
 
   async function genKey() {
-    const { key } = await api.admin.genKey('');
-    setKeys(k => [{ key, id: Date.now(), used_by: null, created_at: new Date().toISOString() }, ...k]);
+    const dur = genDuration !== '' ? Number(genDuration) : null;
+    const { key } = await api.admin.genKey('', dur);
+    setKeys(k => [{ key, id: Date.now(), used_by: null, created_at: new Date().toISOString(), duration_days: dur }, ...k]);
+  }
+
+  async function updateKeyDuration(id, val) {
+    const duration_days = val === '' ? null : Number(val);
+    await api.admin.updateKey(id, duration_days);
+    setKeys(k => k.map(x => x.id === id ? { ...x, duration_days } : x));
+  }
+
+  async function saveExpiry(userId) {
+    const val = expiryInput ? new Date(expiryInput).toISOString() : null;
+    await api.admin.updateUserExpiry(userId, val);
+    setDetail(d => ({ ...d, key_expires_at: val }));
   }
 
   async function deleteKey(id) {
@@ -46,6 +61,7 @@ export default function Admin() {
     setMsg('');
     const d = await api.admin.user(id);
     setDetail(d);
+    setExpiryInput(d.key_expires_at ? d.key_expires_at.slice(0, 10) : '');
   }
 
   async function deleteUser(id) {
@@ -115,15 +131,35 @@ export default function Admin() {
             <div style={{ padding: '12px 18px', borderBottom: '1px solid #1e1e1e', display: 'flex', alignItems: 'center', gap: 8 }}>
               <KeyRound size={14} color="#6366f1" />
               <span style={{ fontWeight: 600, fontSize: 13 }}>Invite Keys</span>
-              <button onClick={genKey} style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, background: '#6366f1', border: 'none', color: '#fff', borderRadius: 8, padding: '6px 14px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
-                <Plus size={12} /> Generate Key
-              </button>
+              <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <select value={genDuration} onChange={e => setGenDuration(e.target.value)} style={{ background: '#1a1a2e', border: '1px solid #2a2a3e', color: 'rgba(255,255,255,0.6)', borderRadius: 6, padding: '5px 8px', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  <option value="">Lifetime</option>
+                  <option value="7">7 days</option>
+                  <option value="30">30 days</option>
+                  <option value="90">90 days</option>
+                  <option value="365">365 days</option>
+                </select>
+                <button onClick={genKey} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#6366f1', border: 'none', color: '#fff', borderRadius: 8, padding: '6px 14px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  <Plus size={12} /> Generate Key
+                </button>
+              </div>
             </div>
             {keys.length === 0 && <div style={{ padding: 28, textAlign: 'center', color: 'rgba(255,255,255,0.2)', fontSize: 13 }}>No keys yet</div>}
             {keys.map(k => (
               <div key={k.id} style={{ padding: '12px 18px', borderBottom: '1px solid #161616', display: 'flex', alignItems: 'center', gap: 12 }}>
                 <code style={{ flex: 1, fontSize: 13, color: k.used_by ? 'rgba(255,255,255,0.2)' : '#a5b4fc', letterSpacing: 2, textDecoration: k.used_by ? 'line-through' : 'none' }}>{k.key}</code>
-                {k.used_by && <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>used by @{k.used_by}</span>}
+                {!k.used_by ? (
+                  <select value={k.duration_days ?? ''} onChange={e => updateKeyDuration(k.id, e.target.value)} style={{ background: '#1a1a2e', border: '1px solid #2a2a3e', color: 'rgba(255,255,255,0.5)', borderRadius: 6, padding: '3px 6px', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
+                    <option value="">Lifetime</option>
+                    <option value="7">7 days</option>
+                    <option value="30">30 days</option>
+                    <option value="90">90 days</option>
+                    <option value="365">365 days</option>
+                  </select>
+                ) : (
+                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', flexShrink: 0 }}>{k.duration_days ? `${k.duration_days}d` : '∞'}</span>
+                )}
+                {k.used_by && <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>@{k.used_by}</span>}
                 {!k.used_by && (
                   <button onClick={() => navigator.clipboard?.writeText(k.key)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', padding: 4 }}><Copy size={12} /></button>
                 )}
@@ -175,6 +211,14 @@ export default function Admin() {
                 <Row label="Signup IP" value={detail.signup_ip} mono />
                 <Row label="Last Login IP" value={detail.last_ip} mono />
                 <Row label="Joined" value={detail.created_at ? new Date(detail.created_at).toLocaleString() : null} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1 }}>Key Expires</span>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <input type="date" value={expiryInput} onChange={e => setExpiryInput(e.target.value)} style={{ flex: 1, background: '#161616', border: '1px solid #2a2a2a', borderRadius: 8, padding: '5px 8px', color: '#fff', fontSize: 12, outline: 'none', colorScheme: 'dark' }} />
+                    <button onClick={() => saveExpiry(detail.id)} style={{ background: '#1a1a2e', border: '1px solid #2a2a3e', color: '#6366f1', borderRadius: 8, padding: '5px 10px', cursor: 'pointer', fontSize: 11 }}>Save</button>
+                  </div>
+                  {!expiryInput && <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)' }}>Lifetime (clear to remove expiry)</span>}
+                </div>
                 <Row label="Links" value={detail.links?.length ?? 0} />
 
                 {/* Links list */}

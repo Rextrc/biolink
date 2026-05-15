@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ArrowRight, Zap, Palette, Link2, Star, Check } from 'lucide-react';
+import { getAuth } from '../utils/auth';
 
 export default function Landing() {
   const [username, setUsername] = useState('');
   const navigate = useNavigate();
+  const { isLoggedIn } = getAuth();
 
   const handleClaim = (e) => {
     e.preventDefault();
@@ -28,8 +30,14 @@ export default function Landing() {
           <span className="font-bold text-lg tracking-tight">olik</span>
         </div>
         <div className="flex gap-3">
-          <Link to="/login" className="text-sm text-white/50 hover:text-white px-4 py-2 transition-colors">Log in</Link>
-          <Link to="/signup" className="text-sm bg-indigo-600 hover:bg-indigo-500 px-4 py-2 rounded-full font-medium transition-all hover:shadow-lg hover:shadow-indigo-500/25">Sign up free</Link>
+          {isLoggedIn ? (
+            <Link to="/dashboard" className="text-sm bg-indigo-600 hover:bg-indigo-500 px-4 py-2 rounded-full font-medium transition-all hover:shadow-lg hover:shadow-indigo-500/25">Dashboard</Link>
+          ) : (
+            <>
+              <Link to="/login" className="text-sm text-white/50 hover:text-white px-4 py-2 transition-colors">Log in</Link>
+              <Link to="/signup" className="text-sm bg-indigo-600 hover:bg-indigo-500 px-4 py-2 rounded-full font-medium transition-all hover:shadow-lg hover:shadow-indigo-500/25">Sign up free</Link>
+            </>
+          )}
         </div>
       </nav>
 
