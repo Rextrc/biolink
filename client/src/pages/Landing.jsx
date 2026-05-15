@@ -76,6 +76,115 @@ function TermLine({ text, delay, visible }) {
   );
 }
 
+/* ── 3D Tilt Card ───────────────────────────────────────────── */
+function TiltCard() {
+  const ref = useRef(null);
+  const [tilt, setTilt] = useState({ x: 0, y: 0 });
+  const [glowPos, setGlowPos] = useState({ x: 50, y: 50 });
+  const [hovered, setHovered] = useState(false);
+
+  const onMove = (e) => {
+    const el = ref.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const x = (e.clientX - r.left) / r.width;
+    const y = (e.clientY - r.top)  / r.height;
+    setTilt({ x: (y - 0.5) * -22, y: (x - 0.5) * 22 });
+    setGlowPos({ x: x * 100, y: y * 100 });
+  };
+
+  const onLeave = () => {
+    setTilt({ x: 0, y: 0 });
+    setHovered(false);
+  };
+
+  return (
+    <div
+      ref={ref}
+      onMouseMove={onMove}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={onLeave}
+      style={{ perspective: 1000, cursor: 'default', flexShrink: 0 }}
+    >
+      <div style={{
+        transform: `rotateX(${tilt.x}deg) rotateY(${tilt.y}deg) scale(${hovered ? 1.03 : 1})`,
+        transition: hovered ? 'transform 0.08s ease-out' : 'transform 0.5s ease-out',
+        transformStyle: 'preserve-3d',
+        position: 'relative',
+        width: 280,
+        borderRadius: 24,
+        background: 'rgba(10,10,18,0.85)',
+        border: '1px solid rgba(255,255,255,0.08)',
+        boxShadow: `0 40px 80px rgba(0,0,0,0.7), 0 0 0 0.5px rgba(255,255,255,0.05)`,
+        overflow: 'hidden',
+      }}>
+        {/* Dynamic glow follows mouse */}
+        <div style={{
+          position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none', opacity: hovered ? 1 : 0,
+          transition: 'opacity 0.3s',
+          background: `radial-gradient(circle at ${glowPos.x}% ${glowPos.y}%, rgba(99,102,241,0.18) 0%, transparent 65%)`,
+        }} />
+        {/* Edge shimmer */}
+        <div style={{
+          position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none', borderRadius: 24,
+          background: `linear-gradient(135deg, rgba(255,255,255,0.06) 0%, transparent 50%, rgba(99,102,241,0.06) 100%)`,
+        }} />
+
+        {/* Banner */}
+        <div style={{ height: 90, background: 'linear-gradient(135deg, #1e1040, #0d0221)', position: 'relative', overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, #4f46e5aa, #7c3aedaa)', opacity: 0.4 }} />
+          <div style={{ position: 'absolute', bottom: 8, left: 12, fontSize: 9, color: 'rgba(255,255,255,0.3)', fontFamily: 'monospace', letterSpacing: 2 }}>BANNER</div>
+        </div>
+
+        {/* Avatar */}
+        <div style={{ position: 'relative', paddingTop: 0, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <img
+            src="https://scontent-mia3-2.cdninstagram.com/v/t51.82787-19/639778373_18035639270717019_8788809374271189271_n.jpg?efg=eyJ2ZW5jb2RlX3RhZyI6InByb2ZpbGVfcGljLmRqYW5nby4zMjAuYzIifQ&_nc_ht=scontent-mia3-2.cdninstagram.com&_nc_cat=103&_nc_oc=Q6cZ2gEtpjIAJUNHKbnhUWPnyDm2rwQMZZXlYXy2TifJl4r1TbxeNyb7y_aeNTaKeOFW_iM&_nc_ohc=OP5lpxWlBLEQ7kNvwHqtXhA&_nc_gid=M404KjCehi0EM04C8aJlYg&edm=ALGbJPMBAAAA&ccb=7-5&oh=00_Af6YjllZeME6Q2D1wJBIfBoiWAZjlor2hSOn7I4g5eDZLA&oe=6A0C1DCA&_nc_sid=7d3ac5"
+            alt=""
+            style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', border: '3px solid #050508', marginTop: -32, position: 'relative', zIndex: 2, boxShadow: '0 0 24px rgba(99,102,241,0.5)' }}
+          />
+          <div style={{ marginTop: 8, textAlign: 'center', padding: '0 20px' }}>
+            <div style={{ fontWeight: 700, fontSize: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+              @olik
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="12" fill="#6366f1"/><path d="M7 12.5l3.5 3.5 6.5-7" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </div>
+            <div style={{ fontSize: 10, color: 'rgba(165,180,252,0.6)', marginTop: 2 }}>Creator · Designer ✨</div>
+          </div>
+
+          {/* Links */}
+          <div style={{ width: '100%', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 7 }}>
+            {['My Portfolio', 'Latest Project', 'Contact'].map((t, i) => (
+              <div key={t} style={{ width: '100%', textAlign: 'center', fontSize: 11, padding: '8px 0', borderRadius: 99, fontWeight: 600, background: i === 0 ? 'linear-gradient(135deg,#4f46e5,#7c3aed)' : 'rgba(255,255,255,0.06)', color: '#fff', border: i === 0 ? 'none' : '1px solid rgba(255,255,255,0.08)' }}>{t}</div>
+            ))}
+          </div>
+
+          {/* Spotify bar */}
+          <div style={{ margin: '0 16px 16px', width: 'calc(100% - 32px)', background: 'rgba(30,215,96,0.08)', border: '1px solid rgba(30,215,96,0.15)', borderRadius: 10, padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ width: 28, height: 28, borderRadius: 6, background: 'rgba(30,215,96,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="#1ed760"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 10, fontWeight: 600, color: '#1ed760', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Now Playing</div>
+              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>Spotify track</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Floating badge */}
+        <div style={{
+          position: 'absolute', top: 10, right: 10, zIndex: 10,
+          background: 'rgba(99,102,241,0.15)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+          border: '1px solid rgba(99,102,241,0.3)', borderRadius: 6,
+          padding: '4px 8px', fontSize: 9, color: '#a5b4fc', fontFamily: 'monospace',
+          transform: 'translateZ(20px)',
+        }}>
+          LIVE PREVIEW
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── Glitch word transition ─────────────────────────────────── */
 const GLITCH_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ01';
 function GlitchWord({ from, to }) {
@@ -193,8 +302,9 @@ export default function Landing() {
       </nav>
 
       {/* ── Hero ── */}
-      <div ref={heroRef} style={{ position: 'relative', zIndex: 1, maxWidth: 900, margin: '0 auto', padding: '80px 32px 120px', textAlign: 'center' }}>
-        <div style={{ opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'none' : 'translateY(24px)', transition: 'all 0.8s cubic-bezier(.22,.68,0,1.2)' }}>
+      <div ref={heroRef} style={{ position: 'relative', zIndex: 1, maxWidth: 1100, margin: '0 auto', padding: '60px 32px 100px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 60, flexWrap: 'wrap', justifyContent: 'center' }}>
+        <div style={{ flex: 1, minWidth: 300, textAlign: 'left', opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'none' : 'translateY(24px)', transition: 'all 0.8s cubic-bezier(.22,.68,0,1.2)' }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 6, padding: '6px 14px', fontSize: 11, color: '#a5b4fc', marginBottom: 32, fontFamily: 'monospace', letterSpacing: 2 }}>
             <span style={{ color: '#34d399' }}>■</span> SYSTEM ONLINE · OLIK.APP
           </div>
@@ -230,8 +340,17 @@ export default function Landing() {
           </div>
         </div>
 
+        </div>
+
+        {/* 3D Tilt Card */}
+        <div style={{ opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'none' : 'translateY(32px)', transition: 'all 1s cubic-bezier(.22,.68,0,1.2) 0.2s' }}>
+          <TiltCard />
+        </div>
+
+        </div>{/* end flex row */}
+
         {/* Scroll indicator */}
-        <div style={{ position: 'absolute', bottom: 32, left: '50%', transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, opacity: 0.4, animation: 'float 2s infinite' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, opacity: 0.4, animation: 'float 2s infinite', marginTop: 48 }}>
           <div style={{ width: 1, height: 40, background: 'linear-gradient(to bottom, rgba(99,102,241,0.8), transparent)' }} />
           <span style={{ fontSize: 10, fontFamily: 'monospace', letterSpacing: 2, color: '#818cf8' }}>SCROLL</span>
         </div>
