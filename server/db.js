@@ -188,6 +188,8 @@ async function init() {
   try { _sql.run('ALTER TABLE profiles ADD COLUMN spotify_url TEXT DEFAULT NULL'); } catch {}
   try { _sql.run('ALTER TABLE design ADD COLUMN card_glow INTEGER DEFAULT 0'); } catch {}
   try { _sql.run('ALTER TABLE design ADD COLUMN card_glow_color TEXT DEFAULT "#6366f1"'); } catch {}
+  try { _sql.run('ALTER TABLE design ADD COLUMN bg_video_url TEXT'); } catch {}
+  try { _sql.run('ALTER TABLE design ADD COLUMN bg_video_blur INTEGER DEFAULT 1'); } catch {}
   try { _sql.run('ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0'); } catch {}
   try {
     _sql.run(`CREATE TABLE IF NOT EXISTS invite_keys (

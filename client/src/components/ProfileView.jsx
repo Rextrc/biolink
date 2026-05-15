@@ -5,6 +5,7 @@ import { SocialIconSvg } from '../utils/social-icons.jsx';
 
 function getBgStyle(d) {
   if (!d) return { background: '#0a0a0a' };
+  if (d.bg_type === 'video') return { background: '#000' };
   if (d.bg_type === 'image' && d.bg_image_url)
     return { backgroundImage: `url(${d.bg_image_url})`, backgroundSize: 'cover', backgroundPosition: 'center' };
   if (d.bg_type === 'gradient') {
@@ -139,6 +140,23 @@ export default function ProfileView({ data, minHeight = '100%' }) {
         fontFamily: fontB,
       }}
     >
+      {/* ── Video background ─────────────────────────────── */}
+      {d?.bg_type === 'video' && d?.bg_video_url && (
+        <>
+          <video
+            src={d.bg_video_url}
+            autoPlay muted loop playsInline
+            style={{
+              position: 'absolute', inset: 0, width: '100%', height: '100%',
+              objectFit: 'cover', zIndex: 0,
+              filter: d.bg_video_blur !== 0 ? 'blur(12px) brightness(0.5) saturate(1.4)' : 'brightness(0.7)',
+              transform: d.bg_video_blur !== 0 ? 'scale(1.08)' : 'none',
+            }}
+          />
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 0 }} />
+        </>
+      )}
+
       {/* ── Blurred backdrop from banner ─────────────────── */}
       {hasBanner && (
         <>

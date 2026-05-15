@@ -703,7 +703,7 @@ export default function Dashboard() {
 
                 {/* Background */}
                 <SubHead>Background</SubHead>
-                <Pills value={design.bg_type} onChange={v => setD('bg_type', v)} options={['solid', 'gradient', 'image']} />
+                <Pills value={design.bg_type} onChange={v => setD('bg_type', v)} options={['solid', 'gradient', 'image', 'video']} />
                 {design.bg_type === 'solid' && (
                   <ColorBlock label="Color" value={design.bg_color} onChange={v => setD('bg_color', v)} />
                 )}
@@ -721,6 +721,15 @@ export default function Dashboard() {
                   <div>
                     <Label>Image URL</Label>
                     <SInput value={design.bg_image_url} onChange={v => setD('bg_image_url', v)} placeholder="https://…" />
+                  </div>
+                )}
+                {design.bg_type === 'video' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <div>
+                      <Label>Video URL <span style={{ textTransform: 'none', fontWeight: 400, color: 'rgba(255,255,255,0.2)', fontSize: 10 }}>MP4 / WebM / direct link</span></Label>
+                      <SInput value={design.bg_video_url} onChange={v => setD('bg_video_url', v)} placeholder="https://…" />
+                    </div>
+                    <Toggle label="Blur video" checked={design.bg_video_blur !== 0} onChange={v => setD('bg_video_blur', v ? 1 : 0)} />
                   </div>
                 )}
 
