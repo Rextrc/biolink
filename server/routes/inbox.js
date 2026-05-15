@@ -52,18 +52,20 @@ router.get('/:id', (req, res) => {
 router.post('/send', async (req, res) => {
   const { to, subject, body } = req.body;
   if (!to || !subject || !body) return res.status(400).json({ error: 'to, subject, body required' });
-
-  await resend.emails.send({
-    from: 'olik <olik@olik.app>',
-    to,
-    subject,
-    text: body,
-  });
-
-  db.prepare('INSERT INTO emails (direction, from_email, from_name, to_email, subject, body_text) VALUES (?,?,?,?,?,?)')
-    .run('sent', 'olik@olik.app', 'olik', to, subject, body);
-
-  res.json({ ok: true });
+  try {
+    const result = await resend.emails.send({
+      from: 'olik <olik@olik.app>',
+      to,
+      subject,
+      text: body,
+    });
+    if (result.error) return res.status(500).json({ error: result.error.message });
+    db.prepare('INSERT INTO emails (direction, from_email, from_name, to_email, subject, body_text) VALUES (?,?,?,?,?,?)')
+      .run('sent', 'olik@olik.app', 'olik', to, subject, body);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message || 'Failed to send' });
+  }
 });
 
 // Delete
