@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Zap, User, Link2, Palette, ExternalLink, LogOut,
   Plus, Trash2, Eye, EyeOff, GripVertical, Search,
-  ChevronDown, X, Save, Check, Home, Upload,
+  ChevronDown, X, Save, Check, Home, Upload, Settings,
 } from 'lucide-react';
 import { api } from '../utils/api';
 import { getAuth, clearAuth } from '../utils/auth';
@@ -398,6 +398,14 @@ export default function Dashboard() {
   const navigate = useNavigate();
 
   const [view,     setView]     = useState('home');
+  const [mobileSection, setMobileSection] = useState('profile');
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const fn = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', fn);
+    return () => window.removeEventListener('resize', fn);
+  }, []);
   const [loading,  setLoading]  = useState(true);
   const [saving,   setSaving]   = useState(false);
   const [saved,    setSaved]    = useState(false);
@@ -498,57 +506,77 @@ export default function Dashboard() {
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: BG, color: '#fff', fontFamily: "'Inter', sans-serif" }}>
 
-      {/* ─── Sidebar ──────────────────────────────── */}
-      <Sidebar username={username} onLogout={() => { clearAuth(); navigate('/'); }} view={view} setView={setView} />
+      {/* ─── Sidebar (desktop only) ───────────────── */}
+      {!isMobile && <Sidebar username={username} onLogout={() => { clearAuth(); navigate('/'); }} view={view} setView={setView} />}
 
       {/* ─── Main content ─────────────────────────── */}
-      <div style={{ flex: 1, minWidth: 0, overflowY: 'auto' }}>
-        {view === 'home' && <HomeScreen username={username} profile={profile} links={links} setView={setView} keyExpiry={keyExpiry} />}
+      <div style={{ flex: 1, minWidth: 0, overflowY: 'auto', paddingBottom: isMobile ? 72 : 0 }}>
+        {view === 'home' && <HomeScreen username={username} profile={profile} links={links} setView={() => { setView('edit'); setMobileSection('profile'); }} keyExpiry={keyExpiry} />}
         {view === 'edit' && (<>
 
         {/* Sticky top bar */}
         <div style={{
           position: 'sticky', top: 0, zIndex: 50,
-          display: 'flex', alignItems: 'center', gap: 12,
-          padding: '13px 28px',
-          background: 'rgba(10,10,10,0.9)',
-          backdropFilter: 'blur(16px)',
-          WebkitBackdropFilter: 'blur(16px)',
+          display: 'flex', alignItems: 'center', gap: 10,
+          padding: isMobile ? '12px 16px' : '13px 28px',
+          background: 'rgba(10,10,10,0.92)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
           borderBottom: `1px solid ${BORDER}`,
         }}>
-          <span style={{ fontSize: 15, fontWeight: 700, flex: 1 }}>Manage Bio</span>
-          <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 13 }}>/{username}</span>
+          {isMobile && (
+            <button onClick={() => setView('home')} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', padding: 4, display: 'flex' }}>
+              <Home size={16} />
+            </button>
+          )}
+          <span style={{ fontSize: isMobile ? 14 : 15, fontWeight: 700, flex: 1 }}>
+            {isMobile ? ({ profile: 'Profile', links: 'Links', design: 'Design' }[mobileSection]) : 'Manage Bio'}
+          </span>
+          {!isMobile && <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 13 }}>/{username}</span>}
           <a href={`/${username}`} target="_blank" rel="noreferrer"
-            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 15px', borderRadius: 8, background: 'rgba(255,255,255,0.06)', border: `1px solid ${BORDER}`, color: 'rgba(255,255,255,0.7)', textDecoration: 'none', fontSize: 13, fontWeight: 500, transition: 'all 0.15s' }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = '#fff'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'rgba(255,255,255,0.7)'; }}>
-            <ExternalLink size={13} />View Bio
+            style={{ display: 'flex', alignItems: 'center', gap: 5, padding: isMobile ? '6px 10px' : '7px 15px', borderRadius: 8, background: 'rgba(255,255,255,0.06)', border: `1px solid ${BORDER}`, color: 'rgba(255,255,255,0.6)', textDecoration: 'none', fontSize: 12, fontWeight: 500 }}>
+            <ExternalLink size={12} />{!isMobile && 'View Bio'}
           </a>
           <button onClick={saveAll} disabled={saving} style={{
-            display: 'flex', alignItems: 'center', gap: 7, padding: '7px 20px', borderRadius: 8,
+            display: 'flex', alignItems: 'center', gap: 6, padding: isMobile ? '6px 14px' : '7px 20px', borderRadius: 8,
             background: saved ? '#16a34a' : ACCENT, border: 'none', color: '#fff',
             fontSize: 13, fontWeight: 600, cursor: saving ? 'default' : 'pointer',
             opacity: saving ? 0.7 : 1, transition: 'background 0.2s', fontFamily: 'inherit',
           }}>
-            {saved ? <><Check size={13} />Saved!</> : <><Save size={13} />{saving ? 'Saving…' : 'Save Changes'}</>}
+            {saved ? <><Check size={13} />{!isMobile && 'Saved!'}</> : <><Save size={13} />{!isMobile && (saving ? 'Saving…' : 'Save')}</>}
           </button>
         </div>
 
-        {/* Two-column grid */}
+        {/* Mobile section tabs */}
+        {isMobile && (
+          <div style={{ display: 'flex', borderBottom: `1px solid ${BORDER}`, background: BG }}>
+            {[['profile','Profile'], ['links','Links'], ['design','Design']].map(([id, label]) => (
+              <button key={id} onClick={() => setMobileSection(id)} style={{
+                flex: 1, padding: '10px 0', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                fontSize: 13, fontWeight: mobileSection === id ? 600 : 400,
+                color: mobileSection === id ? '#818cf8' : 'rgba(255,255,255,0.4)',
+                borderBottom: `2px solid ${mobileSection === id ? '#6366f1' : 'transparent'}`,
+                transition: 'all 0.15s',
+              }}>{label}</button>
+            ))}
+          </div>
+        )}
+
+        {/* Layout grid */}
         <div style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 390px',
-          gap: 18,
-          padding: '22px 28px 60px',
-          maxWidth: 1320,
+          display: isMobile ? 'block' : 'grid',
+          gridTemplateColumns: '1fr 380px',
+          gap: 16,
+          padding: isMobile ? '16px 14px 24px' : '20px 24px 60px',
+          maxWidth: 1280,
           alignItems: 'start',
         }}>
 
           {/* ══ LEFT COLUMN ══════════════════════════ */}
-          <div>
+          <div style={{ display: isMobile && mobileSection === 'design' ? 'none' : 'block' }}>
 
             {/* Profile section */}
-            <Section title="Profile" id="s-profile">
+            <Section title="Profile" id="s-profile" defaultOpen={!isMobile || mobileSection === 'profile'}>
               {/* URL (read-only) */}
               <div>
                 <Label>Your URL</Label>
@@ -595,7 +623,7 @@ export default function Dashboard() {
             </Section>
 
             {/* Custom Links */}
-            <Section title="Custom Links" id="s-links">
+            {(!isMobile || mobileSection === 'links') && <Section title="Custom Links" id="s-links">
               <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={e => onDragEnd(e, 'custom')}>
                 <SortableContext items={customs.map(l => l.id)} strategy={verticalListSortingStrategy}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
@@ -691,12 +719,12 @@ export default function Dashboard() {
                   <Plus size={14} />Add Social Platform
                 </button>
               )}
-            </Section>
+            </Section>}
           </div>
 
           {/* ══ RIGHT COLUMN ═════════════════════════ */}
-          {design && (
-            <div id="s-design" style={{ position: 'sticky', top: 70 }}>
+          {design && (!isMobile || mobileSection === 'design') && (
+            <div id="s-design" style={{ position: isMobile ? 'static' : 'sticky', top: 70 }}>
 
               {/* Cosmetic Settings */}
               <Section title="Cosmetic Settings">
@@ -835,6 +863,39 @@ export default function Dashboard() {
         </div>
         </>)}
       </div>
+
+      {/* ─── Mobile bottom nav ────────────────────── */}
+      {isMobile && (
+        <div style={{
+          position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100,
+          background: 'rgba(10,10,10,0.95)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
+          borderTop: `1px solid ${BORDER}`,
+          display: 'flex', alignItems: 'stretch',
+          paddingBottom: 'env(safe-area-inset-bottom)',
+        }}>
+          {[
+            { icon: Home,    label: 'Home',   action: () => setView('home') },
+            { icon: User,    label: 'Profile', action: () => { setView('edit'); setMobileSection('profile'); } },
+            { icon: Link2,   label: 'Links',   action: () => { setView('edit'); setMobileSection('links'); } },
+            { icon: Palette, label: 'Design',  action: () => { setView('edit'); setMobileSection('design'); } },
+            { icon: LogOut,  label: 'Logout',  action: () => { clearAuth(); navigate('/'); } },
+          ].map(({ icon: Icon, label, action }) => {
+            const isActive = label === 'Home' ? view === 'home'
+              : label === 'Logout' ? false
+              : view === 'edit' && mobileSection === label.toLowerCase();
+            return (
+              <button key={label} onClick={action} style={{
+                flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                gap: 3, padding: '10px 0', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                color: isActive ? '#818cf8' : 'rgba(255,255,255,0.35)',
+              }}>
+                <Icon size={18} />
+                <span style={{ fontSize: 9, fontWeight: isActive ? 600 : 400 }}>{label}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

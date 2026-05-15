@@ -194,23 +194,23 @@ export default function ProfileView({ data, minHeight = '100%' }) {
         {/* ── Profile card ─────────────────────────────── */}
         <div style={{
           width: '100%',
-          maxWidth: 440,
+          maxWidth: 420,
           background: hasBanner
-            ? 'rgba(12,12,18,0.72)'
+            ? 'rgba(10,10,16,0.78)'
             : 'transparent',
-          backdropFilter: hasBanner ? 'blur(24px) saturate(1.5)' : 'none',
-          WebkitBackdropFilter: hasBanner ? 'blur(24px) saturate(1.5)' : 'none',
-          border: hasBanner ? '1px solid rgba(255,255,255,0.07)' : 'none',
-          borderRadius: hasBanner ? 20 : 0,
+          backdropFilter: hasBanner ? 'blur(28px) saturate(1.6)' : 'none',
+          WebkitBackdropFilter: hasBanner ? 'blur(28px) saturate(1.6)' : 'none',
+          border: hasBanner ? '1px solid rgba(255,255,255,0.08)' : 'none',
+          borderRadius: hasBanner ? 24 : 0,
           overflow: 'visible',
           boxShadow: hasBanner
-            ? `0 32px 80px rgba(0,0,0,0.6), 0 0 0 0.5px rgba(255,255,255,0.04)${d?.card_glow ? `, 0 0 60px ${d.card_glow_color || '#6366f1'}50` : ''}`
-            : d?.card_glow ? `0 0 60px ${d.card_glow_color || '#6366f1'}50` : 'none',
+            ? `0 40px 100px rgba(0,0,0,0.7), 0 0 0 0.5px rgba(255,255,255,0.05)${d?.card_glow ? `, 0 0 80px ${d.card_glow_color || '#6366f1'}45` : ''}`
+            : d?.card_glow ? `0 0 80px ${d.card_glow_color || '#6366f1'}45` : 'none',
         }}>
 
           {/* ── Banner image ───────────────────────────── */}
           {hasBanner && (
-            <div style={{ position: 'relative', height: 130, borderRadius: '20px 20px 0 0', overflow: 'hidden' }}>
+            <div style={{ position: 'relative', height: 140, borderRadius: '24px 24px 0 0', overflow: 'hidden' }}>
               <img
                 src={bannerUrl}
                 alt=""
