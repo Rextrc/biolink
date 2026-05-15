@@ -1,8 +1,11 @@
 require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
-const express = require('express');
-const cors    = require('cors');
-const path    = require('path');
-const app     = express();
+const express     = require('express');
+const cors        = require('cors');
+const path        = require('path');
+const compression = require('compression');
+const app         = express();
+
+app.use(compression());
 
 const allowedOrigins = [
   process.env.CLIENT_URL,

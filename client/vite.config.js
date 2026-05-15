@@ -1,13 +1,10 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import legacy from '@vitejs/plugin-legacy'
 
 export default defineConfig({
-  plugins: [
-    react(),
-    legacy({ targets: ['ios >= 15', 'safari >= 15'] }),
-  ],
+  plugins: [react()],
   build: {
+    target: ['es2020', 'safari14'],
     rollupOptions: {
       output: {
         manualChunks: {
@@ -18,8 +15,6 @@ export default defineConfig({
     }
   },
   server: {
-    proxy: {
-      '/api': 'http://localhost:3001'
-    }
+    proxy: { '/api': 'http://localhost:3001' }
   }
 })
