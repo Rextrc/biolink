@@ -90,13 +90,54 @@ router.post('/resend-code', async (req, res) => {
 router.post('/login', (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) return res.status(400).json({ error: 'All fields required' });
-  const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email.toLowerCase());
+  const identifier = email.toLowerCase();
+  const user = db.prepare('SELECT * FROM users WHERE email = ? OR username = ?').get(identifier, identifier);
   if (!user || !bcrypt.compareSync(password, user.password_hash)) return res.status(401).json({ error: 'Invalid credentials' });
   if (!user.email_verified) return res.status(403).json({ error: 'Please verify your email first', needsVerification: true, username: user.username });
   const ip = getIp(req);
   db.prepare('UPDATE users SET last_ip=? WHERE id=?').run(ip, user.id);
   const token = jwt.sign({ userId: user.id, isAdmin: !!user.is_admin }, process.env.JWT_SECRET, { expiresIn: '7d' });
   res.json({ token, username: user.username, isAdmin: !!user.is_admin });
+});
+
+router.post('/forgot-password', async (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ error: 'Email required' });
+  const user = db.prepare('SELECT * FROM users WHERE email = ? OR username = ?').get(email.toLowerCase(), email.toLowerCase());
+  // Always return success to prevent email enumeration
+  if (!user) return res.json({ ok: true });
+  const token = require('crypto').randomBytes(32).toString('hex');
+  const expires = Date.now() + 60 * 60 * 1000; // 1 hour
+  db.prepare('UPDATE users SET reset_token=?, reset_expires=? WHERE id=?').run(token, expires, user.id);
+  const { Resend } = require('resend');
+  const resend = new Resend(process.env.RESEND_API_KEY);
+  const resetUrl = `${process.env.CLIENT_URL}/reset-password?token=${token}`;
+  await resend.emails.send({
+    from: 'olik <verify@olik.app>',
+    to: user.email,
+    subject: 'Reset your olik password',
+    html: `
+      <div style="background:#0a0a0a;padding:40px;font-family:Inter,sans-serif;color:#fff;max-width:480px;margin:0 auto;border-radius:16px">
+        <div style="margin-bottom:24px"><span style="font-size:22px;font-weight:700">olik</span></div>
+        <h2 style="margin:0 0 10px;font-size:20px">Reset your password</h2>
+        <p style="color:rgba(255,255,255,0.5);margin:0 0 28px;font-size:14px">Click the button below to reset your password. This link expires in 1 hour.</p>
+        <a href="${resetUrl}" style="display:block;background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;text-decoration:none;padding:14px 24px;border-radius:12px;font-weight:600;font-size:15px;text-align:center;margin-bottom:24px">Reset Password</a>
+        <p style="color:rgba(255,255,255,0.3);font-size:12px;margin:0">If you didn't request this, ignore this email.</p>
+      </div>
+    `,
+  }).catch(() => {});
+  res.json({ ok: true });
+});
+
+router.post('/reset-password', (req, res) => {
+  const { token, password } = req.body;
+  if (!token || !password || password.length < 6) return res.status(400).json({ error: 'Invalid request' });
+  const user = db.prepare('SELECT * FROM users WHERE reset_token = ?').get(token);
+  if (!user) return res.status(400).json({ error: 'Invalid or expired link' });
+  if (Date.now() > user.reset_expires) return res.status(400).json({ error: 'Reset link has expired' });
+  const hash = bcrypt.hashSync(password, 10);
+  db.prepare('UPDATE users SET password_hash=?, reset_token=NULL, reset_expires=NULL WHERE id=?').run(hash, user.id);
+  res.json({ ok: true });
 });
 
 module.exports = router;

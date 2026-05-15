@@ -215,6 +215,8 @@ async function init() {
   try { _sql.run('ALTER TABLE users ADD COLUMN email_verified INTEGER DEFAULT 0'); } catch {}
   try { _sql.run('ALTER TABLE users ADD COLUMN verify_code TEXT'); } catch {}
   try { _sql.run('ALTER TABLE users ADD COLUMN verify_expires INTEGER'); } catch {}
+  try { _sql.run('ALTER TABLE users ADD COLUMN reset_token TEXT'); } catch {}
+  try { _sql.run('ALTER TABLE users ADD COLUMN reset_expires INTEGER'); } catch {}
   try { _sql.run('ALTER TABLE invite_keys ADD COLUMN duration_days INTEGER DEFAULT NULL'); } catch {}
   try { _sql.run('ALTER TABLE users ADD COLUMN key_expires_at DATETIME DEFAULT NULL'); } catch {}
   // Grant admin + verified to the owner account

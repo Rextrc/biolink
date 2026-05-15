@@ -27,7 +27,6 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center px-4 relative overflow-hidden">
-      {/* Ambient glow */}
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[400px] rounded-full bg-indigo-600/10 blur-[130px]" />
       </div>
@@ -39,7 +38,7 @@ export default function Login() {
             <span className="font-bold text-white text-lg tracking-tight">olik</span>
           </Link>
           <h1 className="text-2xl font-bold tracking-tight">Welcome back</h1>
-          <p className="text-white/38 text-sm mt-1.5">Sign in to your account</p>
+          <p className="text-white/38 text-sm mt-1.5">Email or username</p>
         </div>
 
         <form onSubmit={submit} className="flex flex-col gap-4">
@@ -49,24 +48,31 @@ export default function Login() {
             </div>
           )}
           <div className="flex flex-col gap-1.5">
-            <label className="text-white/45 text-xs font-medium tracking-wide uppercase">Email</label>
+            <label className="text-white/45 text-xs font-medium tracking-wide uppercase">Email or Username</label>
             <input
-              type="email"
+              type="text"
               value={form.email}
               onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
               className="w-full bg-[#161616] border border-white/8 hover:border-white/14 focus:border-indigo-500/60 rounded-xl px-4 py-3 text-sm text-white outline-none transition-colors placeholder:text-white/20"
-              placeholder="you@example.com"
+              placeholder="you@example.com or yourname"
+              autoComplete="username"
               required
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-white/45 text-xs font-medium tracking-wide uppercase">Password</label>
+            <div className="flex items-center justify-between">
+              <label className="text-white/45 text-xs font-medium tracking-wide uppercase">Password</label>
+              <Link to="/forgot-password" className="text-indigo-400 hover:text-indigo-300 text-xs transition-colors">
+                Forgot password?
+              </Link>
+            </div>
             <input
               type="password"
               value={form.password}
               onChange={e => setForm(p => ({ ...p, password: e.target.value }))}
               className="w-full bg-[#161616] border border-white/8 hover:border-white/14 focus:border-indigo-500/60 rounded-xl px-4 py-3 text-sm text-white outline-none transition-colors placeholder:text-white/20"
               placeholder="••••••••"
+              autoComplete="current-password"
               required
             />
           </div>

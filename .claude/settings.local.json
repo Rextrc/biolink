@@ -36,7 +36,9 @@
       "PowerShell(gh auth *)",
       "PowerShell(gh repo *)",
       "PowerShell(git *)",
-      "PowerShell(railway status *)"
+      "PowerShell(railway status *)",
+      "Bash(node \"C:/Program Files/nodejs/node_modules/npm/bin/npm-cli.js\" install compression)",
+      "WebFetch(domain:cdn.discordapp.com)"
     ]
   }
 }
