@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('../db');
 const { sendVerificationEmail, sendWelcomeEmail } = require('../email');
+const { validateKey, useKey } = require('../keys');
 
 const RESERVED = ['dashboard', 'login', 'signup', 'api', 'admin', 'settings', 'god'];
 
@@ -22,8 +23,17 @@ router.post('/signup', async (req, res) => {
   if (RESERVED.includes(username.toLowerCase())) return res.status(400).json({ error: 'Username is reserved' });
   if (password.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
 
-  const hash = bcrypt.hashSync(password, 10);
   const isAdmin = email.toLowerCase() === 'oliverk5578@gmail.com' ? 1 : 0;
+
+  // Require invite key for non-admin signups
+  if (!isAdmin) {
+    const { invite_key } = req.body;
+    if (!invite_key) return res.status(403).json({ error: 'An invite key is required to sign up' });
+    const check = validateKey(invite_key);
+    if (!check.valid) return res.status(403).json({ error: check.reason });
+  }
+
+  const hash = bcrypt.hashSync(password, 10);
   const ip = getIp(req);
   const code = makeCode();
   const expires = Date.now() + 15 * 60 * 1000;
@@ -33,6 +43,9 @@ router.post('/signup', async (req, res) => {
     const result = stmt.run(username.toLowerCase(), email.toLowerCase(), hash, isAdmin, ip, ip, code, expires, isAdmin);
     db.prepare('INSERT INTO profiles (user_id, display_name) VALUES (?, ?)').run(result.lastInsertRowid, username);
     db.prepare('INSERT INTO design (user_id) VALUES (?)').run(result.lastInsertRowid);
+
+    // Mark invite key as used
+    if (!isAdmin && req.body.invite_key) useKey(req.body.invite_key, username.toLowerCase());
 
     // Send verification email (skip for admin)
     if (!isAdmin) {

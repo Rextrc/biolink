@@ -8,7 +8,7 @@ const RESERVED = ['dashboard', 'login', 'signup', 'api', 'admin', 'settings'];
 
 export default function Signup() {
   const [params] = useSearchParams();
-  const [form, setForm] = useState({ username: params.get('username') || '', email: '', password: '' });
+  const [form, setForm] = useState({ username: params.get('username') || '', email: '', password: '', invite_key: params.get('key') || '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -98,6 +98,18 @@ export default function Signup() {
               onChange={e => setForm(p => ({ ...p, password: e.target.value }))}
               className="w-full bg-white/4 border border-white/8 hover:border-white/14 focus:border-indigo-500/60 rounded-xl px-4 py-3 text-sm text-white outline-none transition-colors placeholder:text-white/20"
               placeholder="Min 6 characters"
+              required
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-white/45 text-xs font-medium tracking-wide uppercase">Invite Key</label>
+            <input
+              type="text"
+              value={form.invite_key}
+              onChange={e => setForm(p => ({ ...p, invite_key: e.target.value.toUpperCase() }))}
+              className="w-full bg-white/4 border border-white/8 hover:border-white/14 focus:border-indigo-500/60 rounded-xl px-4 py-3 text-sm text-white outline-none transition-colors placeholder:text-white/20 font-mono tracking-widest"
+              placeholder="OLIK-XXXX-XXXX-XXXX"
               required
             />
           </div>

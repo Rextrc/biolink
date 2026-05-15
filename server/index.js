@@ -37,6 +37,7 @@ const PORT = process.env.PORT || 3001;
 
 // Initialise the database before accepting connections
 require('./db').init().then(() => {
+  require('./bot').startBot();
   app.listen(PORT, () => {
     console.log(`✅  Server running on http://localhost:${PORT}`);
     console.log(`   Dev client : http://localhost:5173  (run: npm run dev:client)`);

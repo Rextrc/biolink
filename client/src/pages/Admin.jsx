@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../utils/api';
 import { getAuth } from '../utils/auth';
-import { Users, Trash2, Shield, ShieldOff, KeyRound, ExternalLink, Zap } from 'lucide-react';
+import { Users, Trash2, Shield, ShieldOff, KeyRound, ExternalLink, Zap, Copy, Plus } from 'lucide-react';
 
 export default function Admin() {
   const navigate = useNavigate();
@@ -12,6 +12,8 @@ export default function Admin() {
   const [detail, setDetail] = useState(null);
   const [pwInput, setPwInput] = useState('');
   const [msg, setMsg] = useState('');
+  const [keys, setKeys] = useState([]);
+  const [tab, setTab] = useState('users');
 
   useEffect(() => {
     const auth = getAuth();
@@ -21,10 +23,21 @@ export default function Admin() {
 
   async function load() {
     try {
-      const [s, u] = await Promise.all([api.admin.stats(), api.admin.users()]);
+      const [s, u, k] = await Promise.all([api.admin.stats(), api.admin.users(), api.admin.keys()]);
       setStats(s);
       setUsers(u);
+      setKeys(k);
     } catch { navigate('/dashboard'); }
+  }
+
+  async function genKey() {
+    const { key } = await api.admin.genKey('');
+    setKeys(k => [{ key, id: Date.now(), used_by: null, created_at: new Date().toISOString() }, ...k]);
+  }
+
+  async function deleteKey(id) {
+    await api.admin.deleteKey(id);
+    setKeys(k => k.filter(x => x.id !== id));
   }
 
   async function openUser(id) {
@@ -77,6 +90,15 @@ export default function Admin() {
       </div>
 
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '24px 16px' }}>
+        {/* Tabs */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
+          {[['users', 'Users'], ['keys', 'Invite Keys']].map(([id, label]) => (
+            <button key={id} onClick={() => setTab(id)} style={{ padding: '7px 18px', borderRadius: 8, border: `1px solid ${tab === id ? '#6366f1' : '#222'}`, background: tab === id ? 'rgba(99,102,241,0.12)' : 'transparent', color: tab === id ? '#818cf8' : 'rgba(255,255,255,0.4)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
+              {label}
+            </button>
+          ))}
+        </div>
+
         {/* Stats */}
         <div style={{ display: 'flex', gap: 10, marginBottom: 24, flexWrap: 'wrap' }}>
           {[['Total Users', stats?.total_users], ['Total Links', stats?.total_links], ['New Today', stats?.new_today]].map(([label, val]) => (
@@ -87,7 +109,31 @@ export default function Admin() {
           ))}
         </div>
 
-        <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+        {/* Keys tab */}
+        {tab === 'keys' && (
+          <div style={{ background: '#111', border: '1px solid #1e1e1e', borderRadius: 14, overflow: 'hidden' }}>
+            <div style={{ padding: '12px 18px', borderBottom: '1px solid #1e1e1e', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <KeyRound size={14} color="#6366f1" />
+              <span style={{ fontWeight: 600, fontSize: 13 }}>Invite Keys</span>
+              <button onClick={genKey} style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, background: '#6366f1', border: 'none', color: '#fff', borderRadius: 8, padding: '6px 14px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
+                <Plus size={12} /> Generate Key
+              </button>
+            </div>
+            {keys.length === 0 && <div style={{ padding: 28, textAlign: 'center', color: 'rgba(255,255,255,0.2)', fontSize: 13 }}>No keys yet</div>}
+            {keys.map(k => (
+              <div key={k.id} style={{ padding: '12px 18px', borderBottom: '1px solid #161616', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <code style={{ flex: 1, fontSize: 13, color: k.used_by ? 'rgba(255,255,255,0.2)' : '#a5b4fc', letterSpacing: 2, textDecoration: k.used_by ? 'line-through' : 'none' }}>{k.key}</code>
+                {k.used_by && <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>used by @{k.used_by}</span>}
+                {!k.used_by && (
+                  <button onClick={() => navigator.clipboard?.writeText(k.key)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', padding: 4 }}><Copy size={12} /></button>
+                )}
+                <button onClick={() => deleteKey(k.id)} style={{ background: 'none', border: 'none', color: 'rgba(239,68,68,0.5)', cursor: 'pointer', padding: 4 }}><Trash2 size={12} /></button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {tab === 'users' && <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start', flexWrap: 'wrap' }}>
           {/* User list */}
           <div style={{ flex: 1, minWidth: 280, background: '#111', border: '1px solid #1e1e1e', borderRadius: 14, overflow: 'hidden' }}>
             <div style={{ padding: '12px 16px', borderBottom: '1px solid #1e1e1e', display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -174,7 +220,7 @@ export default function Admin() {
               </div>
             </div>
           )}
-        </div>
+        </div>}
       </div>
     </div>
   );

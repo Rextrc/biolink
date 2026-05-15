@@ -37,5 +37,8 @@ export const api = {
     resetPassword: (id, password) => apiFetch(`/admin/users/${id}/password`, { method: 'PUT', body: JSON.stringify({ password }) }),
     toggleAdmin: (id) => apiFetch(`/admin/users/${id}/admin`, { method: 'PUT' }),
     deleteUser: (id) => apiFetch(`/admin/users/${id}`, { method: 'DELETE' }),
+    keys: () => apiFetch('/admin/keys'),
+    genKey: (note) => apiFetch('/admin/keys', { method: 'POST', body: JSON.stringify({ note }) }),
+    deleteKey: (id) => apiFetch(`/admin/keys/${id}`, { method: 'DELETE' }),
   },
 };

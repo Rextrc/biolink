@@ -187,6 +187,16 @@ async function init() {
   try { _sql.run('ALTER TABLE profiles ADD COLUMN banner_url TEXT DEFAULT NULL'); } catch {}
   try { _sql.run('ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0'); } catch {}
   try {
+    _sql.run(`CREATE TABLE IF NOT EXISTS invite_keys (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      key        TEXT UNIQUE NOT NULL,
+      note       TEXT,
+      used_by    TEXT,
+      used_at    DATETIME,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
+  } catch {}
+  try {
     _sql.run(`CREATE TABLE IF NOT EXISTS emails (
       id          INTEGER PRIMARY KEY AUTOINCREMENT,
       direction   TEXT NOT NULL DEFAULT 'in',

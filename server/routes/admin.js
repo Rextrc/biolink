@@ -3,6 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const db = require('../db');
 const adminAuth = require('../middleware/adminAuth');
+const { generateKey } = require('../keys');
 
 router.use(adminAuth);
 
@@ -64,6 +65,19 @@ router.delete('/users/:id', (req, res) => {
   db.prepare('DELETE FROM design WHERE user_id=?').run(id);
   db.prepare('DELETE FROM profiles WHERE user_id=?').run(id);
   db.prepare('DELETE FROM users WHERE id=?').run(id);
+  res.json({ ok: true });
+});
+
+// Keys
+router.get('/keys', (req, res) => {
+  res.json(db.prepare('SELECT * FROM invite_keys ORDER BY created_at DESC').all());
+});
+router.post('/keys', (req, res) => {
+  const key = generateKey(req.body.note || '');
+  res.json({ key });
+});
+router.delete('/keys/:id', (req, res) => {
+  db.prepare('DELETE FROM invite_keys WHERE id=?').run(req.params.id);
   res.json({ ok: true });
 });
 
