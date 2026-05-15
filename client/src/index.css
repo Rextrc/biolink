@@ -62,11 +62,14 @@ body {
 /* ── Smooth image loading ──────────────────────────────────────── */
 img { transition: opacity 0.3s ease; }
 
-/* ── Kill browser autofill white background ────────────────────── */
+/* ── Kill browser autofill background (Chrome + Safari) ────────── */
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
-input:-webkit-autofill:focus {
-  -webkit-box-shadow: 0 0 0 1000px #111118 inset !important;
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #0d0d0d inset !important;
   -webkit-text-fill-color: #fff !important;
   caret-color: #fff;
+  /* Safari: delay the autofill color from ever visibly applying */
+  transition: background-color 99999s ease-in-out 0s !important;
 }
