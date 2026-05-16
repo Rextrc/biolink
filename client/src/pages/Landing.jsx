@@ -149,7 +149,7 @@ function TiltCard({ navigate }) {
     setTimeout(() => setClickedLink(null), 1800);
   };
 
-  const links = ['My Portfolio', 'Latest Project', 'Contact'];
+  const links = ['Instagram', 'TikTok'];
 
   return (
     <div ref={ref} onMouseMove={onMove} onMouseEnter={() => setHovered(true)} onMouseLeave={() => { setTilt({ x: 0, y: 0 }); setHovered(false); }} style={{ perspective: 1000, cursor: 'default', flexShrink: 0 }}>
@@ -177,12 +177,12 @@ function TiltCard({ navigate }) {
           <div style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none', borderRadius: 24, background: 'linear-gradient(135deg, rgba(255,255,255,0.06) 0%, transparent 50%, rgba(99,102,241,0.06) 100%)' }} />
 
           <div style={{ height: 90, background: 'linear-gradient(135deg, #1e1040, #0d0221)', position: 'relative', overflow: 'hidden' }}>
-            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, #4f46e5aa, #7c3aedaa)', opacity: 0.4 }} />
+            <img src="https://olik.app/uploads/1-1778949790369.png" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           </div>
 
           <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <img
-              src="https://scontent-mia3-2.cdninstagram.com/v/t51.82787-19/639778373_18035639270717019_8788809374271189271_n.jpg?efg=eyJ2ZW5jb2RlX3RhZyI6InByb2ZpbGVfcGljLmRqYW5nby4zMjAuYzIifQ&_nc_ht=scontent-mia3-2.cdninstagram.com&_nc_cat=103&_nc_oc=Q6cZ2gEtpjIAJUNHKbnhUWPnyDm2rwQMZZXlYXy2TifJl4r1TbxeNyb7y_aeNTaKeOFW_iM&_nc_ohc=OP5lpxWlBLEQ7kNvwHqtXhA&_nc_gid=M404KjCehi0EM04C8aJlYg&edm=ALGbJPMBAAAA&ccb=7-5&oh=00_Af6YjllZeME6Q2D1wJBIfBoiWAZjlor2hSOn7I4g5eDZLA&oe=6A0C1DCA&_nc_sid=7d3ac5"
+              src="https://olik.app/uploads/1-1778949786754.png"
               alt=""
               style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', border: '3px solid #050508', marginTop: -32, position: 'relative', zIndex: 2, boxShadow: '0 0 28px rgba(99,102,241,0.55)', transition: 'box-shadow 0.3s', cursor: 'pointer' }}
               onClick={() => navigate('/signup')}
@@ -190,9 +190,8 @@ function TiltCard({ navigate }) {
             <div style={{ marginTop: 8, textAlign: 'center', padding: '0 20px' }}>
               <div style={{ fontWeight: 700, fontSize: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
                 @olik
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="12" fill="#6366f1"/><path d="M7 12.5l3.5 3.5 6.5-7" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                <svg width="14" height="14" viewBox="0 0 40 40" fill="none"><path d="M20 2.5L24.33 7.13L30.5 5.77L31.87 11.94L37.5 16.27L34.9 22L37.5 27.73L31.87 32.06L30.5 38.23L24.33 36.87L20 41.5L15.67 36.87L9.5 38.23L8.13 32.06L2.5 27.73L5.1 22L2.5 16.27L8.13 11.94L9.5 5.77L15.67 7.13L20 2.5Z" fill="#0095F6"/><path d="M13 21.5L17.5 26L27 16" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/></svg>
               </div>
-              <div style={{ fontSize: 10, color: 'rgba(165,180,252,0.6)', marginTop: 2 }}>Creator · Designer ✨</div>
             </div>
 
             <div style={{ width: '100%', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 7, position: 'relative' }}>
@@ -236,7 +235,8 @@ function TiltCard({ navigate }) {
                 <div style={{ fontSize: 10, fontWeight: 600, color: '#1ed760', display: 'flex', alignItems: 'center', gap: 5 }}>
                   Now Playing <SpotifyBars />
                 </div>
-                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>Spotify track</div>
+                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.5)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Rehab (Winter In Paris)</div>
+                <div style={{ fontSize: 8, color: 'rgba(255,255,255,0.3)' }}>Brent Faiyaz</div>
               </div>
             </div>
           </div>
