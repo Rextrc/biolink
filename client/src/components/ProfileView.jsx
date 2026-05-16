@@ -1,3 +1,4 @@
+import { useState, useRef, useCallback } from 'react';
 import { PLATFORMS } from '../utils/platforms';
 import { SocialIconSvg } from '../utils/social-icons.jsx';
 
@@ -105,6 +106,51 @@ function SpotifyPlayer({ url }) {
   );
 }
 
+/* ══ Tilt card wrapper ═══════════════════════════════════════════ */
+function TiltWrapper({ children, glowColor = '#6366f1' }) {
+  const ref = useRef(null);
+  const [tilt, setTilt] = useState({ x: 0, y: 0 });
+  const [glow, setGlow] = useState({ x: 50, y: 50 });
+  const [hovered, setHovered] = useState(false);
+
+  const onMove = useCallback((e) => {
+    const el = ref.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const x = (e.clientX - r.left) / r.width;
+    const y = (e.clientY - r.top) / r.height;
+    setTilt({ x: (y - 0.5) * -14, y: (x - 0.5) * 14 });
+    setGlow({ x: x * 100, y: y * 100 });
+  }, []);
+
+  const onLeave = useCallback(() => {
+    setTilt({ x: 0, y: 0 });
+    setHovered(false);
+  }, []);
+
+  return (
+    <div ref={ref} onMouseMove={onMove} onMouseEnter={() => setHovered(true)} onMouseLeave={onLeave}
+      style={{ perspective: 1000, width: '100%', maxWidth: 420 }}>
+      <div style={{
+        transform: `rotateX(${tilt.x}deg) rotateY(${tilt.y}deg) scale(${hovered ? 1.018 : 1})`,
+        transition: hovered ? 'transform 0.08s ease-out' : 'transform 0.55s cubic-bezier(.22,.68,0,1.2)',
+        transformStyle: 'preserve-3d',
+        position: 'relative',
+        borderRadius: 24,
+        width: '100%',
+      }}>
+        {/* Mouse-tracked glow */}
+        <div style={{
+          position: 'absolute', inset: 0, borderRadius: 24, zIndex: 0, pointerEvents: 'none',
+          opacity: hovered ? 1 : 0, transition: 'opacity 0.35s',
+          background: `radial-gradient(circle at ${glow.x}% ${glow.y}%, ${glowColor}28 0%, transparent 65%)`,
+        }} />
+        {children}
+      </div>
+    </div>
+  );
+}
+
 /* ══ Main ProfileView ════════════════════════════════════════════ */
 export default function ProfileView({ data, minHeight = '100%' }) {
   const { profile, design: d, links, is_admin } = data;
@@ -193,9 +239,9 @@ export default function ProfileView({ data, minHeight = '100%' }) {
         }}
       >
         {/* ── Profile card ─────────────────────────────── */}
+        <TiltWrapper glowColor={d?.card_glow_color || d?.btn_bg || '#6366f1'}>
         <div style={{
           width: '100%',
-          maxWidth: 420,
           background: hasBanner
             ? 'rgba(10,10,16,0.78)'
             : 'transparent',
@@ -280,15 +326,9 @@ export default function ProfileView({ data, minHeight = '100%' }) {
                   {profile.display_name}
                 </h1>
                 {is_admin && (
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" title="Verified Developer">
-                    <circle cx="12" cy="12" r="12" fill="url(#vgrad)"/>
-                    <defs>
-                      <linearGradient id="vgrad" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
-                        <stop offset="0%" stopColor="#6366f1"/>
-                        <stop offset="100%" stopColor="#a855f7"/>
-                      </linearGradient>
-                    </defs>
-                    <path d="M7 12.5l3.5 3.5 6.5-7" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <svg width="20" height="20" viewBox="0 0 40 40" fill="none" title="Verified">
+                    <path d="M20 2.5L24.33 7.13L30.5 5.77L31.87 11.94L37.5 16.27L34.9 22L37.5 27.73L31.87 32.06L30.5 38.23L24.33 36.87L20 41.5L15.67 36.87L9.5 38.23L8.13 32.06L2.5 27.73L5.1 22L2.5 16.27L8.13 11.94L9.5 5.77L15.67 7.13L20 2.5Z" fill="#0095F6"/>
+                    <path d="M13 21.5L17.5 26L27 16" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 )}
               </div>
@@ -380,6 +420,7 @@ export default function ProfileView({ data, minHeight = '100%' }) {
             )}
           </div>
         </div>
+        </TiltWrapper>
       </div>
     </div>
   );
