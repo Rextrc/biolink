@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Save, Check } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Save, Check, Upload, X } from 'lucide-react';
 
 /* ── Preset full themes ───────────────────────────────────────── */
 const PRESET_THEMES = {
@@ -133,6 +133,63 @@ function bgSwatchStyle(p) {
   return { background: `linear-gradient(${p.bg_gradient_dir === 'diagonal' ? '135deg' : '180deg'}, ${p.bg_gradient_start}, ${p.bg_gradient_end})` };
 }
 
+/* ── Video Upload ─────────────────────────────────────────────── */
+function VideoUpload({ value, blurred, onUrl, onBlur }) {
+  const inputRef = useRef(null);
+  const [uploading, setUploading] = useState(false);
+
+  const pick = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/upload', { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: form });
+      const data = await res.json();
+      if (data.url) onUrl(data.url);
+      else alert(data.error || 'Upload failed');
+    } catch { alert('Upload failed'); }
+    finally { setUploading(false); }
+  };
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div>
+        <Label>Video File</Label>
+        <input ref={inputRef} type="file" accept="video/*" onChange={pick} style={{ display: 'none' }} />
+        {value ? (
+          <div className="mt-2 flex flex-col gap-2">
+            <video src={value} muted loop className="w-full rounded-xl" style={{ maxHeight: 120, objectFit: 'cover' }} />
+            <div className="flex gap-2">
+              <button onClick={() => inputRef.current?.click()}
+                className="flex-1 flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl py-2 text-xs text-white/60 transition-all">
+                {uploading ? <div className="w-3 h-3 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" /> : <><Upload size={12} /> Replace</>}
+              </button>
+              <button onClick={() => onUrl('')}
+                className="flex items-center justify-center gap-1 bg-white/5 hover:bg-red-500/20 border border-white/10 rounded-xl px-3 py-2 text-xs text-white/60 hover:text-red-400 transition-all">
+                <X size={12} /> Remove
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button onClick={() => inputRef.current?.click()} disabled={uploading}
+            className="mt-2 w-full flex items-center justify-center gap-2 border-2 border-dashed border-white/15 hover:border-indigo-500/50 rounded-xl py-5 text-sm text-white/40 hover:text-white/70 transition-all disabled:opacity-50">
+            {uploading
+              ? <><div className="w-4 h-4 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" /> Uploading…</>
+              : <><Upload size={16} /> Upload video background</>}
+          </button>
+        )}
+      </div>
+      <label className="flex items-center gap-2 text-sm text-white/50 cursor-pointer select-none">
+        <input type="checkbox" checked={blurred} onChange={e => onBlur(e.target.checked)} className="accent-indigo-500" />
+        Blur video background
+      </label>
+    </div>
+  );
+}
+
 /* ── Main export ──────────────────────────────────────────────── */
 export default function DesignTab({ design, onChange, onSave }) {
   const [saving, setSaving] = useState(false);
@@ -195,24 +252,26 @@ export default function DesignTab({ design, onChange, onSave }) {
 
       {/* ── Background ────────────────────────────────────── */}
       <Section title="Background">
-        <Pills label="Type" value={design.bg_type} onChange={v => set('bg_type', v)} options={['solid','gradient','image']} />
+        <Pills label="Type" value={design.bg_type} onChange={v => set('bg_type', v)} options={['solid','gradient','image','video']} />
 
-        {/* Preset background swatches */}
-        <div>
-          <Label>Quick Presets</Label>
-          <div className="flex flex-wrap gap-2 mt-2">
-            {PRESET_BACKGROUNDS.map(p => (
-              <button key={p.label} onClick={() => applyBg(p)} title={p.label}
-                style={{ ...bgSwatchStyle(p), width: 40, height: 40 }}
-                className="rounded-lg border border-white/20 hover:scale-110 transition-transform shrink-0" />
-            ))}
+        {/* Preset background swatches (not shown for video) */}
+        {design.bg_type !== 'video' && (
+          <div>
+            <Label>Quick Presets</Label>
+            <div className="flex flex-wrap gap-2 mt-2">
+              {PRESET_BACKGROUNDS.map(p => (
+                <button key={p.label} onClick={() => applyBg(p)} title={p.label}
+                  style={{ ...bgSwatchStyle(p), width: 40, height: 40 }}
+                  className="rounded-lg border border-white/20 hover:scale-110 transition-transform shrink-0" />
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-1 mt-1">
+              {PRESET_BACKGROUNDS.map(p => (
+                <span key={p.label} className="text-[10px] text-white/30 w-[42px] text-center truncate">{p.label}</span>
+              ))}
+            </div>
           </div>
-          <div className="flex flex-wrap gap-1 mt-1">
-            {PRESET_BACKGROUNDS.map(p => (
-              <span key={p.label} className="text-[10px] text-white/30 w-[42px] text-center truncate">{p.label}</span>
-            ))}
-          </div>
-        </div>
+        )}
 
         {design.bg_type === 'solid' && (
           <ColorInput label="Color" value={design.bg_color} onChange={v => set('bg_color', v)} />
@@ -237,6 +296,29 @@ export default function DesignTab({ design, onChange, onSave }) {
               className="w-full mt-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500 text-white"
               placeholder="https://…" />
           </div>
+        )}
+        {design.bg_type === 'video' && (
+          <VideoUpload
+            value={design.bg_video_url}
+            blurred={!!design.bg_video_blur}
+            onUrl={v => set('bg_video_url', v)}
+            onBlur={v => set('bg_video_blur', v ? 1 : 0)}
+          />
+        )}
+      </Section>
+
+      {/* ── Card ──────────────────────────────────────────── */}
+      <Section title="Card">
+        <label className="flex items-center gap-2 text-sm text-white/50 cursor-pointer select-none">
+          <input type="checkbox" checked={!!design.card_transparent} onChange={e => set('card_transparent', e.target.checked ? 1 : 0)} className="accent-indigo-500" />
+          Transparent card (see-through background)
+        </label>
+        <label className="flex items-center gap-2 text-sm text-white/50 cursor-pointer select-none">
+          <input type="checkbox" checked={!!design.card_glow} onChange={e => set('card_glow', e.target.checked ? 1 : 0)} className="accent-indigo-500" />
+          Card glow
+        </label>
+        {!!design.card_glow && (
+          <ColorInput label="Glow Color" value={design.card_glow_color} onChange={v => set('card_glow_color', v)} />
         )}
       </Section>
 

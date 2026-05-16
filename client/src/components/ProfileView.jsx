@@ -242,15 +242,17 @@ export default function ProfileView({ data, minHeight = '100%' }) {
         <TiltWrapper glowColor={d?.card_glow_color || d?.btn_bg || '#6366f1'}>
         <div style={{
           width: '100%',
-          background: hasBanner
-            ? 'rgba(10,10,16,0.78)'
-            : 'transparent',
-          backdropFilter: hasBanner ? 'blur(28px) saturate(1.6)' : 'none',
-          WebkitBackdropFilter: hasBanner ? 'blur(28px) saturate(1.6)' : 'none',
-          border: hasBanner ? '1px solid rgba(255,255,255,0.08)' : 'none',
+          background: d?.card_transparent
+            ? 'transparent'
+            : hasBanner
+              ? 'rgba(10,10,16,0.78)'
+              : 'transparent',
+          backdropFilter: (!d?.card_transparent && hasBanner) ? 'blur(28px) saturate(1.6)' : 'none',
+          WebkitBackdropFilter: (!d?.card_transparent && hasBanner) ? 'blur(28px) saturate(1.6)' : 'none',
+          border: (!d?.card_transparent && hasBanner) ? '1px solid rgba(255,255,255,0.08)' : 'none',
           borderRadius: hasBanner ? 24 : 0,
           overflow: 'visible',
-          boxShadow: hasBanner
+          boxShadow: (!d?.card_transparent && hasBanner)
             ? `0 40px 100px rgba(0,0,0,0.7), 0 0 0 0.5px rgba(255,255,255,0.05)${d?.card_glow ? `, 0 0 80px ${d.card_glow_color || '#6366f1'}45` : ''}`
             : d?.card_glow ? `0 0 80px ${d.card_glow_color || '#6366f1'}45` : 'none',
         }}>

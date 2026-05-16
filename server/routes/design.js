@@ -14,7 +14,8 @@ router.put('/', authMiddleware, (req, res) => {
     'text_color','bio_color','btn_bg','btn_text','btn_border','btn_shape','btn_style','btn_hover',
     'font_heading','font_body','font_size','avatar_shape','avatar_border_color','avatar_border_size',
     'avatar_glow','avatar_glow_color','layout_avatar','layout_bio_align','link_spacing','preset_name',
-    'social_icon_color', 'card_glow', 'card_glow_color', 'bg_video_url', 'bg_video_blur'
+    'social_icon_color', 'card_glow', 'card_glow_color', 'bg_video_url', 'bg_video_blur',
+    'card_transparent'
   ];
   const updates = fields.filter(f => req.body[f] !== undefined);
   if (!updates.length) return res.json({ success: true });
