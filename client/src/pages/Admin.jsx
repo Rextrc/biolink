@@ -2,7 +2,21 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../utils/api';
 import { getAuth } from '../utils/auth';
-import { Users, Trash2, Shield, ShieldOff, KeyRound, ExternalLink, Zap, Copy, Plus } from 'lucide-react';
+import { Users, Trash2, Shield, ShieldOff, KeyRound, ExternalLink, Zap, Copy, Plus, Layout, Save, Check } from 'lucide-react';
+
+const DEFAULT_CFG = {
+  hero_badge: 'invite only — made for creators',
+  hero_line1: 'One link.',
+  hero_line2: 'Infinite reach.',
+  hero_sub: 'The sleekest link-in-bio platform around. Custom everything — themes, colors, fonts, layouts. Built for people who care about the details.',
+  stats: [
+    { val: 10, suffix: '+', label: 'Themes' },
+    { val: 100, suffix: '%', label: 'Customizable' },
+    { val: 50, suffix: '+', label: 'Social platforms' },
+  ],
+  cta_title: 'Ready to jump in?',
+  cta_sub: 'olik is invite only. Get your key from someone inside, or request access.',
+};
 
 export default function Admin() {
   const navigate = useNavigate();
@@ -17,6 +31,8 @@ export default function Admin() {
   const [genDuration, setGenDuration] = useState('');
   const [genCustom, setGenCustom] = useState('');
   const [expiryInput, setExpiryInput] = useState('');
+  const [siteCfg, setSiteCfg] = useState(DEFAULT_CFG);
+  const [cfgSaved, setCfgSaved] = useState(false);
 
   useEffect(() => {
     const auth = getAuth();
@@ -26,10 +42,11 @@ export default function Admin() {
 
   async function load() {
     try {
-      const [s, u, k] = await Promise.all([api.admin.stats(), api.admin.users(), api.admin.keys()]);
+      const [s, u, k, cfg] = await Promise.all([api.admin.stats(), api.admin.users(), api.admin.keys(), api.admin.getSiteConfig()]);
       setStats(s);
       setUsers(u);
       setKeys(k);
+      if (cfg && Object.keys(cfg).length > 0) setSiteCfg({ ...DEFAULT_CFG, ...cfg });
     } catch { navigate('/dashboard'); }
   }
 
@@ -86,6 +103,25 @@ export default function Admin() {
     setPwInput('');
   }
 
+  async function saveSiteCfg() {
+    await api.admin.saveSiteConfig(siteCfg);
+    setCfgSaved(true);
+    setTimeout(() => setCfgSaved(false), 2000);
+  }
+
+  const SInput = ({ label, value, onChange, rows }) => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+      <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 1 }}>{label}</span>
+      {rows ? (
+        <textarea value={value} onChange={e => onChange(e.target.value)} rows={rows}
+          style={{ background: '#161616', border: '1px solid #2a2a2a', borderRadius: 8, padding: '8px 10px', color: '#fff', fontSize: 13, outline: 'none', fontFamily: 'inherit', resize: 'vertical' }} />
+      ) : (
+        <input value={value} onChange={e => onChange(e.target.value)}
+          style={{ background: '#161616', border: '1px solid #2a2a2a', borderRadius: 8, padding: '8px 10px', color: '#fff', fontSize: 13, outline: 'none', fontFamily: 'inherit' }} />
+      )}
+    </div>
+  );
+
   const Row = ({ label, value, mono }) => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1 }}>{label}</span>
@@ -109,7 +145,7 @@ export default function Admin() {
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '24px 16px' }}>
         {/* Tabs */}
         <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
-          {[['users', 'Users'], ['keys', 'Invite Keys']].map(([id, label]) => (
+          {[['users', 'Users'], ['keys', 'Invite Keys'], ['frontpage', 'Front Page']].map(([id, label]) => (
             <button key={id} onClick={() => setTab(id)} style={{ padding: '7px 18px', borderRadius: 8, border: `1px solid ${tab === id ? '#6366f1' : '#222'}`, background: tab === id ? 'rgba(99,102,241,0.12)' : 'transparent', color: tab === id ? '#818cf8' : 'rgba(255,255,255,0.4)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
               {label}
             </button>
@@ -170,6 +206,72 @@ export default function Admin() {
                 <button onClick={() => deleteKey(k.id)} style={{ background: 'none', border: 'none', color: 'rgba(239,68,68,0.5)', cursor: 'pointer', padding: 4 }}><Trash2 size={12} /></button>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Front Page editor tab */}
+        {tab === 'frontpage' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20, maxWidth: 680 }}>
+            <div style={{ background: '#111', border: '1px solid #1e1e1e', borderRadius: 14, overflow: 'hidden' }}>
+              <div style={{ padding: '12px 18px', borderBottom: '1px solid #1e1e1e', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Layout size={14} color="#6366f1" />
+                <span style={{ fontWeight: 600, fontSize: 13 }}>Hero Section</span>
+              </div>
+              <div style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <SInput label="Badge text" value={siteCfg.hero_badge} onChange={v => setSiteCfg(c => ({ ...c, hero_badge: v }))} />
+                <SInput label="Headline line 1" value={siteCfg.hero_line1} onChange={v => setSiteCfg(c => ({ ...c, hero_line1: v }))} />
+                <SInput label="Headline line 2 (gradient)" value={siteCfg.hero_line2} onChange={v => setSiteCfg(c => ({ ...c, hero_line2: v }))} />
+                <SInput label="Subtext" value={siteCfg.hero_sub} onChange={v => setSiteCfg(c => ({ ...c, hero_sub: v }))} rows={3} />
+              </div>
+            </div>
+
+            <div style={{ background: '#111', border: '1px solid #1e1e1e', borderRadius: 14, overflow: 'hidden' }}>
+              <div style={{ padding: '12px 18px', borderBottom: '1px solid #1e1e1e', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Layout size={14} color="#6366f1" />
+                <span style={{ fontWeight: 600, fontSize: 13 }}>Stats Bar</span>
+              </div>
+              <div style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {(siteCfg.stats || DEFAULT_CFG.stats).map((s, i) => (
+                  <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 5, width: 80 }}>
+                      <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 1 }}>Value</span>
+                      <input type="number" value={s.val} onChange={e => setSiteCfg(c => { const stats = [...c.stats]; stats[i] = { ...stats[i], val: Number(e.target.value) }; return { ...c, stats }; })}
+                        style={{ background: '#161616', border: '1px solid #2a2a2a', borderRadius: 8, padding: '8px 10px', color: '#fff', fontSize: 13, outline: 'none', fontFamily: 'inherit', width: '100%' }} />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 5, width: 60 }}>
+                      <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 1 }}>Suffix</span>
+                      <input value={s.suffix} onChange={e => setSiteCfg(c => { const stats = [...c.stats]; stats[i] = { ...stats[i], suffix: e.target.value }; return { ...c, stats }; })}
+                        style={{ background: '#161616', border: '1px solid #2a2a2a', borderRadius: 8, padding: '8px 10px', color: '#fff', fontSize: 13, outline: 'none', fontFamily: 'inherit', width: '100%' }} />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 5, flex: 1 }}>
+                      <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 1 }}>Label</span>
+                      <input value={s.label} onChange={e => setSiteCfg(c => { const stats = [...c.stats]; stats[i] = { ...stats[i], label: e.target.value }; return { ...c, stats }; })}
+                        style={{ background: '#161616', border: '1px solid #2a2a2a', borderRadius: 8, padding: '8px 10px', color: '#fff', fontSize: 13, outline: 'none', fontFamily: 'inherit', width: '100%' }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ background: '#111', border: '1px solid #1e1e1e', borderRadius: 14, overflow: 'hidden' }}>
+              <div style={{ padding: '12px 18px', borderBottom: '1px solid #1e1e1e', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Layout size={14} color="#6366f1" />
+                <span style={{ fontWeight: 600, fontSize: 13 }}>CTA Section</span>
+              </div>
+              <div style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <SInput label="Title" value={siteCfg.cta_title} onChange={v => setSiteCfg(c => ({ ...c, cta_title: v }))} />
+                <SInput label="Subtext" value={siteCfg.cta_sub} onChange={v => setSiteCfg(c => ({ ...c, cta_sub: v }))} rows={2} />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+              <button onClick={saveSiteCfg} style={{ display: 'flex', alignItems: 'center', gap: 7, background: cfgSaved ? 'rgba(52,211,153,0.15)' : 'linear-gradient(135deg,#6366f1,#8b5cf6)', border: cfgSaved ? '1px solid rgba(52,211,153,0.4)' : 'none', color: cfgSaved ? '#34d399' : '#fff', borderRadius: 10, padding: '10px 22px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.2s' }}>
+                {cfgSaved ? <><Check size={14} /> Saved!</> : <><Save size={14} /> Save Changes</>}
+              </button>
+              <a href="/" target="_blank" rel="noreferrer" style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <ExternalLink size={11} /> Preview live site
+              </a>
+            </div>
           </div>
         )}
 

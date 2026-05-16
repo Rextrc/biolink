@@ -43,5 +43,8 @@ export const api = {
     updateKey: (id, duration_days) => apiFetch(`/admin/keys/${id}`, { method: 'PUT', body: JSON.stringify({ duration_days }) }),
     deleteKey: (id) => apiFetch(`/admin/keys/${id}`, { method: 'DELETE' }),
     updateUserExpiry: (id, key_expires_at) => apiFetch(`/admin/users/${id}/expiry`, { method: 'PUT', body: JSON.stringify({ key_expires_at }) }),
+    getSiteConfig: () => apiFetch('/admin/site-config'),
+    saveSiteConfig: (body) => apiFetch('/admin/site-config', { method: 'PUT', body: JSON.stringify(body) }),
   },
+  getSiteConfig: () => apiFetch('/site-config'),
 };

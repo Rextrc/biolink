@@ -224,6 +224,13 @@ async function init() {
   try { _sql.run('ALTER TABLE users ADD COLUMN reset_expires INTEGER'); } catch {}
   try { _sql.run('ALTER TABLE invite_keys ADD COLUMN duration_days INTEGER DEFAULT NULL'); } catch {}
   try { _sql.run('ALTER TABLE users ADD COLUMN key_expires_at DATETIME DEFAULT NULL'); } catch {}
+  try {
+    _sql.run(`CREATE TABLE IF NOT EXISTS site_config (
+      id   INTEGER PRIMARY KEY DEFAULT 1,
+      data TEXT NOT NULL DEFAULT '{}'
+    )`);
+    _sql.run(`INSERT OR IGNORE INTO site_config (id, data) VALUES (1, '{}')`);
+  } catch {}
   // Grant admin + verified to the owner account
   try { _sql.run(`UPDATE users SET is_admin = 1, email_verified = 1 WHERE email = 'oliverk5578@gmail.com'`); } catch {}
 

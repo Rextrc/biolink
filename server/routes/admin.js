@@ -106,6 +106,17 @@ router.delete('/keys/:id', (req, res) => {
   res.json({ ok: true });
 });
 
+// Site config (front page content)
+router.get('/site-config', (req, res) => {
+  const row = db.prepare('SELECT data FROM site_config WHERE id=1').get();
+  res.json(row ? JSON.parse(row.data) : {});
+});
+router.put('/site-config', (req, res) => {
+  const data = JSON.stringify(req.body);
+  db.prepare('UPDATE site_config SET data=? WHERE id=1').run(data);
+  res.json({ ok: true });
+});
+
 // Stats overview
 router.get('/stats', (req, res) => {
   const total_users = db.prepare('SELECT COUNT(*) as c FROM users').get().c;

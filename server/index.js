@@ -24,6 +24,15 @@ app.use('/api/admin',   require('./routes/admin'));
 app.use('/api/inbox',   require('./routes/inbox'));
 app.use('/api/upload',  require('./routes/upload'));
 
+// Public site config (landing page copy)
+app.get('/api/site-config', (req, res) => {
+  try {
+    const db = require('./db');
+    const row = db.prepare('SELECT data FROM site_config WHERE id=1').get();
+    res.json(row ? JSON.parse(row.data) : {});
+  } catch { res.json({}); }
+});
+
 // Serve uploaded images
 const UPLOAD_DIR = process.env.UPLOAD_DIR || require('path').join(__dirname, 'uploads');
 app.use('/uploads', require('express').static(UPLOAD_DIR));
