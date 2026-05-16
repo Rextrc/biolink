@@ -211,13 +211,16 @@ export default function ProfileView({ data, minHeight = '100%' }) {
 
           {/* ── Banner image ───────────────────────────── */}
           {hasBanner && (
-            <div style={{ position: 'relative', height: 140, borderRadius: '24px 24px 0 0', overflow: 'hidden' }}>
-              <img
-                src={bannerUrl}
-                alt=""
-                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-              />
-              {/* Avatar overlapping the banner */}
+            <div style={{ position: 'relative' }}>
+              {/* Clip only the image, not the avatar */}
+              <div style={{ height: 140, borderRadius: '24px 24px 0 0', overflow: 'hidden' }}>
+                <img
+                  src={bannerUrl}
+                  alt=""
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                />
+              </div>
+              {/* Avatar sits outside overflow:hidden so it isn't clipped */}
               {showAvatar && (
                 <div style={{
                   position: 'absolute',
