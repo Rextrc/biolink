@@ -34,7 +34,7 @@ app.get('/api/site-config', (req, res) => {
 });
 
 // Serve uploaded images
-const UPLOAD_DIR = process.env.UPLOAD_DIR || require('path').join(__dirname, 'uploads');
+const UPLOAD_DIR = process.env.UPLOAD_DIR || '/app/data/uploads';
 app.use('/uploads', require('express').static(UPLOAD_DIR));
 
 // Serve the built Vite client in production
