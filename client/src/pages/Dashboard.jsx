@@ -649,7 +649,7 @@ export default function Dashboard() {
                 onMouseLeave={e => { e.currentTarget.style.background = 'rgba(79,70,229,0.1)'; }}>
                 <Plus size={14} />Add Link
               </button>
-            </Section>
+            </Section>}
 
             {/* Social Platforms */}
             <Section title="Social Platforms">
