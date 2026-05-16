@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { ArrowRight, Palette, Link2, Shield, Zap, Globe, Cpu } from 'lucide-react';
 import { getAuth } from '../utils/auth';
 import { api } from '../utils/api';
+import { SocialIconSvg } from '../utils/social-icons';
 
 const DEFAULTS = {
   hero_badge: 'invite only — made for creators',
@@ -149,7 +150,10 @@ function TiltCard({ navigate }) {
     setTimeout(() => setClickedLink(null), 1800);
   };
 
-  const links = ['Instagram', 'TikTok'];
+  const links = [
+    { label: 'Instagram', platform: 'instagram', color: '#E1306C' },
+    { label: 'TikTok', platform: 'tiktok', color: '#fff' },
+  ];
 
   return (
     <div ref={ref} onMouseMove={onMove} onMouseEnter={() => setHovered(true)} onMouseLeave={() => { setTilt({ x: 0, y: 0 }); setHovered(false); }} style={{ perspective: 1000, cursor: 'default', flexShrink: 0 }}>
@@ -195,23 +199,27 @@ function TiltCard({ navigate }) {
             </div>
 
             <div style={{ width: '100%', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 7, position: 'relative' }}>
-              {links.map((t, i) => (
-                <div key={t} style={{ position: 'relative' }}>
+              {links.map(({ label, platform, color }, i) => (
+                <div key={label} style={{ position: 'relative' }}>
                   <button
-                    onClick={() => handleLinkClick(t)}
+                    onClick={() => handleLinkClick(label)}
                     style={{
-                      width: '100%', textAlign: 'center', fontSize: 11, padding: '9px 0', borderRadius: 99,
+                      width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                      fontSize: 11, padding: '9px 0', borderRadius: 99,
                       fontWeight: 600,
                       background: i === 0 ? 'linear-gradient(135deg,#4f46e5,#7c3aed)' : 'rgba(255,255,255,0.06)',
                       color: '#fff',
                       border: i === 0 ? 'none' : '1px solid rgba(255,255,255,0.08)',
                       cursor: 'pointer', fontFamily: 'inherit',
-                      transform: clickedLink === t ? 'scale(0.96)' : 'scale(1)',
+                      transform: clickedLink === label ? 'scale(0.96)' : 'scale(1)',
                       transition: 'transform 0.12s, box-shadow 0.15s',
-                      boxShadow: clickedLink === t ? `0 0 20px rgba(99,102,241,0.5)` : 'none',
+                      boxShadow: clickedLink === label ? `0 0 20px rgba(99,102,241,0.5)` : 'none',
                     }}
-                  >{t}</button>
-                  {clickedLink === t && (
+                  >
+                    <SocialIconSvg platform={platform} size={13} overrideColor="#fff" />
+                    {label}
+                  </button>
+                  {clickedLink === label && (
                     <div style={{
                       position: 'absolute', top: -30, left: '50%', transform: 'translateX(-50%)',
                       background: 'rgba(15,15,25,0.95)', border: '1px solid rgba(99,102,241,0.3)',
