@@ -591,7 +591,7 @@ export default function Dashboard() {
               {/* Avatar */}
               <div>
                 <Label>Avatar</Label>
-                <ImageUpload value={profile.avatar_url} onChange={v => setProfile(p => ({ ...p, avatar_url: v }))} shape="circle" label="Upload photo" />
+                <ImageUpload value={profile.avatar_url} onChange={v => setProfile(p => ({ ...p, avatar_url: v }))} shape="circle" label="Upload photo / GIF" />
               </div>
 
               {/* Banner */}
