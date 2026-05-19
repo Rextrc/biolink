@@ -7,6 +7,7 @@ import './Hud.css'
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || ''
 const API_BASE     = import.meta.env.VITE_API_BASE || 'http://localhost:8000'
 const REFRESH_MS   = 30_000
+const ALERT_RADIUS_KM = 1.609  // 1 mile
 
 mapboxgl.accessToken = MAPBOX_TOKEN
 
@@ -14,14 +15,12 @@ function fmtTime(iso) {
   try { return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
   catch { return iso }
 }
-
 function priorityLabel(p) {
   if (p === 1) return { label: 'CRITICAL', color: '#ff2222' }
   if (p === 2) return { label: 'HIGH',     color: '#ff6600' }
   if (p === 3) return { label: 'MEDIUM',   color: '#ffcc00' }
   return              { label: 'LOW',      color: '#888888' }
 }
-
 function signalColor(state) {
   if (state?.includes('red'))  return '#ff2222'
   if (state?.includes('soon')) return '#ff8800'
@@ -29,38 +28,48 @@ function signalColor(state) {
 }
 
 export default function HudPage() {
-  const navigate       = useNavigate()
-  const mapContainer   = useRef(null)
-  const map            = useRef(null)
-  const userMarker     = useRef(null)
-  const eventMarkers   = useRef([])
-  const signalMarkers  = useRef([])
+  const navigate      = useNavigate()
+  const mapContainer  = useRef(null)
+  const map           = useRef(null)
+  const userMarker    = useRef(null)
+  const eventMarkers  = useRef([])
+  const signalMarkers = useRef([])
+  const notifiedIds   = useRef(new Set())   // track which events already alerted
 
   const [userPos,     setUserPos]     = useState(null)
   const [destination, setDestination] = useState('')
   const [events,      setEvents]      = useState([])
   const [signals,     setSignals]     = useState([])
   const [routeSteps,  setRouteSteps]  = useState([])
+  const [stepIndex,   setStepIndex]   = useState(0)
   const [status,      setStatus]      = useState('Initialising OLIK RADAR …')
   const [speaking,    setSpeaking]    = useState(false)
-  const [panelOpen,   setPanelOpen]   = useState(true)
+  const [panelOpen,   setPanelOpen]   = useState(false)  // closed by default on mobile
+  const [alertBanner, setAlertBanner] = useState(null)   // { message, id }
 
-  // ── Lock body scroll while HUD is mounted ───────────────────────────────
+  // ── Lock body scroll ──────────────────────────────────────────────────────
   useEffect(() => {
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     return () => { document.body.style.overflow = prev }
   }, [])
 
-  // ── Init map ────────────────────────────────────────────────────────────
+  // ── Request notification permission ──────────────────────────────────────
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission()
+    }
+  }, [])
+
+  // ── Init map ──────────────────────────────────────────────────────────────
   useEffect(() => {
     if (map.current) return
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/navigation-night-v1',
       center: [-80.1918, 25.7617],
-      zoom: 13,
-      pitch: 45,
+      zoom: 15,
+      pitch: 60,
       bearing: 0,
       attributionControl: false,
     })
@@ -70,20 +79,19 @@ export default function HudPage() {
       map.current.addLayer({
         id: 'route-line', type: 'line', source: 'route',
         layout: { 'line-join': 'round', 'line-cap': 'round' },
-        paint: { 'line-color': '#ff1a1a', 'line-width': 5, 'line-opacity': 0.9, 'line-blur': 1 },
+        paint: { 'line-color': '#ff1a1a', 'line-width': 6, 'line-opacity': 0.95, 'line-blur': 1 },
       })
       map.current.addLayer({
         id: 'route-glow', type: 'line', source: 'route',
         layout: { 'line-join': 'round', 'line-cap': 'round' },
-        paint: { 'line-color': '#ff4444', 'line-width': 12, 'line-opacity': 0.18, 'line-blur': 6 },
+        paint: { 'line-color': '#ff4444', 'line-width': 14, 'line-opacity': 0.15, 'line-blur': 8 },
       }, 'route-line')
       setStatus('Awaiting GPS lock …')
     })
-    // Cleanup on unmount (important inside React Router)
     return () => { map.current?.remove(); map.current = null }
   }, [])
 
-  // ── GPS ─────────────────────────────────────────────────────────────────
+  // ── GPS ───────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!navigator.geolocation) { setStatus('GPS unavailable.'); return }
     const wid = navigator.geolocation.watchPosition(
@@ -99,7 +107,11 @@ export default function HudPage() {
         } else {
           userMarker.current.setLngLat([lon, lat])
         }
-        map.current?.easeTo({ center: [lon, lat], bearing: heading ?? map.current.getBearing(), duration: 800 })
+        map.current?.easeTo({
+          center: [lon, lat],
+          bearing: heading ?? map.current.getBearing(),
+          duration: 800,
+        })
       },
       (err) => setStatus(`GPS error: ${err.message}`),
       { enableHighAccuracy: true, maximumAge: 2000 }
@@ -107,7 +119,35 @@ export default function HudPage() {
     return () => navigator.geolocation.clearWatch(wid)
   }, [])
 
-  // ── Fetch events ─────────────────────────────────────────────────────────
+  // ── Police proximity alert ────────────────────────────────────────────────
+  const checkProximityAlerts = useCallback((evs, pos) => {
+    if (!pos) return
+    evs.forEach(ev => {
+      if (ev.distance_km <= ALERT_RADIUS_KM && !notifiedIds.current.has(ev.id)) {
+        notifiedIds.current.add(ev.id)
+
+        // In-app banner
+        setAlertBanner({ message: `${ev.call_type} — ${(ev.distance_km * 0.621).toFixed(2)} mi away`, id: ev.id })
+        setTimeout(() => setAlertBanner(null), 6000)
+
+        // Browser / phone notification
+        if (Notification.permission === 'granted') {
+          new Notification('⚠ OLIK RADAR — Activity Nearby', {
+            body: `${ev.call_type}: ${ev.summary}`,
+            icon: '/favicon.ico',
+            badge: '/favicon.ico',
+            tag: ev.id,
+            requireInteraction: false,
+          })
+        }
+
+        // Vibrate on mobile
+        if (navigator.vibrate) navigator.vibrate([200, 100, 200])
+      }
+    })
+  }, [])
+
+  // ── Fetch events ──────────────────────────────────────────────────────────
   const fetchEvents = useCallback(async (lat, lon) => {
     try {
       const r = await fetch(`${API_BASE}/events?lat=${lat}&lon=${lon}&radius_km=10`)
@@ -115,8 +155,9 @@ export default function HudPage() {
       const data = await r.json()
       setEvents(data)
       placeEventMarkers(data)
+      checkProximityAlerts(data, { lat, lon })
     } catch (e) { console.warn('Events fetch failed:', e) }
-  }, [])
+  }, [checkProximityAlerts])
 
   // ── Fetch signals ─────────────────────────────────────────────────────────
   const fetchSignals = useCallback(async (lat, lon) => {
@@ -143,9 +184,9 @@ export default function HudPage() {
 
   // ── Set route ─────────────────────────────────────────────────────────────
   async function setRoute() {
-    if (!destination.trim()) { setStatus('Enter a destination first.'); return }
-    if (!userPos)            { setStatus('Waiting for GPS lock …');      return }
-    setStatus('Calculating route …')
+    if (!destination.trim()) { setStatus('Enter a destination.'); return }
+    if (!userPos)            { setStatus('Waiting for GPS …');    return }
+    setStatus('Routing …')
     try {
       const r = await fetch(`${API_BASE}/route?dest=${encodeURIComponent(destination)}&lat=${userPos.lat}&lon=${userPos.lon}`)
       if (!r.ok) throw new Error(r.statusText)
@@ -155,19 +196,12 @@ export default function HudPage() {
       const coords = route.geometry.coordinates
       map.current.getSource('route').setData({ type: 'Feature', geometry: route.geometry })
       const bounds = coords.reduce((b, c) => b.extend(c), new mapboxgl.LngLatBounds(coords[0], coords[0]))
-      map.current.fitBounds(bounds, { padding: 60, duration: 1200 })
+      map.current.fitBounds(bounds, { padding: { top: 120, bottom: 180, left: 20, right: 20 }, duration: 1200 })
       const steps = route.legs[0]?.steps?.map(s => s.maneuver?.instruction ?? '') ?? []
       setRouteSteps(steps)
-      setStatus(`Route set — ${Math.round(route.duration / 60)} min.`)
+      setStepIndex(0)
+      setStatus(`Route set — ${Math.round(route.duration / 60)} min`)
     } catch (e) { setStatus(`Route error: ${e.message}`) }
-  }
-
-  // ── Refresh HUD ───────────────────────────────────────────────────────────
-  function refreshHUD() {
-    if (!userPos) { setStatus('No GPS yet.'); return }
-    fetchEvents(userPos.lat, userPos.lon)
-    fetchSignals(userPos.lat, userPos.lon)
-    setStatus('HUD refreshed.')
   }
 
   // ── Speak brief ───────────────────────────────────────────────────────────
@@ -176,7 +210,7 @@ export default function HudPage() {
     setSpeaking(true)
     setStatus('Generating OLIK brief …')
     const context = [
-      `Next nav step: ${routeSteps[0] ?? 'No active route'}`,
+      `Next step: ${routeSteps[stepIndex] ?? 'No active route'}`,
       `Signals: ${signals.map(s => `${s.name}: ${s.state}`).join('; ') || 'none'}`,
       `Nearest activity: ${events[0] ? `${events[0].call_type} ${events[0].distance_km} km — ${events[0].summary}` : 'none'}`,
     ].join('. ')
@@ -197,7 +231,9 @@ export default function HudPage() {
   function placeEventMarkers(evs) {
     eventMarkers.current.forEach(m => m.remove()); eventMarkers.current = []
     evs.forEach(ev => {
-      const el = document.createElement('div'); el.className = 'event-dot'; el.title = ev.summary
+      const el = document.createElement('div')
+      el.className = ev.distance_km <= ALERT_RADIUS_KM ? 'event-dot event-dot--alert' : 'event-dot'
+      el.title = ev.summary
       const marker = new mapboxgl.Marker({ element: el, anchor: 'center' })
         .setLngLat([ev.lon, ev.lat])
         .setPopup(new mapboxgl.Popup({ className: 'olik-popup', offset: 12 }).setHTML(
@@ -225,75 +261,113 @@ export default function HudPage() {
     return { type: 'Feature', geometry: { type: 'LineString', coordinates: [] } }
   }
 
+  const nearbyCount = events.filter(e => e.distance_km <= ALERT_RADIUS_KM).length
+
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="hud-root">
       <div ref={mapContainer} className="map-container" />
 
+      {/* ── PROXIMITY ALERT BANNER ── */}
+      {alertBanner && (
+        <div className="alert-banner">
+          <span className="alert-icon">⚠</span>
+          <span className="alert-text">{alertBanner.message}</span>
+        </div>
+      )}
+
+      {/* ── TOP BAR ── */}
       <div className="top-bar">
         <div className="top-bar-row1">
           <div className="hud-brand">
-            OLIK
-            <span className="brand-sub"> RADAR</span>
+            OLIK<span className="brand-sub"> RADAR</span>
           </div>
-          <button className="btn btn-back" onClick={() => { clearAuth(); navigate('/login') }}>⏻ LOGOUT</button>
+          <div className="hud-top-right">
+            {nearbyCount > 0 && (
+              <div className="nearby-badge" onClick={() => setPanelOpen(true)}>
+                ⚠ {nearbyCount} nearby
+              </div>
+            )}
+            <button className="btn btn-back" onClick={() => { clearAuth(); navigate('/login') }}>⏻</button>
+          </div>
         </div>
+
         <div className="top-controls">
-          <input className="dest-input" type="text" placeholder="Destination…"
+          <input className="dest-input" type="text" placeholder="Where to?"
             value={destination} onChange={e => setDestination(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && setRoute()} />
-          <button className="btn btn-primary" onClick={setRoute}>SET ROUTE</button>
-          <button className="btn btn-secondary" onClick={refreshHUD}>REFRESH</button>
-          <button className={`btn btn-speak ${speaking ? 'pulsing' : ''}`} onClick={speakBrief} disabled={speaking}>
-            {speaking ? '◉ BROADCASTING…' : '⬡ SPEAK BRIEF'}
+          <button className="btn btn-primary" onClick={setRoute}>GO</button>
+          <button
+            className={`btn btn-speak ${speaking ? 'pulsing' : ''}`}
+            onClick={speakBrief} disabled={speaking}>
+            {speaking ? '◉' : '⬡'}
           </button>
         </div>
+
         <div className="status-bar">{status}</div>
       </div>
 
-      <button className="panel-toggle" onClick={() => setPanelOpen(o => !o)}>
-        {panelOpen ? '▶' : '◀'}
-      </button>
-
-      {panelOpen && (
-        <div className="right-panel">
-          <div className="panel-header">
-            <span className="panel-title">POLICE ACTIVITY</span>
-            <span className="panel-count">{events.length} INCIDENTS</span>
-          </div>
-          {signals.length > 0 && (
-            <div className="signal-strip">
-              {signals.map(s => (
-                <div key={s.id} className="signal-pill" style={{ borderColor: signalColor(s.state) }}>
-                  <span className="signal-name">{s.name.split('&')[0].trim()}</span>
-                  <span className="signal-state" style={{ color: signalColor(s.state) }}>{s.state.toUpperCase()}</span>
-                </div>
-              ))}
-            </div>
-          )}
-          <div className="event-list">
-            {events.length === 0 ? (
-              <div className="no-events">No incidents in range.</div>
-            ) : events.map(ev => {
-              const prio = priorityLabel(ev.priority)
-              return (
-                <div key={ev.id} className="event-card">
-                  <div className="card-top">
-                    <span className="card-type">{ev.call_type}</span>
-                    <span className="card-prio" style={{ color: prio.color }}>{prio.label}</span>
-                  </div>
-                  <div className="card-summary">{ev.summary}</div>
-                  <div className="card-transcript">{ev.transcript}</div>
-                  <div className="card-footer">
-                    <span>{fmtTime(ev.timestamp)}</span>
-                    <span>{ev.distance_km} km away</span>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
+      {/* ── NEXT STEP STRIP (driving nav) ── */}
+      {routeSteps.length > 0 && (
+        <div className="nav-strip" onClick={() => setStepIndex(i => Math.min(i + 1, routeSteps.length - 1))}>
+          <span className="nav-arrow">▶</span>
+          <span className="nav-step">{routeSteps[stepIndex]}</span>
+          <span className="nav-count">{stepIndex + 1}/{routeSteps.length}</span>
         </div>
       )}
+
+      {/* ── PANEL TOGGLE ── */}
+      <button className="panel-toggle" onClick={() => setPanelOpen(o => !o)}>
+        {panelOpen ? '▼' : `▲ ${events.length}`}
+      </button>
+
+      {/* ── RIGHT / BOTTOM PANEL ── */}
+      <div className={`right-panel ${panelOpen ? 'panel--open' : ''}`}>
+        <div className="panel-header">
+          <span className="panel-title">ACTIVITY</span>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <span className="panel-count">{events.length} INCIDENTS</span>
+            <button className="panel-close" onClick={() => setPanelOpen(false)}>✕</button>
+          </div>
+        </div>
+
+        {signals.length > 0 && (
+          <div className="signal-strip">
+            {signals.map(s => (
+              <div key={s.id} className="signal-pill" style={{ borderColor: signalColor(s.state) }}>
+                <span className="signal-name">{s.name.split('&')[0].trim()}</span>
+                <span className="signal-state" style={{ color: signalColor(s.state) }}>{s.state.toUpperCase()}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="event-list">
+          {events.length === 0 ? (
+            <div className="no-events">No incidents in range.</div>
+          ) : events.map(ev => {
+            const prio    = priorityLabel(ev.priority)
+            const isClose = ev.distance_km <= ALERT_RADIUS_KM
+            return (
+              <div key={ev.id} className={`event-card ${isClose ? 'event-card--alert' : ''}`}>
+                <div className="card-top">
+                  <span className="card-type">{isClose && '⚠ '}{ev.call_type}</span>
+                  <span className="card-prio" style={{ color: prio.color }}>{prio.label}</span>
+                </div>
+                <div className="card-summary">{ev.summary}</div>
+                <div className="card-transcript">{ev.transcript}</div>
+                <div className="card-footer">
+                  <span>{fmtTime(ev.timestamp)}</span>
+                  <span style={{ color: isClose ? '#ff2222' : undefined }}>
+                    {(ev.distance_km * 0.621).toFixed(2)} mi
+                  </span>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
       <div className="scanline" />
     </div>
   )
