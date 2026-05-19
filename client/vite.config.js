@@ -4,12 +4,12 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   build: {
-    target: ['es2019', 'safari13'],
+    target: ['es2020', 'safari14'],
     rollupOptions: {
       output: {
         manualChunks: {
           react: ['react', 'react-dom', 'react-router-dom'],
-          dnd: ['@dnd-kit/core', '@dnd-kit/sortable', '@dnd-kit/utilities'],
+          mapbox: ['mapbox-gl'],
         }
       }
     }
