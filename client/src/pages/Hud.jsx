@@ -15,16 +15,34 @@ function fmtTime(iso) {
   try { return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
   catch { return iso }
 }
+function timeAgo(iso) {
+  try {
+    const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000)
+    if (diff < 60)  return `${diff}s ago`
+    if (diff < 3600) return `${Math.floor(diff/60)}m ago`
+    return `${Math.floor(diff/3600)}h ago`
+  } catch { return '' }
+}
 function priorityLabel(p) {
   if (p === 1) return { label: 'CRITICAL', color: '#ff2222' }
   if (p === 2) return { label: 'HIGH',     color: '#ff6600' }
-  if (p === 3) return { label: 'MEDIUM',   color: '#ffcc00' }
-  return              { label: 'LOW',      color: '#888888' }
+  if (p === 3) return { label: 'NORMAL',   color: '#ffaa00' }
+  return              { label: 'ROUTINE',  color: '#555555' }
 }
 function signalColor(state) {
   if (state?.includes('red'))  return '#ff2222'
   if (state?.includes('soon')) return '#ff8800'
   return '#444444'
+}
+// Extract short radio codes from call type string
+function extractCodes(ev) {
+  const codes = []
+  const code = ev.call_type?.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6)
+  if (code) codes.push(code)
+  // Add PulsePoint raw code if present in transcript
+  const match = ev.transcript?.match(/\b([0-9]{2,3}[A-Z]?)\b/)
+  if (match) codes.push(match[1])
+  return [...new Set(codes)].slice(0, 3)
 }
 
 export default function HudPage() {
@@ -323,14 +341,20 @@ export default function HudPage() {
 
       {/* ── RIGHT / BOTTOM PANEL ── */}
       <div className={`right-panel ${panelOpen ? 'panel--open' : ''}`}>
+        {/* Panel header */}
         <div className="panel-header">
-          <span className="panel-title">ACTIVITY</span>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <span className="panel-count">{events.length} INCIDENTS</span>
+          <div className="panel-header-top">
+            <span className="panel-title">⬡ INCIDENT FEED</span>
             <button className="panel-close" onClick={() => setPanelOpen(false)}>✕</button>
           </div>
+          <div className="panel-search-row">
+            <input className="panel-search" placeholder="Search incidents..." readOnly />
+            <div className="panel-filter">ALL PRIORITIES ▾</div>
+          </div>
+          <div className="panel-meta">SHOWING: {events.length} / {events.length}</div>
         </div>
 
+        {/* Signal strip */}
         {signals.length > 0 && (
           <div className="signal-strip">
             {signals.map(s => (
@@ -342,31 +366,57 @@ export default function HudPage() {
           </div>
         )}
 
+        {/* Incident cards */}
         <div className="event-list">
           {events.length === 0 ? (
-            <div className="no-events">No incidents in range.</div>
-          ) : events.map(ev => {
+            <div className="no-events">// NO INCIDENTS IN RANGE //</div>
+          ) : events.map((ev, idx) => {
             const prio    = priorityLabel(ev.priority)
             const isClose = ev.distance_km <= ALERT_RADIUS_KM
+            const codes   = extractCodes(ev)
+            const incidentNum = `#${String(idx + 1).padStart(4, '0')}${isClose ? ' ●' : ''}`
             return (
               <div key={ev.id} className={`event-card ${isClose ? 'event-card--alert' : ''}`}>
-                <div className="card-top">
-                  <span className="card-type">{isClose && '⚠ '}{ev.call_type}</span>
-                  <span className="card-prio" style={{ color: prio.color }}>{prio.label}</span>
+                {/* Card top row */}
+                <div className="card-top-row">
+                  <span className="card-incident-num">{incidentNum}</span>
+                  <span className="card-time-ago">{timeAgo(ev.timestamp)}</span>
+                  <span className="card-classified">🔒 CLASSIFIED</span>
                 </div>
-                <div className="card-summary">{ev.summary}</div>
-                <div className="card-transcript">{ev.transcript}</div>
-                <div className="card-footer">
-                  <span>
-                    {fmtTime(ev.timestamp)}
-                    {ev.source && (
-                      <span className={`card-source ${ev.source === 'demo' ? 'card-source--demo' : ''}`}>
-                        {ev.source === 'demo' ? 'DEMO' : ev.source.toUpperCase()}
-                      </span>
-                    )}
+
+                {/* Priority badge */}
+                <div className="card-priority-row">
+                  <span className="card-prio-badge" style={{ borderColor: prio.color, color: prio.color }}>
+                    ⊘ {prio.label}
                   </span>
-                  <span style={{ color: isClose ? '#ff2222' : undefined }}>
-                    {(ev.distance_km * 0.621).toFixed(2)} mi
+                  {isClose && <span className="card-active-badge">● ACTIVE</span>}
+                </div>
+
+                {/* Summary */}
+                <div className="card-label">SUMMARY:</div>
+                <div className="card-summary">{ev.summary}</div>
+
+                {/* Codes */}
+                {codes.length > 0 && (
+                  <div className="card-codes-row">
+                    <span className="card-label">CODES:</span>
+                    {codes.map(c => <span key={c} className="card-code-chip">{c}</span>)}
+                  </div>
+                )}
+
+                {/* Transcript */}
+                <div className="card-label">TRANSCRIPT:</div>
+                <div className="card-transcript">{ev.transcript}</div>
+
+                {/* Footer */}
+                <div className="card-footer">
+                  <span className="card-source-label">
+                    SOURCE: <span style={{ color: ev.source === 'demo' ? '#ffcc00' : '#00cc66' }}>
+                      {ev.source === 'demo' ? 'DEMO DATA' : (ev.source || 'PULSEPOINT').toUpperCase()}
+                    </span>
+                  </span>
+                  <span className="card-dist" style={{ color: isClose ? '#ff2222' : undefined }}>
+                    {(ev.distance_km * 0.621).toFixed(2)} MI
                   </span>
                 </div>
               </div>
