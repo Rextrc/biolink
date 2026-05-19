@@ -207,7 +207,7 @@ function SortableRow({ link, onToggle, onDelete, onEdit }) {
 }
 
 /* ══ Sidebar ════════════════════════════════════════════════════ */
-function Sidebar({ username, onLogout, view, setView }) {
+function Sidebar({ username, onLogout, view, setView, onHud }) {
   const navItems = [
     { icon: Home,    id: 'home',      title: 'Home'    },
     { icon: User,    id: 's-profile', title: 'Profile' },
@@ -241,6 +241,12 @@ function Sidebar({ username, onLogout, view, setView }) {
         );
       })}
       <div style={{ flex: 1 }} />
+      <button onClick={onHud} title="J.A.R.V.I.S HUD"
+        style={{ width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', color: '#ff3333', transition: 'all 0.15s', fontSize: 16 }}
+        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,30,30,0.12)'; e.currentTarget.style.color = '#ff6666'; }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#ff3333'; }}>
+        ⬡
+      </button>
       <a href={`/${username}`} target="_blank" rel="noreferrer" title="View Bio"
         style={{ width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.3)', textDecoration: 'none' }}
         onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = '#fff'; }}
@@ -507,7 +513,7 @@ export default function Dashboard() {
     <div style={{ display: 'flex', minHeight: '100vh', background: BG, color: '#fff', fontFamily: "'Inter', sans-serif" }}>
 
       {/* ─── Sidebar (desktop only) ───────────────── */}
-      {!isMobile && <Sidebar username={username} onLogout={() => { clearAuth(); navigate('/'); }} view={view} setView={setView} />}
+      {!isMobile && <Sidebar username={username} onLogout={() => { clearAuth(); navigate('/'); }} onHud={() => navigate('/hud')} view={view} setView={setView} />}
 
       {/* ─── Main content ─────────────────────────── */}
       <div style={{ flex: 1, minWidth: 0, overflowY: 'auto', paddingBottom: isMobile ? 72 : 0 }}>
@@ -878,6 +884,7 @@ export default function Dashboard() {
             { icon: User,    label: 'Profile', action: () => { setView('edit'); setMobileSection('profile'); } },
             { icon: Link2,   label: 'Links',   action: () => { setView('edit'); setMobileSection('links'); } },
             { icon: Palette, label: 'Design',  action: () => { setView('edit'); setMobileSection('design'); } },
+            { icon: null,    label: 'HUD',     action: () => navigate('/hud') },
             { icon: LogOut,  label: 'Logout',  action: () => { clearAuth(); navigate('/'); } },
           ].map(({ icon: Icon, label, action }) => {
             const isActive = label === 'Home' ? view === 'home'
@@ -887,9 +894,9 @@ export default function Dashboard() {
               <button key={label} onClick={action} style={{
                 flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                 gap: 3, padding: '10px 0', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                color: isActive ? '#818cf8' : 'rgba(255,255,255,0.35)',
+                color: label === 'HUD' ? '#ff3333' : isActive ? '#818cf8' : 'rgba(255,255,255,0.35)',
               }}>
-                <Icon size={18} />
+                {Icon ? <Icon size={18} /> : <span style={{ fontSize: 18, lineHeight: 1 }}>⬡</span>}
                 <span style={{ fontSize: 9, fontWeight: isActive ? 600 : 400 }}>{label}</span>
               </button>
             );

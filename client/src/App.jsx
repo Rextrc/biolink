@@ -11,6 +11,7 @@ import Verify from './pages/Verify';
 import Inbox from './pages/Inbox';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
+import HudPage from './pages/Hud';
 import { getAuth } from './utils/auth';
 
 function PrivateRoute({ children }) {
@@ -41,6 +42,7 @@ export default function App() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+        <Route path="/hud" element={<PrivateRoute><HudPage /></PrivateRoute>} />
         <Route path="/god" element={<AdminRoute><Admin /></AdminRoute>} />
         <Route path="/inbox" element={<AdminRoute><Inbox /></AdminRoute>} />
         <Route path="/:username" element={<Profile />} />
