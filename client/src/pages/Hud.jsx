@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import mapboxgl from 'mapbox-gl'
+import { clearAuth } from '../utils/auth'
 import './Hud.css'
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || ''
@@ -228,7 +229,7 @@ export default function HudPage() {
             <span className="brand-j">J</span>.A.R.V.I.S
             <span className="brand-sub"> HUD v1.0</span>
           </div>
-          <button className="btn btn-back" onClick={() => navigate('/dashboard')}>← DASHBOARD</button>
+          <button className="btn btn-back" onClick={() => { clearAuth(); navigate('/login') }}>⏻ LOGOUT</button>
         </div>
         <div className="top-controls">
           <input className="dest-input" type="text" placeholder="Destination…"

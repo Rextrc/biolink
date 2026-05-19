@@ -4,14 +4,12 @@ import { api } from './utils/api';
 import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
-import Dashboard from './pages/Dashboard';
-import Profile from './pages/Profile';
+import HudPage from './pages/Hud';
 import Admin from './pages/Admin';
 import Verify from './pages/Verify';
 import Inbox from './pages/Inbox';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
-import HudPage from './pages/Hud';
 import { getAuth } from './utils/auth';
 
 function PrivateRoute({ children }) {
@@ -41,11 +39,9 @@ export default function App() {
         <Route path="/verify" element={<Verify />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
-        <Route path="/hud" element={<PrivateRoute><HudPage /></PrivateRoute>} />
+        <Route path="/dashboard" element={<PrivateRoute><HudPage /></PrivateRoute>} />
         <Route path="/god" element={<AdminRoute><Admin /></AdminRoute>} />
         <Route path="/inbox" element={<AdminRoute><Inbox /></AdminRoute>} />
-        <Route path="/:username" element={<Profile />} />
       </Routes>
     </BrowserRouter>
   );
