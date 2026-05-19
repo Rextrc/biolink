@@ -16,7 +16,8 @@
   --font:       'Courier New', 'Lucida Console', monospace;
 }
 
-html, body, #root { height: 100%; width: 100%; overflow: hidden; background: var(--bg); }
+/* overflow:hidden is applied via JS on mount/unmount — do NOT set globally here */
+#root { height: 100%; width: 100%; }
 
 /* ── HUD ROOT ─────────────────────────────────────────────────────────────── */
 .hud-root {

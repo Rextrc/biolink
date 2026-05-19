@@ -45,6 +45,13 @@ export default function HudPage() {
   const [speaking,    setSpeaking]    = useState(false)
   const [panelOpen,   setPanelOpen]   = useState(true)
 
+  // ── Lock body scroll while HUD is mounted ───────────────────────────────
+  useEffect(() => {
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = prev }
+  }, [])
+
   // ── Init map ────────────────────────────────────────────────────────────
   useEffect(() => {
     if (map.current) return
