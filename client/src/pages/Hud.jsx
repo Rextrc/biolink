@@ -41,7 +41,7 @@ export default function HudPage() {
   const [events,      setEvents]      = useState([])
   const [signals,     setSignals]     = useState([])
   const [routeSteps,  setRouteSteps]  = useState([])
-  const [status,      setStatus]      = useState('Initialising J.A.R.V.I.S. …')
+  const [status,      setStatus]      = useState('Initialising OLIK RADAR …')
   const [speaking,    setSpeaking]    = useState(false)
   const [panelOpen,   setPanelOpen]   = useState(true)
 
@@ -174,7 +174,7 @@ export default function HudPage() {
   async function speakBrief() {
     if (speaking) return
     setSpeaking(true)
-    setStatus('Generating tactical brief …')
+    setStatus('Generating OLIK brief …')
     const context = [
       `Next nav step: ${routeSteps[0] ?? 'No active route'}`,
       `Signals: ${signals.map(s => `${s.name}: ${s.state}`).join('; ') || 'none'}`,
@@ -200,7 +200,7 @@ export default function HudPage() {
       const el = document.createElement('div'); el.className = 'event-dot'; el.title = ev.summary
       const marker = new mapboxgl.Marker({ element: el, anchor: 'center' })
         .setLngLat([ev.lon, ev.lat])
-        .setPopup(new mapboxgl.Popup({ className: 'jarvis-popup', offset: 12 }).setHTML(
+        .setPopup(new mapboxgl.Popup({ className: 'olik-popup', offset: 12 }).setHTML(
           `<div class="popup-inner"><div class="popup-type">${ev.call_type}</div><div class="popup-summary">${ev.summary}</div><div class="popup-time">${fmtTime(ev.timestamp)}</div></div>`
         )).addTo(map.current)
       eventMarkers.current.push(marker)
@@ -214,7 +214,7 @@ export default function HudPage() {
       el.style.background = signalColor(sig.state); el.title = `${sig.name}: ${sig.state}`
       const marker = new mapboxgl.Marker({ element: el, anchor: 'center' })
         .setLngLat([sig.lon, sig.lat])
-        .setPopup(new mapboxgl.Popup({ className: 'jarvis-popup', offset: 10 }).setHTML(
+        .setPopup(new mapboxgl.Popup({ className: 'olik-popup', offset: 10 }).setHTML(
           `<div class="popup-inner"><div class="popup-type">SIGNAL</div><div class="popup-summary">${sig.name}</div><div class="popup-state" style="color:${signalColor(sig.state)}">${sig.state.toUpperCase()}</div></div>`
         )).addTo(map.current)
       signalMarkers.current.push(marker)
@@ -233,8 +233,8 @@ export default function HudPage() {
       <div className="top-bar">
         <div className="top-bar-row1">
           <div className="hud-brand">
-            <span className="brand-j">J</span>.A.R.V.I.S
-            <span className="brand-sub"> HUD v1.0</span>
+            OLIK
+            <span className="brand-sub"> RADAR</span>
           </div>
           <button className="btn btn-back" onClick={() => { clearAuth(); navigate('/login') }}>⏻ LOGOUT</button>
         </div>

@@ -96,14 +96,19 @@
 }
 
 .hud-brand {
-  font-size: 1.15rem;
-  font-weight: bold;
-  letter-spacing: 0.2em;
-  color: var(--red);
-  text-shadow: 0 0 10px var(--red-glow);
+  font-size: 1.3rem;
+  font-weight: 900;
+  letter-spacing: 0.25em;
+  color: #fff;
+  text-shadow: 0 0 12px var(--red-glow);
 }
-.brand-j { color: #fff; font-size: 1.3rem; }
-.brand-sub { font-size: 0.7rem; color: var(--text-dim); letter-spacing: 0.15em; }
+.brand-sub {
+  font-size: 0.65rem;
+  color: var(--red);
+  letter-spacing: 0.3em;
+  text-shadow: 0 0 8px var(--red-glow);
+  margin-left: 6px;
+}
 
 .top-controls {
   display: flex;
@@ -412,7 +417,7 @@
 }
 
 /* ── MAPBOX POPUP ─────────────────────────────────────────────────────────── */
-.jarvis-popup .mapboxgl-popup-content {
+.olik-popup .mapboxgl-popup-content {
   background: rgba(8,0,0,0.95) !important;
   border: 1px solid var(--border) !important;
   border-radius: 4px !important;
@@ -421,7 +426,7 @@
   color: var(--text);
   font-family: var(--font);
 }
-.jarvis-popup .mapboxgl-popup-tip {
+.olik-popup .mapboxgl-popup-tip {
   border-top-color: var(--border) !important;
   border-bottom-color: var(--border) !important;
 }
