@@ -62,8 +62,15 @@ export default function HudPage() {
   const [stepIndex,   setStepIndex]   = useState(0)
   const [status,      setStatus]      = useState('Initialising OLIK RADAR …')
   const [speaking,    setSpeaking]    = useState(false)
-  const [panelOpen,   setPanelOpen]   = useState(false)  // closed by default on mobile
-  const [alertBanner, setAlertBanner] = useState(null)   // { message, id }
+  const [panelOpen,   setPanelOpen]   = useState(false)
+  const [alertBanner, setAlertBanner] = useState(null)
+  // Scanner channel state
+  const [channels,       setChannels]       = useState([])
+  const [activeChannel,  setActiveChannel]  = useState(null)
+  const [scannerOpen,    setScannerOpen]     = useState(false)
+  const [aiPickReason,   setAiPickReason]   = useState('')
+  const [aiPicking,      setAiPicking]      = useState(false)
+  const audioRef = useRef(null)
 
   // ── Lock body scroll ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -222,6 +229,58 @@ export default function HudPage() {
     } catch (e) { setStatus(`Route error: ${e.message}`) }
   }
 
+  // ── Load scanner channels on mount ───────────────────────────────────────
+  useEffect(() => {
+    fetch(`${API_BASE}/channels`)
+      .then(r => r.json())
+      .then(data => setChannels(data))
+      .catch(e => console.warn('Channels fetch failed:', e))
+  }, [])
+
+  // ── Play a scanner channel ────────────────────────────────────────────────
+  function playChannel(ch) {
+    if (audioRef.current) {
+      audioRef.current.pause()
+      audioRef.current.src = ''
+    }
+    if (activeChannel?.id === ch.id) {
+      setActiveChannel(null)
+      return
+    }
+    const audio = new Audio(ch.stream_url)
+    audio.crossOrigin = 'anonymous'
+    audioRef.current = audio
+    audio.play().catch(e => setStatus(`Stream error: ${e.message}`))
+    setActiveChannel(ch)
+    setStatus(`Monitoring: ${ch.name}`)
+  }
+
+  // ── AI channel pick ───────────────────────────────────────────────────────
+  async function aiPickChannel() {
+    if (!userPos || aiPicking) return
+    setAiPicking(true)
+    setStatus('AI selecting channel …')
+    const nearestEvent = events[0]
+      ? `${events[0].call_type}: ${events[0].summary}`
+      : ''
+    const eventsSummary = events.slice(0, 3).map(e => e.call_type).join(', ')
+    try {
+      const r = await fetch(
+        `${API_BASE}/select-channel?lat=${userPos.lat}&lon=${userPos.lon}` +
+        `&events_summary=${encodeURIComponent(eventsSummary)}` +
+        `&nearest_event=${encodeURIComponent(nearestEvent)}`
+      )
+      const data = await r.json()
+      setAiPickReason(data.reason)
+      playChannel(data.channel)
+      setStatus(`AI → ${data.channel.name}`)
+    } catch (e) {
+      setStatus(`Channel AI error: ${e.message}`)
+    } finally {
+      setAiPicking(false)
+    }
+  }
+
   // ── Speak brief ───────────────────────────────────────────────────────────
   async function speakBrief() {
     if (speaking) return
@@ -338,6 +397,56 @@ export default function HudPage() {
       <button className="panel-toggle" onClick={() => setPanelOpen(o => !o)}>
         {panelOpen ? '▼' : `▲ ${events.length}`}
       </button>
+
+      {/* Scanner toggle */}
+      <button className="scanner-toggle" onClick={() => setScannerOpen(o => !o)}>
+        {activeChannel ? `◉ ${activeChannel.agency}` : '⬡ SCANNER'}
+      </button>
+
+      {/* Scanner panel */}
+      {scannerOpen && (
+        <div className="scanner-panel">
+          <div className="scanner-header">
+            <span className="scanner-title">⬡ SCANNER FEEDS</span>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              <button
+                className={`btn btn-ai-pick ${aiPicking ? 'pulsing' : ''}`}
+                onClick={aiPickChannel}
+                disabled={aiPicking || !userPos}
+              >
+                {aiPicking ? '◉ AI THINKING…' : '⚡ AI PICK'}
+              </button>
+              <button className="panel-close" onClick={() => setScannerOpen(false)}>✕</button>
+            </div>
+          </div>
+          {aiPickReason && (
+            <div className="scanner-ai-reason">▸ {aiPickReason}</div>
+          )}
+          <div className="scanner-channel-list">
+            {channels.map(ch => (
+              <div
+                key={ch.id}
+                className={`scanner-channel ${activeChannel?.id === ch.id ? 'scanner-channel--active' : ''}`}
+                onClick={() => playChannel(ch)}
+              >
+                <div className="sc-top">
+                  <span className="sc-name">{ch.name}</span>
+                  {activeChannel?.id === ch.id && (
+                    <span className="sc-live">● LIVE</span>
+                  )}
+                </div>
+                <div className="sc-desc">{ch.description}</div>
+                <div className="sc-footer">
+                  <span className="sc-agency">{ch.agency}</span>
+                  <span className="sc-action">
+                    {activeChannel?.id === ch.id ? 'TAP TO STOP' : 'TAP TO MONITOR'}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ── RIGHT / BOTTOM PANEL ── */}
       <div className={`right-panel ${panelOpen ? 'panel--open' : ''}`}>
