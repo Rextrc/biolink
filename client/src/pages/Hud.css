@@ -361,7 +361,9 @@
 .card-prio { font-size: 0.58rem; font-weight: bold; letter-spacing: 0.08em; }
 .card-summary    { font-size: 0.67rem; color: #cc8888; line-height: 1.4; }
 .card-transcript { font-size: 0.58rem; color: #554444; line-height: 1.5; font-style: italic; border-top: 1px solid rgba(255,26,26,0.1); padding-top: 4px; }
-.card-footer     { display: flex; justify-content: space-between; font-size: 0.58rem; color: var(--text-dim); border-top: 1px solid rgba(255,26,26,0.1); padding-top: 4px; }
+.card-footer     { display: flex; justify-content: space-between; font-size: 0.58rem; color: var(--text-dim); border-top: 1px solid rgba(255,26,26,0.1); padding-top: 4px; align-items: center; }
+.card-source     { background: rgba(0, 200, 80, 0.12); color: #00cc66; padding: 1px 5px; margin-left: 6px; border-radius: 2px; font-size: 0.5rem; letter-spacing: 0.08em; border: 1px solid rgba(0,200,80,0.3); }
+.card-source--demo { background: rgba(255, 200, 0, 0.12); color: #ffcc00; border-color: rgba(255,200,0,0.3); }
 
 /* ── MAP MARKERS ──────────────────────────────────────────────────────────── */
 .user-dot {

@@ -357,7 +357,14 @@ export default function HudPage() {
                 <div className="card-summary">{ev.summary}</div>
                 <div className="card-transcript">{ev.transcript}</div>
                 <div className="card-footer">
-                  <span>{fmtTime(ev.timestamp)}</span>
+                  <span>
+                    {fmtTime(ev.timestamp)}
+                    {ev.source && (
+                      <span className={`card-source ${ev.source === 'demo' ? 'card-source--demo' : ''}`}>
+                        {ev.source === 'demo' ? 'DEMO' : ev.source.toUpperCase()}
+                      </span>
+                    )}
+                  </span>
                   <span style={{ color: isClose ? '#ff2222' : undefined }}>
                     {(ev.distance_km * 0.621).toFixed(2)} mi
                   </span>
