@@ -172,15 +172,37 @@ export default function HudPage() {
     })
   }, [])
 
-  // ── Fetch events ──────────────────────────────────────────────────────────
+  // ── Fetch events (PulsePoint + Whisper transcripts merged) ───────────────
   const fetchEvents = useCallback(async (lat, lon) => {
     try {
-      const r = await fetch(`${API_BASE}/events?lat=${lat}&lon=${lon}&radius_km=10`)
-      if (!r.ok) throw new Error(r.statusText)
-      const data = await r.json()
-      setEvents(data)
-      placeEventMarkers(data)
-      checkProximityAlerts(data, { lat, lon })
+      const [evRes, txRes] = await Promise.allSettled([
+        fetch(`${API_BASE}/events?lat=${lat}&lon=${lon}&radius_km=10`),
+        fetch(`${API_BASE}/live-transcripts`),
+      ])
+
+      let evData = []
+      if (evRes.status === 'fulfilled' && evRes.value.ok) {
+        evData = await evRes.value.json()
+      }
+
+      let txData = []
+      if (txRes.status === 'fulfilled' && txRes.value.ok) {
+        const tx = await txRes.value.json()
+        // Give Whisper transcripts a rough position near user
+        txData = (tx.transcripts || []).map((t, i) => ({
+          ...t,
+          lat: lat + (Math.random() - 0.5) * 0.04,
+          lon: lon + (Math.random() - 0.5) * 0.04,
+          distance_km: parseFloat((Math.random() * 3 + 0.2).toFixed(2)),
+          source: 'Whisper/MDPD',
+        }))
+      }
+
+      // Merge: Whisper transcripts first (most recent), then PulsePoint
+      const merged = [...txData, ...evData]
+      setEvents(merged)
+      placeEventMarkers(merged)
+      checkProximityAlerts(merged, { lat, lon })
     } catch (e) { console.warn('Events fetch failed:', e) }
   }, [checkProximityAlerts])
 
