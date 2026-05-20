@@ -269,8 +269,9 @@ export default function HudPage() {
       setActiveChannel(null)
       return
     }
-    const audio = new Audio(ch.stream_url)
-    audio.crossOrigin = 'anonymous'
+    // Proxy through backend to avoid CORS blocks on scanner streams
+    const proxyUrl = `${API_BASE}/stream-proxy?url=${encodeURIComponent(ch.stream_url)}`
+    const audio = new Audio(proxyUrl)
     audioRef.current = audio
     audio.play().catch(e => setStatus(`Stream error: ${e.message}`))
     setActiveChannel(ch)
