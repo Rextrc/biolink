@@ -155,8 +155,8 @@ export default function ComingSoon() {
       <div style={{
         position: 'relative', zIndex: 10,
         display: 'flex', flexDirection: 'column', alignItems: 'center',
-        gap: 0, padding: '0 24px', maxWidth: 520, width: '100%',
-        textAlign: 'center',
+        gap: 0, padding: '0 20px', maxWidth: 520, width: '100%',
+        textAlign: 'center', boxSizing: 'border-box',
       }}>
         {/* status badge */}
         <div style={{
@@ -192,7 +192,7 @@ export default function ComingSoon() {
 
         {/* description */}
         <p style={{
-          fontSize: 15, color: 'rgba(255,255,255,0.75)',
+          fontSize: 'clamp(13px, 3.5vw, 15px)', color: 'rgba(255,255,255,0.75)',
           margin: '0 0 16px', lineHeight: 1.7, letterSpacing: '0.01em',
           fontFamily: 'Inter, sans-serif', fontWeight: 400,
         }}>
@@ -222,18 +222,18 @@ export default function ComingSoon() {
                 ref={inputRef}
                 className="cs-input"
                 type="email"
-                placeholder="ENTER_FREQUENCY@SIGNAL.IO"
+                placeholder="YOUR@EMAIL.COM"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 style={{
-                  flex: 1,
+                  flex: 1, minWidth: 0,
                   background: 'rgba(255,26,26,0.04)',
                   border: `1px solid ${RED_DIM}`,
                   color: RED,
                   fontFamily: FONT,
                   fontSize: 12,
-                  letterSpacing: '0.08em',
-                  padding: '12px 16px',
+                  letterSpacing: '0.04em',
+                  padding: '12px 14px',
                   transition: 'border-color 0.2s, box-shadow 0.2s',
                 }}
               />
@@ -248,10 +248,11 @@ export default function ComingSoon() {
                   fontFamily: FONT,
                   fontSize: 11,
                   letterSpacing: '0.15em',
-                  padding: '12px 20px',
+                  padding: '12px 16px',
                   cursor: 'pointer',
                   transition: 'background 0.15s, color 0.15s',
                   whiteSpace: 'nowrap',
+                  flexShrink: 0,
                 }}
               >
                 {state === 'loading' ? '...' : 'LOCK IN'}

@@ -33,10 +33,13 @@ function AdminRoute({ children }) {
 const COMING_SOON = import.meta.env.VITE_COMING_SOON === 'true';
 
 export default function App() {
+  const { isAdmin } = getAuth();
+  const showComingSoon = COMING_SOON && !isAdmin;
+
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={COMING_SOON ? <ComingSoon /> : <Landing />} />
+        <Route path="/" element={showComingSoon ? <ComingSoon /> : <Landing />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/verify" element={<Verify />} />
