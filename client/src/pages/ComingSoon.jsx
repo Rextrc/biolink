@@ -70,7 +70,7 @@ export default function ComingSoon() {
     if (!email || state === 'loading' || state === 'done') return;
     setState('loading');
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_BASE || ''}/api/waitlist`, {
+      const res = await fetch('/api/waitlist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
