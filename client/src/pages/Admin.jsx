@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../utils/api';
 import { getAuth } from '../utils/auth';
-import { Users, Trash2, Shield, ShieldOff, KeyRound, ExternalLink, Radio, Copy, Plus, Layout, Save, Check } from 'lucide-react';
+import { Users, Trash2, Shield, ShieldOff, KeyRound, ExternalLink, Radio, Copy, Plus, Layout, Save, Check, Mail, Download, Search, X } from 'lucide-react';
 
 /* ── Radar landing defaults (kept in sync with Landing.jsx) ─────────────── */
 const DEFAULT_CFG = {
@@ -41,6 +41,10 @@ export default function Admin() {
   const [expiryInput, setExpiryInput] = useState('');
   const [siteCfg, setSiteCfg]         = useState(DEFAULT_CFG);
   const [cfgSaved, setCfgSaved]       = useState(false);
+  const [waitlist, setWaitlist]       = useState([]);
+  const [wlSearch, setWlSearch]       = useState('');
+  const [wlSort, setWlSort]           = useState('newest');
+  const [copied, setCopied]           = useState(false);
 
   useEffect(() => {
     const auth = getAuth();
@@ -50,12 +54,13 @@ export default function Admin() {
 
   async function load() {
     try {
-      const [s, u, k, cfg] = await Promise.all([
-        api.admin.stats(), api.admin.users(), api.admin.keys(), api.admin.getSiteConfig(),
+      const [s, u, k, cfg, wl] = await Promise.all([
+        api.admin.stats(), api.admin.users(), api.admin.keys(), api.admin.getSiteConfig(), api.admin.waitlist(),
       ]);
       setStats(s);
       setUsers(u);
       setKeys(k);
+      setWaitlist(wl);
       if (cfg && Object.keys(cfg).length > 0) setSiteCfg({ ...DEFAULT_CFG, ...cfg });
     } catch { navigate('/dashboard'); }
   }
@@ -154,8 +159,8 @@ export default function Admin() {
 
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '24px 16px' }}>
         {/* Tabs */}
-        <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
-          {[['users', 'Operators'], ['keys', 'Invite Keys'], ['frontpage', 'Front Page']].map(([id, label]) => (
+        <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap' }}>
+          {[['users', 'Operators'], ['keys', 'Invite Keys'], ['waitlist', 'Waitlist'], ['frontpage', 'Front Page']].map(([id, label]) => (
             <button key={id} onClick={() => setTab(id)}
               style={{
                 padding: '7px 18px', borderRadius: 8,
@@ -175,6 +180,7 @@ export default function Admin() {
             ['Total Operators', stats?.total_users],
             ['New Today',       stats?.new_today],
             ['Active Keys',     keys.filter(k => !k.used_by).length],
+            ['Waitlist',        stats?.waitlist_count],
           ].map(([label, val]) => (
             <div key={label}
               style={{ flex: 1, minWidth: 100, background: '#111', border: `1px solid ${ACCENT_BORD}`, borderRadius: 12, padding: '14px 18px' }}>
@@ -327,6 +333,132 @@ export default function Admin() {
             </div>
           </div>
         )}
+
+        {/* Waitlist tab */}
+        {tab === 'waitlist' && (() => {
+          const filtered = waitlist
+            .filter(e => e.email.toLowerCase().includes(wlSearch.toLowerCase()))
+            .sort((a, b) => wlSort === 'newest'
+              ? new Date(b.created_at) - new Date(a.created_at)
+              : new Date(a.created_at) - new Date(b.created_at));
+
+          function copyAll() {
+            navigator.clipboard?.writeText(filtered.map(e => e.email).join('\n'));
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+          }
+
+          function exportCsv() {
+            const rows = [['id', 'email', 'signed_up_at'], ...filtered.map(e => [e.id, e.email, e.created_at])];
+            const csv = rows.map(r => r.join(',')).join('\n');
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+            a.download = `waitlist_${new Date().toISOString().slice(0,10)}.csv`;
+            a.click();
+          }
+
+          async function deleteEntry(id) {
+            await api.admin.deleteWaitlistEntry(id);
+            setWaitlist(w => w.filter(e => e.id !== id));
+            setStats(s => s ? { ...s, waitlist_count: Math.max(0, (s.waitlist_count || 1) - 1) } : s);
+          }
+
+          async function clearAll() {
+            if (!confirm(`Delete all ${waitlist.length} waitlist entries? This cannot be undone.`)) return;
+            await api.admin.clearWaitlist();
+            setWaitlist([]);
+            setStats(s => s ? { ...s, waitlist_count: 0, waitlist_today: 0 } : s);
+          }
+
+          return (
+            <div style={{ maxWidth: 720 }}>
+              <div style={{ background: '#111', border: `1px solid ${ACCENT_BORD}`, borderRadius: 14, overflow: 'hidden' }}>
+                {/* Header */}
+                <div style={{ padding: '12px 16px', borderBottom: `1px solid ${ACCENT_BORD}`, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <Mail size={14} color={ACCENT} />
+                  <span style={{ fontWeight: 600, fontSize: 13 }}>Waitlist</span>
+                  <span style={{ background: ACCENT_FILL, color: ACCENT_SOFT, borderRadius: 20, padding: '2px 8px', fontSize: 11 }}>{waitlist.length}</span>
+                  {stats?.waitlist_today > 0 && (
+                    <span style={{ background: 'rgba(52,211,153,0.1)', color: '#34d399', borderRadius: 20, padding: '2px 8px', fontSize: 11 }}>+{stats.waitlist_today} today</span>
+                  )}
+                  <div style={{ marginLeft: 'auto', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    {/* Sort */}
+                    {['newest', 'oldest'].map(s => (
+                      <button key={s} onClick={() => setWlSort(s)}
+                        style={{ padding: '4px 10px', borderRadius: 6, border: `1px solid ${wlSort === s ? ACCENT : '#2a2a2a'}`, background: wlSort === s ? ACCENT_FILL : '#1a1a1a', color: wlSort === s ? ACCENT_SOFT : 'rgba(255,255,255,0.4)', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', textTransform: 'capitalize' }}>
+                        {s}
+                      </button>
+                    ))}
+                    {/* Copy all */}
+                    <button onClick={copyAll} disabled={filtered.length === 0}
+                      style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 6, border: `1px solid ${copied ? 'rgba(52,211,153,0.4)' : '#2a2a2a'}`, background: copied ? 'rgba(52,211,153,0.1)' : '#1a1a1a', color: copied ? '#34d399' : 'rgba(255,255,255,0.4)', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
+                      {copied ? <Check size={11} /> : <Copy size={11} />} {copied ? 'Copied!' : 'Copy All'}
+                    </button>
+                    {/* Export CSV */}
+                    <button onClick={exportCsv} disabled={filtered.length === 0}
+                      style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 6, border: '1px solid #2a2a2a', background: '#1a1a1a', color: 'rgba(255,255,255,0.4)', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
+                      <Download size={11} /> Export CSV
+                    </button>
+                    {/* Clear all */}
+                    {waitlist.length > 0 && (
+                      <button onClick={clearAll}
+                        style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 6, border: '1px solid rgba(239,68,68,0.25)', background: 'rgba(239,68,68,0.07)', color: '#f87171', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
+                        <Trash2 size={11} /> Clear All
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Search */}
+                <div style={{ padding: '10px 16px', borderBottom: `1px solid #161616` }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#161616', border: '1px solid #2a2a2a', borderRadius: 8, padding: '6px 12px' }}>
+                    <Search size={12} color="rgba(255,255,255,0.3)" />
+                    <input
+                      value={wlSearch}
+                      onChange={e => setWlSearch(e.target.value)}
+                      placeholder="Search emails..."
+                      style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: '#fff', fontSize: 13, fontFamily: 'inherit' }}
+                    />
+                    {wlSearch && (
+                      <button onClick={() => setWlSearch('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.3)', padding: 0, display: 'flex' }}>
+                        <X size={12} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* List */}
+                {filtered.length === 0 ? (
+                  <div style={{ padding: 32, textAlign: 'center', color: 'rgba(255,255,255,0.2)', fontSize: 13 }}>
+                    {wlSearch ? 'No matches' : 'No signups yet'}
+                  </div>
+                ) : (
+                  filtered.map((e, i) => (
+                    <div key={e.id} style={{ padding: '10px 16px', borderBottom: i < filtered.length - 1 ? '1px solid #161616' : 'none', display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{ width: 28, height: 28, borderRadius: '50%', background: ACCENT_FILL, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: ACCENT_SOFT, flexShrink: 0 }}>
+                        {e.email[0].toUpperCase()}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.email}</div>
+                        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', marginTop: 1 }}>
+                          {new Date(e.created_at).toLocaleString()}
+                        </div>
+                      </div>
+                      <button onClick={() => navigator.clipboard?.writeText(e.email)}
+                        style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.25)', cursor: 'pointer', padding: 4, flexShrink: 0 }}>
+                        <Copy size={12} />
+                      </button>
+                      <button onClick={() => deleteEntry(e.id)}
+                        style={{ background: 'none', border: 'none', color: 'rgba(239,68,68,0.4)', cursor: 'pointer', padding: 4, flexShrink: 0 }}>
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Users tab */}
         {tab === 'users' && (

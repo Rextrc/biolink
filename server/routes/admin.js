@@ -117,12 +117,27 @@ router.put('/site-config', (req, res) => {
   res.json({ ok: true });
 });
 
+// Waitlist
+router.get('/waitlist', (req, res) => {
+  res.json(db.prepare('SELECT * FROM waitlist ORDER BY created_at DESC').all());
+});
+router.delete('/waitlist/all', (req, res) => {
+  db.prepare('DELETE FROM waitlist').run();
+  res.json({ ok: true });
+});
+router.delete('/waitlist/:id', (req, res) => {
+  db.prepare('DELETE FROM waitlist WHERE id=?').run(req.params.id);
+  res.json({ ok: true });
+});
+
 // Stats overview
 router.get('/stats', (req, res) => {
-  const total_users = db.prepare('SELECT COUNT(*) as c FROM users').get().c;
-  const total_links = db.prepare('SELECT COUNT(*) as c FROM links').get().c;
-  const new_today = db.prepare("SELECT COUNT(*) as c FROM users WHERE date(created_at) = date('now')").get().c;
-  res.json({ total_users, total_links, new_today });
+  const total_users    = db.prepare('SELECT COUNT(*) as c FROM users').get().c;
+  const total_links    = db.prepare('SELECT COUNT(*) as c FROM links').get().c;
+  const new_today      = db.prepare("SELECT COUNT(*) as c FROM users WHERE date(created_at) = date('now')").get().c;
+  const waitlist_count = db.prepare('SELECT COUNT(*) as c FROM waitlist').get().c;
+  const waitlist_today = db.prepare("SELECT COUNT(*) as c FROM waitlist WHERE date(created_at) = date('now')").get().c;
+  res.json({ total_users, total_links, new_today, waitlist_count, waitlist_today });
 });
 
 module.exports = router;

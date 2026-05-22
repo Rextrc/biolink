@@ -45,6 +45,9 @@ export const api = {
     updateUserExpiry: (id, key_expires_at) => apiFetch(`/admin/users/${id}/expiry`, { method: 'PUT', body: JSON.stringify({ key_expires_at }) }),
     getSiteConfig: () => apiFetch('/admin/site-config'),
     saveSiteConfig: (body) => apiFetch('/admin/site-config', { method: 'PUT', body: JSON.stringify(body) }),
+    waitlist: () => apiFetch('/admin/waitlist'),
+    deleteWaitlistEntry: (id) => apiFetch(`/admin/waitlist/${id}`, { method: 'DELETE' }),
+    clearWaitlist: () => apiFetch('/admin/waitlist/all', { method: 'DELETE' }),
   },
   getSiteConfig: () => apiFetch('/site-config'),
 };
