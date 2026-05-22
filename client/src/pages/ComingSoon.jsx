@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../utils/api';
 
 const FONT = "'Courier New', 'Lucida Console', monospace";
@@ -277,6 +278,12 @@ export default function ComingSoon() {
           </div>
         )}
       </div>
+      <Link to="/login" style={{
+        position: 'absolute', bottom: 14, right: 18, zIndex: 10,
+        fontSize: 9, color: '#1a0000', letterSpacing: '0.08em',
+        textDecoration: 'none', fontFamily: FONT,
+        opacity: 0.4,
+      }}>admin bypass</Link>
     </div>
   );
 }
