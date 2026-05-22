@@ -190,18 +190,28 @@ export default function ComingSoon() {
           boxShadow: `0 0 8px ${RED_GLOW}`,
         }} />
 
-        {/* teaser */}
+        {/* description */}
         <p style={{
-          fontSize: 13, letterSpacing: '0.12em', color: RED_DIM,
-          margin: '0 0 8px',
-          lineHeight: 1.7,
+          fontSize: 15, color: 'rgba(255,255,255,0.75)',
+          margin: '0 0 16px', lineHeight: 1.7, letterSpacing: '0.01em',
+          fontFamily: 'Inter, sans-serif', fontWeight: 400,
         }}>
-          // REAL-TIME AWARENESS. LIVE SCANNER FEEDS.<br />
-          // YOUR CITY. YOUR SIGNAL. COMING SOON.
+          A real-time situational awareness platform — live police scanner feeds, GPS-mapped incidents, AI tactical briefings, and proximity alerts for your city.
         </p>
 
-        <p style={{ fontSize: 11, color: '#440000', letterSpacing: '0.08em', margin: '0 0 32px' }}>
-          DROP DATE: CLASSIFIED
+        {/* feature pills */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center', marginBottom: 20 }}>
+          {['Live scanner audio', 'Incident map', 'AI briefings', 'Proximity alerts', 'Miami feeds'].map(f => (
+            <span key={f} style={{
+              fontSize: 11, letterSpacing: '0.08em', color: RED_DIM,
+              border: `1px solid ${RED_DIM}`, padding: '4px 10px',
+              fontFamily: FONT,
+            }}>{f}</span>
+          ))}
+        </div>
+
+        <p style={{ fontSize: 11, color: '#440000', letterSpacing: '0.08em', margin: '0 0 28px', fontFamily: FONT }}>
+          // DROP DATE: CLASSIFIED
         </p>
 
         {/* email form */}
