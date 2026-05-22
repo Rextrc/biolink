@@ -231,6 +231,14 @@ async function init() {
     )`);
     _sql.run(`INSERT OR IGNORE INTO site_config (id, data) VALUES (1, '{}')`);
   } catch {}
+  try {
+    _sql.run(`CREATE TABLE IF NOT EXISTS waitlist (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      email      TEXT UNIQUE NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
+  } catch {}
+
   // Grant admin + verified to the owner account
   try { _sql.run(`UPDATE users SET is_admin = 1, email_verified = 1 WHERE email = 'oliverk5578@gmail.com'`); } catch {}
 

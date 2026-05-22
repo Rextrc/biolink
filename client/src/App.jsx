@@ -10,6 +10,7 @@ import Verify from './pages/Verify';
 import Inbox from './pages/Inbox';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
+import ComingSoon from './pages/ComingSoon';
 import { getAuth } from './utils/auth';
 
 function PrivateRoute({ children }) {
@@ -29,11 +30,25 @@ function AdminRoute({ children }) {
   return children;
 }
 
+function useMode() {
+  const [comingSoon, setComingSoon] = useState(null);
+  useEffect(() => {
+    fetch(`${import.meta.env.VITE_API_BASE || ''}/api/mode`)
+      .then(r => r.json())
+      .then(d => setComingSoon(d.comingSoon))
+      .catch(() => setComingSoon(false));
+  }, []);
+  return comingSoon;
+}
+
 export default function App() {
+  const comingSoon = useMode();
+  if (comingSoon === null) return null; // brief blank while fetching
+
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Landing />} />
+        <Route path="/" element={comingSoon ? <ComingSoon /> : <Landing />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/verify" element={<Verify />} />

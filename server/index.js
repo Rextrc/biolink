@@ -24,6 +24,27 @@ app.use('/api/admin',   require('./routes/admin'));
 app.use('/api/inbox',   require('./routes/inbox'));
 app.use('/api/upload',  require('./routes/upload'));
 
+// Coming soon mode flag
+app.get('/api/mode', (req, res) => {
+  res.json({ comingSoon: process.env.COMING_SOON === 'true' });
+});
+
+// Waitlist signup
+app.post('/api/waitlist', (req, res) => {
+  const { email } = req.body;
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ error: 'Invalid email' });
+  }
+  try {
+    const db = require('./db');
+    db.prepare('INSERT INTO waitlist (email) VALUES (?)').run(email);
+    res.json({ ok: true });
+  } catch (e) {
+    if (e.message?.includes('UNIQUE')) return res.status(409).json({ error: 'Already on the list' });
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // Public site config (landing page copy)
 app.get('/api/site-config', (req, res) => {
   try {
