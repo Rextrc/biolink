@@ -159,13 +159,14 @@ export default function ComingSoon() {
         gap: 0, padding: '0 20px', maxWidth: 520, width: '100%',
         textAlign: 'center', boxSizing: 'border-box',
       }}>
-        {/* status badge */}
+        {/* coming soon badge */}
         <div style={{
-          fontSize: 11, letterSpacing: '0.2em', color: RED_DIM,
-          marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8,
+          fontSize: 11, letterSpacing: '0.2em', color: '#000',
+          background: RED, padding: '5px 16px', marginBottom: 20,
+          display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700,
         }}>
           <Blink ms={700}>█</Blink>
-          <span>TRANSMISSION INCOMING</span>
+          <span>COMING SOON</span>
           <Blink ms={700}>█</Blink>
         </div>
 
