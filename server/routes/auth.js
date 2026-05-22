@@ -5,7 +5,7 @@ const jwt = require('jsonwebtoken');
 const db = require('../db');
 const { sendVerificationEmail, sendWelcomeEmail } = require('../email');
 const { validateKey, useKey } = require('../keys');
-const { sendDM } = require('../discord');
+const { notify } = require('../bot');
 
 const RESERVED = ['dashboard', 'login', 'signup', 'api', 'admin', 'settings', 'god'];
 
@@ -53,7 +53,7 @@ router.post('/signup', async (req, res) => {
       await sendVerificationEmail(email, username, code).catch(() => {});
     }
 
-    sendDM(`🆕 **New signup** — \`@${username.toLowerCase()}\` (${email}) — IP: \`${ip}\``).catch(() => {});
+    notify(`🆕 <b>New signup</b>\n@${username.toLowerCase()} — ${email}\nIP: <code>${ip}</code>`);
 
     res.json({ needsVerification: !isAdmin, username: username.toLowerCase() });
   } catch (err) {

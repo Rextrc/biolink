@@ -38,8 +38,8 @@ app.post('/api/waitlist', (req, res) => {
   try {
     const db = require('./db');
     db.prepare('INSERT INTO waitlist (email) VALUES (?)').run(email);
-    const { sendDM } = require('./discord');
-    sendDM(`📬 **Waitlist signup** — \`${email}\``).catch(() => {});
+    const { notify } = require('./bot');
+    notify(`📬 <b>Waitlist signup</b>\n${email}`);
     res.json({ ok: true });
   } catch (e) {
     if (e.message?.includes('UNIQUE')) return res.status(409).json({ error: 'Already on the list' });

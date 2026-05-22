@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react'; // useEffect used by AdminRoute
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { api } from './utils/api';
 import Landing from './pages/Landing';
@@ -30,25 +30,13 @@ function AdminRoute({ children }) {
   return children;
 }
 
-function useMode() {
-  const [comingSoon, setComingSoon] = useState(null);
-  useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_BASE || ''}/api/mode`)
-      .then(r => r.json())
-      .then(d => setComingSoon(d.comingSoon))
-      .catch(() => setComingSoon(false));
-  }, []);
-  return comingSoon;
-}
+const COMING_SOON = import.meta.env.VITE_COMING_SOON === 'true';
 
 export default function App() {
-  const comingSoon = useMode();
-  if (comingSoon === null) return null; // brief blank while fetching
-
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={comingSoon ? <ComingSoon /> : <Landing />} />
+        <Route path="/" element={COMING_SOON ? <ComingSoon /> : <Landing />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/verify" element={<Verify />} />

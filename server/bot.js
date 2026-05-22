@@ -2,12 +2,23 @@ const TelegramBot = require('node-telegram-bot-api');
 const { generateKey } = require('./keys');
 const db = require('./db');
 
+let _bot = null;
+
+// Send a message to the admin without needing the bot listener running
+function notify(text) {
+  const token   = process.env.TELEGRAM_BOT_TOKEN;
+  const adminId = process.env.TELEGRAM_ADMIN_ID;
+  if (!token || !adminId || !_bot) return;
+  _bot.sendMessage(adminId, text, { parse_mode: 'HTML' }).catch(() => {});
+}
+
 function startBot() {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   if (!token) return console.log('No TELEGRAM_BOT_TOKEN set, bot disabled');
 
   const adminId = process.env.TELEGRAM_ADMIN_ID;
   const bot = new TelegramBot(token, { polling: true });
+  _bot = bot;
 
   const isAdmin = (from) => !adminId || String(from.id) === String(adminId);
 
@@ -109,4 +120,4 @@ function startBot() {
   console.log('✅ Telegram bot started');
 }
 
-module.exports = { startBot };
+module.exports = { startBot, notify };
