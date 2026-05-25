@@ -70,9 +70,8 @@ export default function HudPage() {
   const [scannerOpen,    setScannerOpen]     = useState(false)
   const [aiPickReason,   setAiPickReason]   = useState('')
   const [aiPicking,      setAiPicking]      = useState(false)
-  const audioRef    = useRef(null)
-  const audioCtxRef = useRef(null)
-  const recorderRef = useRef(null)
+  const audioRef   = useRef(null)
+  const recorderRef = useRef(null)  // AbortController for capture fetch
   const userPosRef  = useRef(null)
 
   // ── Lock body scroll ──────────────────────────────────────────────────────
@@ -245,12 +244,8 @@ export default function HudPage() {
   function playChannel(ch) {
     // Stop previous audio + capture
     if (recorderRef.current) {
-      try { recorderRef.current.stop() } catch {}
+      try { recorderRef.current.abort() } catch {}
       recorderRef.current = null
-    }
-    if (audioCtxRef.current) {
-      audioCtxRef.current.close().catch(() => {})
-      audioCtxRef.current = null
     }
     if (audioRef.current) {
       audioRef.current.pause()
@@ -263,61 +258,64 @@ export default function HudPage() {
 
     const proxyUrl = `${API_BASE}/stream-proxy?url=${encodeURIComponent(ch.stream_url)}`
     const audio = new Audio(proxyUrl)
-    audio.crossOrigin = 'anonymous'
     audioRef.current = audio
 
     audio.play().catch(e => setStatus(`Stream error: ${e.message}`))
     setActiveChannel(ch)
-    setStatus(`Monitoring: ${ch.name} — transcribing…`)
+    setStatus(`Monitoring: ${ch.name}`)
 
-    // Wire Web Audio capture once audio starts
-    audio.addEventListener('playing', () => {
-      try {
-        const ctx = new AudioContext()
-        audioCtxRef.current = ctx
-        const src = ctx.createMediaElementSource(audio)
-        const dest = ctx.createMediaStreamDestination()
-        src.connect(ctx.destination)   // still plays to speakers
-        src.connect(dest)              // also routes to recorder
+    // Separate fetch-based capture for transcription (doesn't affect audio playback)
+    let stopped = false
+    const captureLoop = async () => {
+      while (!stopped) {
+        try {
+          const ctrl = new AbortController()
+          recorderRef.current = ctrl
+          const resp = await fetch(proxyUrl, { signal: ctrl.signal })
+          if (!resp.ok) break
 
-        const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-          ? 'audio/webm;codecs=opus'
-          : 'audio/webm'
+          const reader = resp.body.getReader()
+          const chunks = []
+          const t0 = Date.now()
+          while (Date.now() - t0 < 30_000 && !stopped) {
+            const { done, value } = await reader.read()
+            if (done) break
+            if (value) chunks.push(value)
+          }
+          reader.cancel()
 
-        const recorder = new MediaRecorder(dest.stream, { mimeType })
-        recorderRef.current = recorder
-
-        recorder.ondataavailable = async (e) => {
-          if (e.data.size < 1000) return
-          const pos = userPosRef.current
-          if (!pos) return
-
-          const form = new FormData()
-          form.append('audio', e.data, 'scanner.webm')
-          form.append('lat', String(pos.lat))
-          form.append('lon', String(pos.lon))
-
-          try {
-            const r = await fetch(`${API_BASE}/transcribe`, { method: 'POST', body: form })
-            if (!r.ok) return
-            const newEvs = await r.json()
-            if (newEvs.length > 0) {
-              setEvents(prev => {
-                const merged = [...newEvs, ...prev].slice(0, 50)
-                placeEventMarkers(merged)
-                checkProximityAlerts(newEvs, pos)
-                return merged
-              })
-              setStatus(`Scanner: ${newEvs[0].call_type} detected`)
+          if (chunks.length && !stopped) {
+            const total = chunks.reduce((s, c) => s + c.length, 0)
+            const buf = new Uint8Array(total)
+            let off = 0
+            for (const c of chunks) { buf.set(c, off); off += c.length }
+            const pos = userPosRef.current
+            if (pos && buf.length > 8000) {
+              const form = new FormData()
+              form.append('audio', new Blob([buf], { type: 'audio/mpeg' }), 'scanner.mp3')
+              form.append('lat', String(pos.lat))
+              form.append('lon', String(pos.lon))
+              fetch(`${API_BASE}/transcribe`, { method: 'POST', body: form })
+                .then(r => r.ok ? r.json() : [])
+                .then(newEvs => {
+                  if (!newEvs.length) return
+                  setEvents(prev => {
+                    const merged = [...newEvs, ...prev].slice(0, 50)
+                    placeEventMarkers(merged)
+                    checkProximityAlerts(newEvs, userPosRef.current)
+                    return merged
+                  })
+                  setStatus(`Scanner: ${newEvs[0].call_type} detected`)
+                })
+                .catch(() => {})
             }
-          } catch {}
+          }
+        } catch {
+          if (!stopped) await new Promise(r => setTimeout(r, 5000))
         }
-
-        recorder.start(30_000)  // fire ondataavailable every 30s
-      } catch (err) {
-        console.warn('Audio capture setup failed:', err)
       }
-    }, { once: true })
+    }
+    captureLoop()
   }
 
   // ── AI channel pick ───────────────────────────────────────────────────────
