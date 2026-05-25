@@ -236,14 +236,15 @@ async def fetch_spotcrime(lat: float, lon: float, radius_km: float) -> list:
 
 _live_events: list = []  # geocoded incidents from scanner transcription, newest first
 
-_PARSE_SYSTEM = """You are a police scanner transcript parser.
+_PARSE_SYSTEM = """You are a Miami-Dade County police scanner transcript parser.
 Extract incident data and return JSON array (empty if no real incident).
 Format: [{"call_type": "...", "location": "...", "summary": "...", "units": "..."}]
-- call_type: short label e.g. "Traffic Stop", "Shooting", "Disturbance", "Pursuit"
-- location: exact street address or intersection heard (e.g. "NW 7th Ave and 36th St")
-- summary: one sentence under 15 words
-- units: unit IDs mentioned
-Only include entries with a clear street location. Return [] for noise/chatter."""
+- call_type: short label e.g. "Traffic Stop", "Shooting", "Disturbance", "Pursuit", "Battery", "Robbery"
+- location: full street address or intersection heard. Miami-Dade uses compass prefixes (NW, SW, NE, SE) — always include them. Convert "Northwest 7th" → "NW 7th Ave". If a zone/district is mentioned with no address, omit that entry.
+- summary: one sentence under 15 words describing the incident
+- units: unit IDs mentioned (e.g. "C12", "Delta 4")
+Miami police codes: Code 3 = emergency, 10-30 = robbery, 10-31 = burglary, 10-54 = accident, Baker = B-unit, Charlie = C-unit.
+Only include entries with a clear geocodable Miami street location. Return [] for radio noise, status checks, or unclear traffic."""
 
 
 async def _parse_transcript(raw: str) -> list:
