@@ -551,7 +551,7 @@ async def get_brief(text: str = Query(...)):
             input=jarvis_line,
             response_format="mp3",
         )
-        audio_bytes = tts_response.content
+        audio_bytes = await tts_response.aread()
     except Exception as e:
         print(f"OpenAI TTS failed: {e}")
 
@@ -572,10 +572,11 @@ async def get_brief(text: str = Query(...)):
     if not audio_bytes:
         raise HTTPException(status_code=503, detail="TTS unavailable")
 
+    safe_text = jarvis_line.encode("ascii", errors="replace").decode("ascii")
     return StreamingResponse(
         iter([audio_bytes]),
         media_type="audio/mpeg",
-        headers={"X-Olik-Text": jarvis_line},
+        headers={"X-Olik-Text": safe_text},
     )
 
 
