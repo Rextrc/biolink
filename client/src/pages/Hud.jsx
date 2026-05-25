@@ -70,7 +70,10 @@ export default function HudPage() {
   const [scannerOpen,    setScannerOpen]     = useState(false)
   const [aiPickReason,   setAiPickReason]   = useState('')
   const [aiPicking,      setAiPicking]      = useState(false)
-  const audioRef = useRef(null)
+  const audioRef    = useRef(null)
+  const audioCtxRef = useRef(null)
+  const recorderRef = useRef(null)
+  const userPosRef  = useRef(null)
 
   // ── Lock body scroll ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -123,6 +126,7 @@ export default function HudPage() {
       (pos) => {
         const { latitude: lat, longitude: lon, heading } = pos.coords
         setUserPos({ lat, lon, heading })
+        userPosRef.current = { lat, lon, heading }
         setStatus('GPS locked.')
         if (!userMarker.current) {
           const el = document.createElement('div')
@@ -172,37 +176,15 @@ export default function HudPage() {
     })
   }, [])
 
-  // ── Fetch events (PulsePoint + Whisper transcripts merged) ───────────────
+  // ── Fetch events ──────────────────────────────────────────────────────────
   const fetchEvents = useCallback(async (lat, lon) => {
     try {
-      const [evRes, txRes] = await Promise.allSettled([
-        fetch(`${API_BASE}/events?lat=${lat}&lon=${lon}&radius_km=10`),
-        fetch(`${API_BASE}/live-transcripts`),
-      ])
-
-      let evData = []
-      if (evRes.status === 'fulfilled' && evRes.value.ok) {
-        evData = await evRes.value.json()
-      }
-
-      let txData = []
-      if (txRes.status === 'fulfilled' && txRes.value.ok) {
-        const tx = await txRes.value.json()
-        // Give Whisper transcripts a rough position near user
-        txData = (tx.transcripts || []).map((t, i) => ({
-          ...t,
-          lat: lat + (Math.random() - 0.5) * 0.04,
-          lon: lon + (Math.random() - 0.5) * 0.04,
-          distance_km: parseFloat((Math.random() * 3 + 0.2).toFixed(2)),
-          source: 'Whisper/MDPD',
-        }))
-      }
-
-      // Merge: Whisper transcripts first (most recent), then PulsePoint
-      const merged = [...txData, ...evData]
-      setEvents(merged)
-      placeEventMarkers(merged)
-      checkProximityAlerts(merged, { lat, lon })
+      const r = await fetch(`${API_BASE}/events?lat=${lat}&lon=${lon}&radius_km=10`)
+      if (!r.ok) throw new Error(r.statusText)
+      const data = await r.json()
+      setEvents(data)
+      placeEventMarkers(data)
+      checkProximityAlerts(data, { lat, lon })
     } catch (e) { console.warn('Events fetch failed:', e) }
   }, [checkProximityAlerts])
 
@@ -259,8 +241,17 @@ export default function HudPage() {
       .catch(e => console.warn('Channels fetch failed:', e))
   }, [])
 
-  // ── Play a scanner channel ────────────────────────────────────────────────
+  // ── Play a scanner channel + start Whisper capture ───────────────────────
   function playChannel(ch) {
+    // Stop previous audio + capture
+    if (recorderRef.current) {
+      try { recorderRef.current.stop() } catch {}
+      recorderRef.current = null
+    }
+    if (audioCtxRef.current) {
+      audioCtxRef.current.close().catch(() => {})
+      audioCtxRef.current = null
+    }
     if (audioRef.current) {
       audioRef.current.pause()
       audioRef.current.src = ''
@@ -269,13 +260,64 @@ export default function HudPage() {
       setActiveChannel(null)
       return
     }
-    // Proxy through backend to avoid CORS blocks on scanner streams
+
     const proxyUrl = `${API_BASE}/stream-proxy?url=${encodeURIComponent(ch.stream_url)}`
     const audio = new Audio(proxyUrl)
+    audio.crossOrigin = 'anonymous'
     audioRef.current = audio
+
     audio.play().catch(e => setStatus(`Stream error: ${e.message}`))
     setActiveChannel(ch)
-    setStatus(`Monitoring: ${ch.name}`)
+    setStatus(`Monitoring: ${ch.name} — transcribing…`)
+
+    // Wire Web Audio capture once audio starts
+    audio.addEventListener('playing', () => {
+      try {
+        const ctx = new AudioContext()
+        audioCtxRef.current = ctx
+        const src = ctx.createMediaElementSource(audio)
+        const dest = ctx.createMediaStreamDestination()
+        src.connect(ctx.destination)   // still plays to speakers
+        src.connect(dest)              // also routes to recorder
+
+        const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+          ? 'audio/webm;codecs=opus'
+          : 'audio/webm'
+
+        const recorder = new MediaRecorder(dest.stream, { mimeType })
+        recorderRef.current = recorder
+
+        recorder.ondataavailable = async (e) => {
+          if (e.data.size < 1000) return
+          const pos = userPosRef.current
+          if (!pos) return
+
+          const form = new FormData()
+          form.append('audio', e.data, 'scanner.webm')
+          form.append('lat', String(pos.lat))
+          form.append('lon', String(pos.lon))
+
+          try {
+            const r = await fetch(`${API_BASE}/transcribe`, { method: 'POST', body: form })
+            if (!r.ok) return
+            const newEvs = await r.json()
+            if (newEvs.length > 0) {
+              setEvents(prev => {
+                const merged = [...newEvs, ...prev].slice(0, 50)
+                placeEventMarkers(merged)
+                checkProximityAlerts(newEvs, pos)
+                return merged
+              })
+              setStatus(`Scanner: ${newEvs[0].call_type} detected`)
+            }
+          } catch {}
+        }
+
+        recorder.start(30_000)  // fire ondataavailable every 30s
+      } catch (err) {
+        console.warn('Audio capture setup failed:', err)
+      }
+    }, { once: true })
   }
 
   // ── AI channel pick ───────────────────────────────────────────────────────

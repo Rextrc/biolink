@@ -3,6 +3,7 @@ JARVIS HUD — FastAPI Backend
 Public safety awareness dashboard (lawful feeds only).
 """
 
+import io
 import math
 import os
 import time
@@ -11,7 +12,7 @@ from urllib.parse import quote
 
 import aiohttp
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from openai import AsyncOpenAI
@@ -229,6 +230,151 @@ async def fetch_spotcrime(lat: float, lon: float, radius_km: float) -> list:
 
 
 # ---------------------------------------------------------------------------
+# Scanner Whisper pipeline — browser posts 30s audio chunks here
+# ---------------------------------------------------------------------------
+
+_live_events: list = []  # geocoded incidents from scanner transcription, newest first
+
+_PARSE_SYSTEM = """You are a police scanner transcript parser.
+Extract incident data and return JSON array (empty if no real incident).
+Format: [{"call_type": "...", "location": "...", "summary": "...", "units": "..."}]
+- call_type: short label e.g. "Traffic Stop", "Shooting", "Disturbance", "Pursuit"
+- location: exact street address or intersection heard (e.g. "NW 7th Ave and 36th St")
+- summary: one sentence under 15 words
+- units: unit IDs mentioned
+Only include entries with a clear street location. Return [] for noise/chatter."""
+
+
+async def _parse_transcript(raw: str) -> list:
+    if not openai_client or not raw.strip():
+        return []
+    try:
+        resp = await openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": _PARSE_SYSTEM},
+                {"role": "user",   "content": raw[:1200]},
+            ],
+            max_tokens=400,
+            temperature=0.1,
+            response_format={"type": "json_object"},
+        )
+        parsed = _json.loads(resp.choices[0].message.content)
+        if isinstance(parsed, list):
+            return parsed
+        for v in parsed.values():
+            if isinstance(v, list):
+                return v
+        return []
+    except Exception as e:
+        print(f"Parse transcript error: {e}")
+        return []
+
+
+def _priority_from_call_type(call_type: str) -> int:
+    ct = call_type.lower()
+    if any(w in ct for w in ["shoot", "stab", "robbery", "assault", "pursuit", "weapon", "homicide"]):
+        return 1
+    if any(w in ct for w in ["disturbance", "fight", "domestic", "drug", "suspicious"]):
+        return 2
+    if any(w in ct for w in ["traffic", "accident", "alarm", "theft", "burglary"]):
+        return 3
+    return 4
+
+
+async def _geocode_address(session: aiohttp.ClientSession, address: str,
+                            hint_lat: float = 25.76, hint_lon: float = -80.19):
+    if not MAPBOX_TOKEN or not address.strip():
+        return None
+    try:
+        url = f"https://api.mapbox.com/geocoding/v5/mapbox.places/{quote(address)}.json"
+        async with session.get(url, params={
+            "access_token": MAPBOX_TOKEN,
+            "proximity": f"{hint_lon},{hint_lat}",
+            "limit": 1,
+        }) as resp:
+            if resp.status != 200:
+                return None
+            geo = await resp.json(content_type=None)
+        features = geo.get("features", [])
+        if features:
+            lon, lat = features[0]["center"]
+            return lat, lon
+    except Exception as e:
+        print(f"Geocode error: {e}")
+    return None
+
+
+@app.post("/transcribe")
+async def transcribe_audio(
+    audio: UploadFile = File(...),
+    lat:   float      = Form(...),
+    lon:   float      = Form(...),
+):
+    """Receive a 30s scanner audio chunk from the browser, Whisper it, geocode, return new events."""
+    if not openai_client:
+        return []
+
+    audio_bytes = await audio.read()
+    if len(audio_bytes) < 1000:
+        return []
+
+    try:
+        buf = io.BytesIO(audio_bytes)
+        buf.name = audio.filename or "scanner.webm"
+        result = await openai_client.audio.transcriptions.create(
+            model="whisper-1",
+            file=buf,
+            language="en",
+            prompt="Police scanner dispatch. Street address, unit number, call code.",
+        )
+        transcript = result.text.strip()
+    except Exception as e:
+        print(f"Whisper error: {e}")
+        return []
+
+    if not transcript or len(transcript) < 5:
+        return []
+
+    print(f"[Scanner] {transcript[:120]}")
+
+    incidents = await _parse_transcript(transcript)
+    if not incidents:
+        return []
+
+    new_events = []
+    async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=8)) as session:
+        for inc in incidents:
+            address = inc.get("location", "")
+            if not address:
+                continue
+            coords = await _geocode_address(session, address, hint_lat=lat, hint_lon=lon)
+            if not coords:
+                continue
+            inc_lat, inc_lon = coords
+            d_km = haversine_km(lat, lon, inc_lat, inc_lon)
+            call_type = inc.get("call_type", "Incident")
+            ev = {
+                "id":          f"WSP-{int(time.time() * 1000)}",
+                "lat":         round(inc_lat, 6),
+                "lon":         round(inc_lon, 6),
+                "call_type":   call_type,
+                "priority":    _priority_from_call_type(call_type),
+                "summary":     inc.get("summary") or transcript[:80],
+                "transcript":  transcript[:300],
+                "units":       inc.get("units", ""),
+                "timestamp":   datetime.now(timezone.utc).isoformat(),
+                "distance_km": round(d_km, 2),
+                "source":      "Scanner/Whisper",
+            }
+            _live_events.insert(0, ev)
+            new_events.append(ev)
+
+    _live_events[:] = _live_events[:100]
+    return new_events
+
+
+# ---------------------------------------------------------------------------
 # /events
 # ---------------------------------------------------------------------------
 
@@ -238,7 +384,17 @@ async def get_events(
     lon: float = Query(...),
     radius_km: float = Query(10.0),
 ):
-    # 1. SpotCrime — real geocoded police incidents
+    # 1. Live scanner events from browser Whisper pipeline
+    if _live_events:
+        results = [
+            {**ev, "distance_km": round(haversine_km(lat, lon, ev["lat"], ev["lon"]), 2)}
+            for ev in _live_events
+            if haversine_km(lat, lon, ev["lat"], ev["lon"]) <= radius_km
+        ]
+        if results:
+            return sorted(results, key=lambda e: e["distance_km"])
+
+    # 2. SpotCrime — real geocoded police incidents (requires SPOTCRIME_KEY)
     if SPOTCRIME_KEY:
         try:
             real = await fetch_spotcrime(lat, lon, radius_km)
@@ -247,7 +403,7 @@ async def get_events(
         except Exception as e:
             print(f"SpotCrime error: {e}")
 
-    # 2. Fallback: mock data so the UI never goes empty
+    # 3. Mock fallback
     events = _build_mock_events(lat, lon)
     results = []
     for ev in events:
