@@ -3,8 +3,6 @@ JARVIS HUD — FastAPI Backend
 Public safety awareness dashboard (lawful feeds only).
 """
 
-import asyncio
-import io
 import math
 import os
 import time
@@ -25,7 +23,7 @@ OPENAI_API_KEY   = os.getenv("OPENAI_API_KEY", "")
 ELEVEN_API_KEY   = os.getenv("ELEVEN_API_KEY", "")
 ELEVEN_VOICE_ID  = os.getenv("ELEVEN_VOICE_ID", "onwK4e9ZLuTAKqWW03F9")
 MAPBOX_TOKEN     = os.getenv("MAPBOX_TOKEN", "")
-OPENMHZ_SYSTEM   = os.getenv("OPENMHZ_SYSTEM", "miamidade")
+SPOTCRIME_KEY    = os.getenv("SPOTCRIME_KEY", "")
 
 app = FastAPI(title="Jarvis HUD API")
 
@@ -150,211 +148,84 @@ def _build_intersections(user_lat: float, user_lon: float):
 
 
 # ---------------------------------------------------------------------------
-# OpenMHZ — real police scanner calls with Whisper transcription
+# Spot Crime — real geocoded police incidents
 # ---------------------------------------------------------------------------
-# OpenMHZ is a public scanner archive. We poll for recent calls, Whisper-
-# transcribe the audio, extract addresses with GPT, then geocode with Mapbox.
-# Talkgroup tags that indicate fire/EMS are skipped so we only show police.
+# SpotCrime aggregates live CAD feeds from police departments nationwide.
+# Requires a free API key from spotcrime.com/user/api
+# Returns incidents with lat/lon, type, date, address — updated every few minutes.
 
-_SKIP_TALKGROUP_TAGS = {
-    "Fire Dispatch", "Fire Talk", "Fire-Tac", "Fire-Patch",
-    "EMS Dispatch", "EMS Talk", "EMS-Tac", "EMS-Patch",
-    "Hospital", "Public Works",
+_SC_TYPE_MAP = {
+    "Arrest":    ("Arrest",         3),
+    "Arson":     ("Arson",          1),
+    "Assault":   ("Assault",        1),
+    "Burglary":  ("Burglary",       2),
+    "Robbery":   ("Robbery",        1),
+    "Shooting":  ("Shooting",       1),
+    "Theft":     ("Theft",          3),
+    "Vandalism": ("Vandalism",      4),
+    "Other":     ("Incident",       4),
 }
 
-_live_events: list = []   # geocoded police incidents, newest first
-_omz_running = False
-
-_PARSE_SYSTEM = """You are a police scanner transcript parser for Miami-Dade County.
-Extract incident data from raw scanner audio transcripts and return JSON.
-Output format (array, can be empty if no real incidents found):
-[{"call_type": "...", "location": "...", "summary": "...", "units": "..."}]
-- call_type: short label e.g. "Traffic Stop", "Shooting", "Disturbance", "Pursuit"
-- location: street address or intersection mentioned, exactly as heard (e.g. "NW 7th Ave and 36th St")
-- summary: one sentence, under 15 words
-- units: unit IDs mentioned (e.g. "Unit 42, K9-7")
-If transcript is silence, noise, or chatter with no dispatchable incident, return [].
-Only include entries with a clear location."""
+def _sc_priority(crime_type: str) -> int:
+    for k, (_, p) in _SC_TYPE_MAP.items():
+        if k.lower() in crime_type.lower():
+            return p
+    return 3
 
 
-async def _parse_transcript(raw: str) -> list:
-    if not openai_client or not raw.strip():
+async def fetch_spotcrime(lat: float, lon: float, radius_km: float) -> list:
+    if not SPOTCRIME_KEY:
         return []
+    # SpotCrime radius is in decimal degrees; 0.01 deg ≈ 1.1 km
+    radius_deg = radius_km / 111.0
+    url = "https://api.spotcrime.com/crimes.json"
+    params = {
+        "lat": lat,
+        "lon": lon,
+        "r":   round(radius_deg, 4),
+        "key": SPOTCRIME_KEY,
+    }
     try:
-        resp = await openai_client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": _PARSE_SYSTEM},
-                {"role": "user",   "content": raw[:1200]},
-            ],
-            max_tokens=500,
-            temperature=0.1,
-            response_format={"type": "json_object"},
-        )
-        content = resp.choices[0].message.content
-        parsed = _json.loads(content)
-        if isinstance(parsed, list):
-            return parsed
-        for v in parsed.values():
-            if isinstance(v, list):
-                return v
-        return []
+        async with aiohttp.ClientSession(
+            timeout=aiohttp.ClientTimeout(total=8),
+            headers={"User-Agent": "Mozilla/5.0"},
+        ) as session:
+            async with session.get(url, params=params) as resp:
+                if resp.status != 200:
+                    print(f"SpotCrime HTTP {resp.status}")
+                    return []
+                data = await resp.json(content_type=None)
     except Exception as e:
-        print(f"Parse transcript error: {e}")
+        print(f"SpotCrime fetch error: {e}")
         return []
 
-
-def _priority_from_call_type(call_type: str) -> int:
-    ct = call_type.lower()
-    if any(w in ct for w in ["shoot", "stab", "robbery", "assault", "pursuit", "weapon", "homicide"]):
-        return 1
-    if any(w in ct for w in ["disturbance", "fight", "domestic", "drug", "suspicious"]):
-        return 2
-    if any(w in ct for w in ["traffic", "accident", "alarm", "theft", "burglary"]):
-        return 3
-    return 4
-
-
-def _is_police_talkgroup(call: dict) -> bool:
-    tg = call.get("talkgroup") or {}
-    if isinstance(tg, dict):
-        tag = tg.get("tag", "")
-    else:
-        tag = ""
-    if tag in _SKIP_TALKGROUP_TAGS:
-        return False
-    # Skip if talkgroup alpha name contains obvious fire/EMS words
-    alpha = (tg.get("alpha", "") if isinstance(tg, dict) else "").lower()
-    if any(w in alpha for w in ["fire", " ems", "rescue", "medic", "engine", "ladder", "truck"]):
-        return False
-    return True
-
-
-async def _geocode_address(session: aiohttp.ClientSession, address: str, hint_lat: float = 25.76, hint_lon: float = -80.19) -> tuple[float, float] | None:
-    if not MAPBOX_TOKEN or not address.strip():
-        return None
-    try:
-        url = f"https://api.mapbox.com/geocoding/v5/mapbox.places/{quote(address)}.json"
-        async with session.get(url, params={
-            "access_token": MAPBOX_TOKEN,
-            "proximity": f"{hint_lon},{hint_lat}",
-            "bbox": "-81.0,25.0,-79.5,26.5",  # greater Miami-Dade area
-            "limit": 1,
-        }) as resp:
-            if resp.status != 200:
-                return None
-            geo = await resp.json(content_type=None)
-        features = geo.get("features", [])
-        if features:
-            lon, lat = features[0]["center"]
-            return lat, lon
-    except Exception as e:
-        print(f"Geocode error: {e}")
-    return None
-
-
-async def _openmhz_loop():
-    global _live_events, _omz_running
-    _omz_running = True
-    seen_ids: set = set()
-    POLL_INTERVAL = 45  # seconds between polls
-
-    while True:
-        await asyncio.sleep(POLL_INTERVAL)
+    crimes = data.get("crimes", [])
+    results = []
+    for c in crimes:
         try:
-            async with aiohttp.ClientSession(
-                timeout=aiohttp.ClientTimeout(total=20),
-                headers={"User-Agent": "Mozilla/5.0"}
-            ) as session:
-                # Fetch recent calls (last 5 minutes)
-                url = f"https://api.openmhz.com/{OPENMHZ_SYSTEM}/calls"
-                params = {"time": int(time.time() - 300)}
-                async with session.get(url, params=params) as resp:
-                    if resp.status != 200:
-                        print(f"OpenMHZ fetch HTTP {resp.status}")
-                        continue
-                    data = await resp.json(content_type=None)
+            inc_lat = float(c.get("lat", 0))
+            inc_lon = float(c.get("lon", 0))
+            if not inc_lat or not inc_lon:
+                continue
+            d_km = haversine_km(lat, lon, inc_lat, inc_lon)
+            crime_type = c.get("type", "Incident")
+            results.append({
+                "id":           f"SC-{c.get('cdid', int(time.time()*1000))}",
+                "lat":          round(inc_lat, 6),
+                "lon":          round(inc_lon, 6),
+                "call_type":    crime_type,
+                "priority":     _sc_priority(crime_type),
+                "summary":      f"{crime_type} — {c.get('address', '')}".strip(" —"),
+                "transcript":   f"Reported: {c.get('date', '')}. Address: {c.get('address', '')}.",
+                "timestamp":    c.get("date", datetime.now(timezone.utc).isoformat()),
+                "distance_km":  round(d_km, 2),
+                "source":       "SpotCrime",
+            })
+        except Exception:
+            continue
 
-                calls = data.get("calls", [])
-                new_calls = [c for c in calls if c.get("_id") not in seen_ids]
-                print(f"[OpenMHZ] {len(new_calls)} new calls of {len(calls)} fetched")
-
-                for call in new_calls:
-                    call_id = call.get("_id") or str(call.get("startTime", time.time()))
-                    seen_ids.add(call_id)
-
-                    if not _is_police_talkgroup(call):
-                        continue
-
-                    # Use pre-existing transcript if OpenMHZ already transcribed it
-                    transcript_obj = call.get("transcript") or {}
-                    transcript = transcript_obj.get("text", "") if isinstance(transcript_obj, dict) else ""
-
-                    if not transcript and OPENAI_API_KEY:
-                        # Download audio and Whisper-transcribe
-                        audio_url = call.get("filename") or call.get("url", "")
-                        if not audio_url:
-                            continue
-                        if not audio_url.startswith("http"):
-                            audio_url = "https://api.openmhz.com" + audio_url
-                        try:
-                            async with session.get(audio_url) as ar:
-                                if ar.status != 200:
-                                    continue
-                                audio_bytes = await ar.read()
-                            if len(audio_bytes) < 500:
-                                continue
-                            audio_file = io.BytesIO(audio_bytes)
-                            audio_file.name = "call.m4a"
-                            result = await openai_client.audio.transcriptions.create(
-                                model="whisper-1",
-                                file=audio_file,
-                                language="en",
-                                prompt="Police dispatch Miami-Dade. Street address, unit number, call code.",
-                            )
-                            transcript = result.text.strip()
-                            print(f"[Whisper] {transcript[:100]}")
-                        except Exception as e:
-                            print(f"Whisper error for {call_id}: {e}")
-                            continue
-
-                    if not transcript or len(transcript) < 5:
-                        continue
-
-                    incidents = await _parse_transcript(transcript)
-                    tg = call.get("talkgroup") or {}
-                    tg_name = (tg.get("alpha") or tg.get("description") or "Dispatch") if isinstance(tg, dict) else "Dispatch"
-
-                    for inc in incidents:
-                        address = inc.get("location", "")
-                        coords = await _geocode_address(session, address)
-                        if coords is None:
-                            continue
-                        lat, lon = coords
-
-                        call_type = inc.get("call_type") or tg_name
-                        entry = {
-                            "id":         f"OMZ-{call_id}",
-                            "lat":        round(lat, 6),
-                            "lon":        round(lon, 6),
-                            "call_type":  call_type,
-                            "priority":   _priority_from_call_type(call_type),
-                            "summary":    inc.get("summary") or transcript[:80],
-                            "transcript": transcript[:300],
-                            "units":      inc.get("units", ""),
-                            "timestamp":  call.get("startTime") or datetime.now(timezone.utc).isoformat(),
-                            "source":     f"OpenMHZ/{OPENMHZ_SYSTEM}",
-                        }
-                        _live_events.insert(0, entry)
-                        print(f"[Event] {call_type} @ {address}")
-
-        except Exception as e:
-            print(f"OpenMHZ loop error: {e}")
-
-        # Cap stored events and seen_ids to prevent unbounded growth
-        _live_events = _live_events[:100]
-        if len(seen_ids) > 2000:
-            seen_ids = set(list(seen_ids)[-1000:])
+    results.sort(key=lambda e: e["distance_km"])
+    return results
 
 
 # ---------------------------------------------------------------------------
@@ -367,16 +238,14 @@ async def get_events(
     lon: float = Query(...),
     radius_km: float = Query(10.0),
 ):
-    # 1. Return live geocoded police events from the OpenMHZ/Whisper pipeline
-    if _live_events:
-        results = []
-        for ev in _live_events:
-            d = haversine_km(lat, lon, ev["lat"], ev["lon"])
-            if d <= radius_km:
-                results.append({**ev, "distance_km": round(d, 2)})
-        if results:
-            results.sort(key=lambda e: e["distance_km"])
-            return results
+    # 1. SpotCrime — real geocoded police incidents
+    if SPOTCRIME_KEY:
+        try:
+            real = await fetch_spotcrime(lat, lon, radius_km)
+            if real:
+                return real
+        except Exception as e:
+            print(f"SpotCrime error: {e}")
 
     # 2. Fallback: mock data so the UI never goes empty
     events = _build_mock_events(lat, lon)
@@ -609,32 +478,15 @@ async def stream_proxy(url: str = Query(...)):
 
 
 # ---------------------------------------------------------------------------
-# /live-transcripts — expose raw pipeline state for debugging
-# ---------------------------------------------------------------------------
-
-@app.get("/live-transcripts")
-async def get_live_transcripts():
-    return {
-        "events": _live_events,
-        "running": _omz_running,
-        "source": f"OpenMHZ/{OPENMHZ_SYSTEM}",
-        "count": len(_live_events),
-    }
-
-
-# ---------------------------------------------------------------------------
 # Startup
 # ---------------------------------------------------------------------------
 
 @app.on_event("startup")
 async def startup():
-    if OPENAI_API_KEY and MAPBOX_TOKEN:
-        asyncio.create_task(_openmhz_loop())
-        print(f"✅ OpenMHZ police scanner pipeline started (system: {OPENMHZ_SYSTEM})")
-    elif not OPENAI_API_KEY:
-        print("⚠️  OPENAI_API_KEY not set — scanner transcription disabled, using mock data")
-    elif not MAPBOX_TOKEN:
-        print("⚠️  MAPBOX_TOKEN not set — geocoding disabled, scanner pipeline disabled")
+    if SPOTCRIME_KEY:
+        print("✅ SpotCrime API configured — real police incidents active")
+    else:
+        print("⚠️  SPOTCRIME_KEY not set — get a free key at spotcrime.com/user/api")
 
 
 # ---------------------------------------------------------------------------
@@ -646,9 +498,7 @@ async def health():
     return {
         "status": "online",
         "timestamp": datetime.now(timezone.utc).isoformat(),
-        "pipeline": "openmhz+whisper",
-        "openmhz_system": OPENMHZ_SYSTEM,
-        "live_events": len(_live_events),
-        "transcription": bool(OPENAI_API_KEY),
-        "geocoding": bool(MAPBOX_TOKEN),
+        "pipeline": "spotcrime",
+        "spotcrime": bool(SPOTCRIME_KEY),
+        "tts": bool(OPENAI_API_KEY),
     }
