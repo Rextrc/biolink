@@ -405,15 +405,8 @@ async def get_events(
         except Exception as e:
             print(f"SpotCrime error: {e}")
 
-    # 3. Mock fallback
-    events = _build_mock_events(lat, lon)
-    results = []
-    for ev in events:
-        d = haversine_km(lat, lon, ev["lat"], ev["lon"])
-        if d <= radius_km:
-            results.append({**ev, "distance_km": round(d, 2), "source": "demo"})
-    results.sort(key=lambda e: e["distance_km"])
-    return results
+    # No real data yet — return empty, scanner will populate within 90s
+    return []
 
 
 # ---------------------------------------------------------------------------

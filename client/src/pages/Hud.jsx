@@ -541,7 +541,7 @@ export default function HudPage() {
         {/* Incident cards */}
         <div className="event-list">
           {events.length === 0 ? (
-            <div className="no-events">// NO INCIDENTS IN RANGE //</div>
+            <div className="no-events">// SCANNER ACTIVE — AWAITING DISPATCH //<br/><span style={{fontSize:'0.7rem',opacity:0.5}}>Real incidents appear within 90 seconds</span></div>
           ) : events.map((ev, idx) => {
             const prio    = priorityLabel(ev.priority)
             const isClose = ev.distance_km <= ALERT_RADIUS_KM
