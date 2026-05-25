@@ -3,6 +3,7 @@ JARVIS HUD — FastAPI Backend
 Public safety awareness dashboard (lawful feeds only).
 """
 
+import asyncio
 import io
 import math
 import os
@@ -657,6 +658,94 @@ async def stream_proxy(url: str = Query(...)):
 
 
 # ---------------------------------------------------------------------------
+# Background scanner — auto-fetches Broadcastify Miami-Dade Police every 90s
+# ---------------------------------------------------------------------------
+
+_AUTO_SCANNER_URL = "https://broadcastify.cdnstream1.com/30513"
+_AUTO_SCANNER_LAT = 25.7617
+_AUTO_SCANNER_LON = -80.1918
+
+
+async def _auto_scanner_loop():
+    """Fetch 30s of scanner audio every 90s, transcribe, geocode, store events."""
+    if not openai_client:
+        print("⚠️  No OpenAI key — auto-scanner disabled")
+        return
+    await asyncio.sleep(15)  # let server warm up
+    print("✅ Auto-scanner started (Miami-Dade Police)")
+    headers = {
+        "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)",
+        "Icy-MetaData": "0",
+        "Accept": "audio/mpeg, audio/*, */*",
+    }
+    while True:
+        try:
+            chunks: list[bytes] = []
+            timeout = aiohttp.ClientTimeout(total=None, connect=10, sock_read=35)
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                async with session.get(_AUTO_SCANNER_URL, headers=headers) as resp:
+                    if resp.status != 200:
+                        await asyncio.sleep(60)
+                        continue
+                    deadline = asyncio.get_event_loop().time() + 30
+                    async for chunk in resp.content.iter_chunked(4096):
+                        chunks.append(chunk)
+                        if asyncio.get_event_loop().time() >= deadline:
+                            break
+
+            audio_bytes = b"".join(chunks)
+            if len(audio_bytes) < 8000:
+                await asyncio.sleep(30)
+                continue
+
+            buf = io.BytesIO(audio_bytes)
+            buf.name = "scanner.mp3"
+            result = await openai_client.audio.transcriptions.create(
+                model="whisper-1",
+                file=buf,
+                language="en",
+                prompt="Police scanner dispatch Miami-Dade. Street address, unit, call code.",
+            )
+            transcript = result.text.strip()
+            if transcript and len(transcript) > 8:
+                print(f"[AutoScanner] {transcript[:120]}")
+                incidents = await _parse_transcript(transcript)
+                async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=8)) as session:
+                    for inc in incidents:
+                        address = inc.get("location", "")
+                        if not address:
+                            continue
+                        coords = await _geocode_address(session, address,
+                                                        _AUTO_SCANNER_LAT, _AUTO_SCANNER_LON)
+                        if not coords:
+                            continue
+                        inc_lat, inc_lon = coords
+                        d_km = haversine_km(_AUTO_SCANNER_LAT, _AUTO_SCANNER_LON, inc_lat, inc_lon)
+                        call_type = inc.get("call_type", "Incident")
+                        ev = {
+                            "id":          f"AUTO-{int(time.time() * 1000)}",
+                            "lat":         round(inc_lat, 6),
+                            "lon":         round(inc_lon, 6),
+                            "call_type":   call_type,
+                            "priority":    _priority_from_call_type(call_type),
+                            "summary":     inc.get("summary") or transcript[:80],
+                            "transcript":  transcript[:300],
+                            "units":       inc.get("units", ""),
+                            "timestamp":   datetime.now(timezone.utc).isoformat(),
+                            "distance_km": round(d_km, 2),
+                            "source":      "MDPD Scanner",
+                        }
+                        _live_events.insert(0, ev)
+                        print(f"[AutoScanner] Event: {call_type} @ {address}")
+                _live_events[:] = _live_events[:100]
+
+        except Exception as e:
+            print(f"[AutoScanner] Error: {e}")
+
+        await asyncio.sleep(90)
+
+
+# ---------------------------------------------------------------------------
 # Startup
 # ---------------------------------------------------------------------------
 
@@ -666,6 +755,7 @@ async def startup():
         print("✅ SpotCrime API configured — real police incidents active")
     else:
         print("⚠️  SPOTCRIME_KEY not set — get a free key at spotcrime.com/user/api")
+    asyncio.create_task(_auto_scanner_loop())
 
 
 # ---------------------------------------------------------------------------
@@ -677,7 +767,9 @@ async def health():
     return {
         "status": "online",
         "timestamp": datetime.now(timezone.utc).isoformat(),
-        "pipeline": "spotcrime",
+        "pipeline": "auto-scanner+spotcrime",
+        "auto_scanner": bool(OPENAI_API_KEY),
+        "live_events": len(_live_events),
         "spotcrime": bool(SPOTCRIME_KEY),
         "tts": bool(OPENAI_API_KEY),
     }
