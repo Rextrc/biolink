@@ -542,13 +542,35 @@ async def get_brief(text: str = Query(...)):
         print(f"OpenAI brief failed: {e}")
         jarvis_line = _build_fallback_brief(text)
 
-    tts_response = await openai_client.audio.speech.create(
-        model="tts-1",
-        voice="onyx",
-        input=jarvis_line,
-        response_format="mp3",
-    )
-    audio_bytes = tts_response.content
+    # Try OpenAI TTS first, fall back to ElevenLabs
+    audio_bytes = None
+    try:
+        tts_response = await openai_client.audio.speech.create(
+            model="tts-1",
+            voice="onyx",
+            input=jarvis_line,
+            response_format="mp3",
+        )
+        audio_bytes = tts_response.content
+    except Exception as e:
+        print(f"OpenAI TTS failed: {e}")
+
+    if audio_bytes is None and ELEVEN_API_KEY:
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    f"https://api.elevenlabs.io/v1/text-to-speech/{ELEVEN_VOICE_ID}",
+                    headers={"xi-api-key": ELEVEN_API_KEY, "Content-Type": "application/json"},
+                    json={"text": jarvis_line, "model_id": "eleven_monolingual_v1",
+                          "voice_settings": {"stability": 0.5, "similarity_boost": 0.75}},
+                ) as resp:
+                    if resp.status == 200:
+                        audio_bytes = await resp.read()
+        except Exception as e:
+            print(f"ElevenLabs TTS failed: {e}")
+
+    if not audio_bytes:
+        raise HTTPException(status_code=503, detail="TTS unavailable")
 
     return StreamingResponse(
         iter([audio_bytes]),
