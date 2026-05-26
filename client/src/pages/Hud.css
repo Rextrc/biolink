@@ -845,6 +845,34 @@
 }
 .dev-input:focus { border-color: rgba(192,96,255,0.5); }
 .dev-submit { width: 100%; margin-top: 2px; font-size: 0.58rem !important; letter-spacing: 0.15em !important; }
+
+.dev-pick-btn {
+  width: 100%;
+  background: rgba(192,96,255,0.08) !important;
+  border: 1px solid rgba(192,96,255,0.4) !important;
+  color: var(--purple) !important;
+  font-family: var(--font-mono) !important;
+  font-size: 0.62rem !important;
+  letter-spacing: 0.1em !important;
+  padding: 7px !important;
+  text-align: center;
+}
+.dev-pick-btn--active {
+  background: rgba(192,96,255,0.2) !important;
+  border-color: var(--purple) !important;
+  animation: speakPulse 0.9s ease-in-out infinite;
+}
+.dev-clear-pin {
+  background: none; border: none;
+  color: var(--text-muted); font-family: var(--font-mono);
+  font-size: 0.52rem; letter-spacing: 0.08em; cursor: pointer;
+  text-align: right; padding: 0;
+}
+.pin-marker { font-size: 1.6rem; cursor: default; filter: drop-shadow(0 0 6px rgba(192,96,255,0.8)); }
+
+/* Crosshair cursor when picking pin */
+.hud-root.picking-pin { cursor: crosshair !important; }
+.hud-root.picking-pin .map-container { cursor: crosshair !important; }
 .dev-alert-row {
   display: flex; align-items: center; gap: 6px;
   padding: 4px 0; border-top: 1px solid rgba(192,96,255,0.1);

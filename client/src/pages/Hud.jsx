@@ -75,6 +75,9 @@ export default function HudPage() {
   const [devOpen,        setDevOpen]        = useState(false)
   const [devAlerts,      setDevAlerts]      = useState([])
   const [devForm,        setDevForm]        = useState({ call_type:'', summary:'', address:'', priority:2 })
+  const [pickingPin,     setPickingPin]     = useState(false)
+  const pickingPinRef    = useRef(false)
+  const pinMarker        = useRef(null)
   const ADMIN_SECRET = import.meta.env.VITE_ADMIN_SECRET || ''
   const audioRef      = useRef(null)
   const recorderRef   = useRef(null)
@@ -123,6 +126,23 @@ export default function HudPage() {
         paint: { 'line-color': '#ff4444', 'line-width': 14, 'line-opacity': 0.15, 'line-blur': 8 },
       }, 'route-line')
       setStatus('Awaiting GPS lock …')
+
+      // Map click — only active when pickingPin is true (read via ref)
+      map.current.on('click', (e) => {
+        if (!pickingPinRef.current) return
+        const { lat, lng } = e.lngLat
+        // Remove previous pin marker
+        if (pinMarker.current) { pinMarker.current.remove(); pinMarker.current = null }
+        const el = document.createElement('div')
+        el.className = 'pin-marker'
+        el.textContent = '📍'
+        pinMarker.current = new mapboxgl.Marker({ element: el, anchor: 'bottom' })
+          .setLngLat([lng, lat])
+          .addTo(map.current)
+        setDevForm(f => ({ ...f, lat: lat.toFixed(6), lon: lng.toFixed(6) }))
+        setPickingPin(false)
+        setDevOpen(true)
+      })
     })
     return () => { map.current?.remove(); map.current = null }
   }, [])
@@ -280,6 +300,9 @@ export default function HudPage() {
       })
     } catch (e) { console.warn('Reports fetch failed:', e) }
   }, [])
+
+  // Keep pickingPin ref in sync so map click closure can read it
+  useEffect(() => { pickingPinRef.current = pickingPin }, [pickingPin])
 
   // ── Auto-refresh ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -559,7 +582,7 @@ export default function HudPage() {
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="hud-root">
+    <div className={`hud-root${pickingPin ? ' picking-pin' : ''}`}>
       <div ref={mapContainer} className="map-container" />
 
       {/* ── PROXIMITY ALERT BANNER ── */}
@@ -645,10 +668,18 @@ export default function HudPage() {
             onChange={e => setDevForm(f => ({...f, summary: e.target.value}))} />
           <input className="dev-input" placeholder="Address (optional)" value={devForm.address}
             onChange={e => setDevForm(f => ({...f, address: e.target.value}))} />
-          <input className="dev-input" placeholder="Lat (blank = my location)" value={devForm.lat || ''}
-            onChange={e => setDevForm(f => ({...f, lat: e.target.value}))} />
-          <input className="dev-input" placeholder="Lon (blank = my location)" value={devForm.lon || ''}
-            onChange={e => setDevForm(f => ({...f, lon: e.target.value}))} />
+          <button
+            className={`btn dev-pick-btn ${pickingPin ? 'dev-pick-btn--active' : ''}`}
+            onClick={() => { setPickingPin(p => !p); setDevOpen(false) }}
+          >
+            {pickingPin ? '⊕ TAP MAP TO PIN…' : devForm.lat ? `📍 ${parseFloat(devForm.lat).toFixed(4)}, ${parseFloat(devForm.lon).toFixed(4)}` : '⊕ PICK ON MAP'}
+          </button>
+          {devForm.lat && (
+            <button className="dev-clear-pin" onClick={() => {
+              setDevForm(f => ({...f, lat:'', lon:''}))
+              if (pinMarker.current) { pinMarker.current.remove(); pinMarker.current = null }
+            }}>✕ clear pin</button>
+          )}
           <select className="dev-input" value={devForm.priority}
             onChange={e => setDevForm(f => ({...f, priority: Number(e.target.value)}))}>
             <option value={1}>Priority 1 — CRITICAL</option>
