@@ -18,6 +18,11 @@ export default function Login() {
       if (data.needsVerification) {
         navigate(`/verify?username=${data.username}`);
       } else {
+        const comingSoon = import.meta.env.VITE_COMING_SOON === 'true';
+        if (comingSoon && !data.isAdmin) {
+          setError('Access restricted — invite only.');
+          return;
+        }
         setAuth(data.token, data.username, data.isAdmin);
         navigate('/dashboard');
       }
