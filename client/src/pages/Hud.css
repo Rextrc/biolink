@@ -694,6 +694,20 @@
 .report-dot--hazard   { background: var(--amber); box-shadow: 0 0 10px var(--amber-glow); }
 .report-dot--camera   { background: var(--amber); border-radius: 3px; box-shadow: 0 0 10px var(--amber-glow); }
 
+.incident-dot {
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: var(--inc-color, #ff6600);
+  border: 2px solid rgba(255,255,255,0.25);
+  box-shadow: 0 0 12px var(--inc-color, #ff6600);
+  cursor: pointer;
+  animation: inc-pulse 2.5s ease-in-out infinite;
+}
+@keyframes inc-pulse {
+  0%, 100% { box-shadow: 0 0 8px var(--inc-color, #ff6600); }
+  50%       { box-shadow: 0 0 20px var(--inc-color, #ff6600); }
+}
+
 /* ── REPORT MODAL ────────────────────────────────────────────────────────── */
 .report-modal {
   position: absolute;

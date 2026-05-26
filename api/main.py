@@ -662,6 +662,93 @@ _MDC_CAMERAS = [
 ]
 
 
+TOMTOM_API_KEY = os.getenv("TOMTOM_API_KEY", "")
+
+_INCIDENT_TYPES = {
+    0:  {"label": "Unknown",            "color": "#888888"},
+    1:  {"label": "Accident",           "color": "#ff2244"},
+    2:  {"label": "Fog",                "color": "#aaaaaa"},
+    3:  {"label": "Dangerous Cond.",    "color": "#ff6600"},
+    4:  {"label": "Rain",               "color": "#4499ff"},
+    5:  {"label": "Ice",                "color": "#00ccff"},
+    6:  {"label": "Traffic Jam",        "color": "#ff8800"},
+    7:  {"label": "Lane Closed",        "color": "#ffaa00"},
+    8:  {"label": "Road Closed",        "color": "#ff2244"},
+    9:  {"label": "Road Works",         "color": "#ffcc00"},
+    10: {"label": "High Winds",         "color": "#aaaaff"},
+    11: {"label": "Flooding",           "color": "#0066ff"},
+    12: {"label": "Detour",             "color": "#aa44ff"},
+    13: {"label": "Incident Cluster",   "color": "#ff4400"},
+    14: {"label": "Broken Down Vehicle","color": "#ff8800"},
+}
+
+
+@app.get("/incidents")
+async def get_incidents(
+    lat: float = Query(...),
+    lon: float = Query(...),
+    radius_km: float = Query(10.0),
+):
+    if not TOMTOM_API_KEY:
+        return {"incidents": [], "source": "tomtom_unavailable"}
+
+    delta_lat = radius_km / 111.0
+    delta_lon = radius_km / (111.0 * math.cos(math.radians(lat)))
+    bbox = f"{lon-delta_lon:.5f},{lat-delta_lat:.5f},{lon+delta_lon:.5f},{lat+delta_lat:.5f}"
+    fields = ("{incidents{type,geometry{type,coordinates},"
+              "properties{iconCategory,magnitudeOfDelay,"
+              "events{description,iconCategory},from,to,roadNumbers}}}")
+
+    try:
+        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=8)) as session:
+            async with session.get(
+                "https://api.tomtom.com/traffic/services/5/incidentDetails",
+                params={"key": TOMTOM_API_KEY, "bbox": bbox,
+                        "fields": fields, "language": "en-GB",
+                        "timeValidityFilter": "present"},
+                headers={"User-Agent": "OlikRadar/1.0"},
+            ) as resp:
+                if resp.status != 200:
+                    return {"incidents": [], "error": resp.status}
+                data = await resp.json(content_type=None)
+    except Exception as e:
+        print(f"[TomTom] Error: {e}")
+        return {"incidents": [], "error": str(e)}
+
+    out = []
+    for feat in data.get("incidents", []):
+        props = feat.get("properties", {})
+        geom  = feat.get("geometry", {})
+        coords = geom.get("coordinates", [])
+        if geom.get("type") == "Point":
+            inc_lon, inc_lat = coords[0], coords[1]
+        elif geom.get("type") == "LineString" and coords:
+            inc_lon, inc_lat = coords[0][0], coords[0][1]
+        else:
+            continue
+
+        icon_cat = props.get("iconCategory", 0)
+        events   = props.get("events", [])
+        desc     = events[0]["description"] if events else _INCIDENT_TYPES.get(icon_cat, {}).get("label", "Incident")
+        road     = (props.get("roadNumbers") or [""])[0]
+        loc_str  = " — ".join(filter(None, [road, props.get("from", ""), props.get("to", "")]))
+
+        out.append({
+            "lat":         inc_lat,
+            "lon":         inc_lon,
+            "type":        _INCIDENT_TYPES.get(icon_cat, {}).get("label", "Incident"),
+            "color":       _INCIDENT_TYPES.get(icon_cat, {}).get("color", "#888888"),
+            "icon_category": icon_cat,
+            "magnitude":   props.get("magnitudeOfDelay", 0),
+            "description": desc,
+            "location":    loc_str,
+            "distance_km": round(haversine_km(lat, lon, inc_lat, inc_lon), 2),
+        })
+
+    out.sort(key=lambda x: x["distance_km"])
+    return {"incidents": out, "source": "tomtom", "count": len(out)}
+
+
 @app.get("/cameras")
 async def get_cameras(
     lat: float = Query(...),

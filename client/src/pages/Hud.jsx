@@ -74,8 +74,9 @@ export default function HudPage() {
   const audioRef      = useRef(null)
   const recorderRef   = useRef(null)
   const userPosRef    = useRef(null)
-  const cameraMarkers = useRef([])
-  const reportMarkers = useRef([])
+  const cameraMarkers   = useRef([])
+  const reportMarkers   = useRef([])
+  const incidentMarkers = useRef([])
 
   // ── Lock body scroll ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -223,6 +224,31 @@ export default function HudPage() {
     } catch (e) { console.warn('Cameras fetch failed:', e) }
   }, [])
 
+  // ── Fetch TomTom live incidents ───────────────────────────────────────────
+  const fetchIncidents = useCallback(async (lat, lon) => {
+    try {
+      const r = await fetch(`${API_BASE}/incidents?lat=${lat}&lon=${lon}&radius_km=10`)
+      if (!r.ok) return
+      const data = await r.json()
+      if (data.source === 'tomtom_unavailable') return
+      incidentMarkers.current.forEach(m => m.remove())
+      incidentMarkers.current = []
+      data.incidents?.forEach(inc => {
+        const el = document.createElement('div')
+        el.className = 'incident-dot'
+        el.style.setProperty('--inc-color', inc.color)
+        el.title = inc.type
+        const locLine = inc.location ? `<div class="popup-time">${inc.location}</div>` : ''
+        const marker = new mapboxgl.Marker({ element: el, anchor: 'center' })
+          .setLngLat([inc.lon, inc.lat])
+          .setPopup(new mapboxgl.Popup({ className: 'olik-popup', offset: 10 }).setHTML(
+            `<div class="popup-inner"><div class="popup-type" style="color:${inc.color}">${inc.type.toUpperCase()}</div><div class="popup-summary">${inc.description}</div>${locLine}<div class="popup-time">${inc.distance_km} km away</div></div>`
+          )).addTo(map.current)
+        incidentMarkers.current.push(marker)
+      })
+    } catch (e) { console.warn('Incidents fetch failed:', e) }
+  }, [])
+
   // ── Fetch user reports ────────────────────────────────────────────────────
   const fetchReports = useCallback(async (lat, lon) => {
     try {
@@ -252,13 +278,15 @@ export default function HudPage() {
     fetchSignals(userPos.lat, userPos.lon)
     fetchCameras(userPos.lat, userPos.lon)
     fetchReports(userPos.lat, userPos.lon)
+    fetchIncidents(userPos.lat, userPos.lon)
     const t = setInterval(() => {
       fetchEvents(userPos.lat, userPos.lon)
       fetchSignals(userPos.lat, userPos.lon)
       fetchReports(userPos.lat, userPos.lon)
+      fetchIncidents(userPos.lat, userPos.lon)
     }, REFRESH_MS)
     return () => clearInterval(t)
-  }, [userPos?.lat, userPos?.lon, fetchEvents, fetchSignals, fetchCameras, fetchReports])
+  }, [userPos?.lat, userPos?.lon, fetchEvents, fetchSignals, fetchCameras, fetchReports, fetchIncidents])
 
   // ── Set route ─────────────────────────────────────────────────────────────
   async function setRoute() {
