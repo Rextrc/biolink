@@ -54,7 +54,7 @@
   z-index: 0;
 }
 .map-container canvas {
-  filter: saturate(0.35) brightness(0.42) hue-rotate(0deg) contrast(1.1);
+  filter: brightness(0.8);
 }
 
 /* ── SCANLINES + GRID OVERLAY ────────────────────────────────────────────── */

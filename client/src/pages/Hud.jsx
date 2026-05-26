@@ -52,7 +52,8 @@ export default function HudPage() {
   const userMarker    = useRef(null)
   const eventMarkers  = useRef([])
   const signalMarkers = useRef([])
-  const notifiedIds   = useRef(new Set())   // track which events already alerted
+  const notifiedIds   = useRef(new Set())
+  const mapLoaded     = useRef(false)
 
   const [userPos,     setUserPos]     = useState(null)
   const [destination, setDestination] = useState('')
@@ -84,9 +85,6 @@ export default function HudPage() {
   const audioRef      = useRef(null)
   const recorderRef   = useRef(null)
   const userPosRef    = useRef(null)
-  const cameraMarkers   = useRef([])
-  const reportMarkers   = useRef([])
-  const incidentMarkers = useRef([])
 
   // ── Lock body scroll ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -127,6 +125,73 @@ export default function HudPage() {
         layout: { 'line-join': 'round', 'line-cap': 'round' },
         paint: { 'line-color': '#ff4444', 'line-width': 14, 'line-opacity': 0.15, 'line-blur': 8 },
       }, 'route-line')
+      // ── Traffic flow lines ──────────────────────────────────────────────
+      map.current.addSource('mapbox-traffic', { type: 'vector', url: 'mapbox://mapbox.mapbox-traffic-v1' })
+      map.current.addLayer({
+        id: 'traffic-flow', type: 'line', source: 'mapbox-traffic', 'source-layer': 'traffic',
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: {
+          'line-width': ['interpolate', ['linear'], ['zoom'], 10, 1.5, 15, 3],
+          'line-color': ['match', ['get', 'congestion'], 'low', '#00dd88', 'moderate', '#ffcc00', 'heavy', '#ff6600', 'severe', '#ff2222', '#555555'],
+          'line-opacity': 0.75,
+        },
+      })
+
+      // ── GL sources + layers (GPU-rendered, no DOM lag) ──────────────────
+      const addCircleSource = (id) => map.current.addSource(id, { type: 'geojson', data: { type: 'FeatureCollection', features: [] } })
+
+      addCircleSource('events-src')
+      map.current.addLayer({ id: 'events-circles', type: 'circle', source: 'events-src',
+        paint: { 'circle-radius': 14, 'circle-color': ['case', ['<=', ['get', 'distance_km'], ALERT_RADIUS_KM], '#330000', '#0a0a2a'], 'circle-stroke-width': 1.5, 'circle-stroke-color': ['case', ['<=', ['get', 'distance_km'], ALERT_RADIUS_KM], '#ff2222', '#1a8cff'], 'circle-opacity': 0.9 } })
+      map.current.addLayer({ id: 'events-icons', type: 'symbol', source: 'events-src',
+        layout: { 'text-field': ['get', 'icon'], 'text-size': 13, 'text-allow-overlap': true, 'text-ignore-placement': true } })
+
+      addCircleSource('signals-src')
+      map.current.addLayer({ id: 'signals-layer', type: 'circle', source: 'signals-src',
+        paint: { 'circle-radius': 7, 'circle-color': ['match', ['get', 'state'], 'likely red / queued', '#ff2222', 'possibly red soon', '#ff8800', '#444444'], 'circle-stroke-width': 1, 'circle-stroke-color': 'rgba(255,255,255,0.25)', 'circle-opacity': 0.9 } })
+
+      addCircleSource('cameras-src')
+      map.current.addLayer({ id: 'cameras-circles', type: 'circle', source: 'cameras-src',
+        paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 4, 14, 8], 'circle-color': ['match', ['get', 'type'], 'speed', '#ff6600', '#ffdd00'], 'circle-stroke-width': 2, 'circle-stroke-color': '#000000', 'circle-opacity': 0.95 } })
+      map.current.addLayer({ id: 'cameras-icons', type: 'symbol', source: 'cameras-src',
+        layout: { 'text-field': ['match', ['get', 'type'], 'speed', '🚦', '📷'], 'text-size': 11, 'text-allow-overlap': true, 'text-ignore-placement': true } })
+
+      addCircleSource('incidents-src')
+      map.current.addLayer({ id: 'incidents-circles', type: 'circle', source: 'incidents-src',
+        paint: { 'circle-radius': 14, 'circle-color': '#111111', 'circle-stroke-width': 1.5, 'circle-stroke-color': ['get', 'color'], 'circle-opacity': 0.9 } })
+      map.current.addLayer({ id: 'incidents-icons', type: 'symbol', source: 'incidents-src',
+        layout: { 'text-field': ['get', 'icon'], 'text-size': 12, 'text-allow-overlap': true, 'text-ignore-placement': true } })
+
+      addCircleSource('reports-src')
+      map.current.addLayer({ id: 'reports-circles', type: 'circle', source: 'reports-src',
+        paint: { 'circle-radius': 12, 'circle-color': '#050510', 'circle-stroke-width': 1.5, 'circle-stroke-color': '#3b82f6', 'circle-opacity': 0.9 } })
+      map.current.addLayer({ id: 'reports-icons', type: 'symbol', source: 'reports-src',
+        layout: { 'text-field': ['get', 'icon'], 'text-size': 12, 'text-allow-overlap': true, 'text-ignore-placement': true } })
+
+      // ── Popup click handlers ────────────────────────────────────────────
+      const addPopup = (layerId, htmlFn) => {
+        map.current.on('click', layerId, (e) => {
+          if (!e.features?.length) return
+          new mapboxgl.Popup({ className: 'olik-popup', offset: 12 })
+            .setLngLat(e.lngLat).setHTML(htmlFn(e.features[0].properties)).addTo(map.current)
+        })
+        map.current.on('mouseenter', layerId, () => { map.current.getCanvas().style.cursor = 'pointer' })
+        map.current.on('mouseleave', layerId, () => { map.current.getCanvas().style.cursor = '' })
+      }
+      addPopup('events-circles', p => `<div class="popup-inner"><div class="popup-type">${p.call_type}</div><div class="popup-summary">${p.summary}</div><div class="popup-time">${fmtTime(p.timestamp)}</div></div>`)
+      addPopup('signals-layer', p => `<div class="popup-inner"><div class="popup-type">SIGNAL</div><div class="popup-summary">${p.name}</div><div class="popup-state" style="color:${signalColor(p.state)}">${(p.state||'').toUpperCase()}</div></div>`)
+      addPopup('cameras-circles', p => `<div class="popup-inner"><div class="popup-type">${p.type === 'speed' ? '🚦 SPEED CAM' : '📷 RED LIGHT CAM'}</div><div class="popup-summary">${p.name}</div><div class="popup-time">${p.distance_km} km away</div></div>`)
+      addPopup('incidents-circles', p => `<div class="popup-inner"><div class="popup-type" style="color:${p.color}">${(p.type||'').toUpperCase()}</div><div class="popup-summary">${p.description}</div><div class="popup-time">${p.distance_km} km away</div></div>`)
+      addPopup('reports-circles', p => `<div class="popup-inner"><div class="popup-type">${p.call_type}</div><div class="popup-summary">${p.note || 'User reported'}</div><div class="popup-time">${timeAgo(p.timestamp)}</div></div>`)
+
+      mapLoaded.current = true
+
+      // Load cameras immediately at default coords without waiting for GPS
+      fetch(`${API_BASE}/cameras?lat=25.7617&lon=-80.1918&radius_km=25`)
+        .then(r => r.ok ? r.json() : [])
+        .then(data => setGLSource('cameras-src', data.map(cam => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [cam.lon, cam.lat] }, properties: cam }))))
+        .catch(() => {})
+
       setStatus('Awaiting GPS lock …')
 
       // Map click — only active when pickingPin is true (read via ref)
@@ -232,23 +297,14 @@ export default function HudPage() {
   // ── Fetch cameras ─────────────────────────────────────────────────────────
   const fetchCameras = useCallback(async (lat, lon) => {
     try {
-      const r = await fetch(`${API_BASE}/cameras?lat=${lat}&lon=${lon}&radius_km=12`)
+      const r = await fetch(`${API_BASE}/cameras?lat=${lat}&lon=${lon}&radius_km=15`)
       if (!r.ok) return
       const data = await r.json()
-      cameraMarkers.current.forEach(m => m.remove())
-      cameraMarkers.current = []
-      data.forEach(cam => {
-        const el = document.createElement('div')
-        el.className = 'marker-icon marker-icon--camera'
-        el.textContent = cam.type === 'red_light' ? '📷' : '🚦'
-        el.title = cam.name
-        const marker = new mapboxgl.Marker({ element: el, anchor: 'center' })
-          .setLngLat([cam.lon, cam.lat])
-          .setPopup(new mapboxgl.Popup({ className: 'olik-popup', offset: 10 }).setHTML(
-            `<div class="popup-inner"><div class="popup-type">${cam.type === 'red_light' ? '📷 RED LIGHT CAM' : '🚦 SPEED CAM'}</div><div class="popup-summary">${cam.name}</div><div class="popup-time">${cam.distance_km} km away</div></div>`
-          )).addTo(map.current)
-        cameraMarkers.current.push(marker)
-      })
+      setGLSource('cameras-src', data.map(cam => ({
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [cam.lon, cam.lat] },
+        properties: cam,
+      })))
     } catch (e) { console.warn('Cameras fetch failed:', e) }
   }, [])
 
@@ -259,23 +315,12 @@ export default function HudPage() {
       if (!r.ok) return
       const data = await r.json()
       if (data.source === 'tomtom_unavailable') return
-      incidentMarkers.current.forEach(m => m.remove())
-      incidentMarkers.current = []
-      data.incidents?.forEach(inc => {
-        const incIcon = { 1:'💥', 2:'🌫️', 3:'⚠️', 4:'🌧️', 5:'🧊', 6:'🚗', 7:'🚧', 8:'🚫', 9:'🔨', 10:'💨', 11:'🌊', 12:'↩️', 14:'🚘' }[inc.icon_category] || '⚠️'
-        const el = document.createElement('div')
-        el.className = 'marker-icon marker-icon--incident'
-        el.style.setProperty('--inc-color', inc.color)
-        el.textContent = incIcon
-        el.title = inc.type
-        const locLine = inc.location ? `<div class="popup-time">${inc.location}</div>` : ''
-        const marker = new mapboxgl.Marker({ element: el, anchor: 'center' })
-          .setLngLat([inc.lon, inc.lat])
-          .setPopup(new mapboxgl.Popup({ className: 'olik-popup', offset: 10 }).setHTML(
-            `<div class="popup-inner"><div class="popup-type" style="color:${inc.color}">${inc.type.toUpperCase()}</div><div class="popup-summary">${inc.description}</div>${locLine}<div class="popup-time">${inc.distance_km} km away</div></div>`
-          )).addTo(map.current)
-        incidentMarkers.current.push(marker)
-      })
+      const iconMap = { 1:'💥', 2:'🌫️', 3:'⚠️', 4:'🌧️', 5:'🧊', 6:'🚗', 7:'🚧', 8:'🚫', 9:'🔨', 10:'💨', 11:'🌊', 12:'↩️', 14:'🚘' }
+      setGLSource('incidents-src', (data.incidents || []).map(inc => ({
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [inc.lon, inc.lat] },
+        properties: { ...inc, icon: iconMap[inc.icon_category] || '⚠️' },
+      })))
     } catch (e) { console.warn('Incidents fetch failed:', e) }
   }, [])
 
@@ -285,21 +330,12 @@ export default function HudPage() {
       const r = await fetch(`${API_BASE}/reports?lat=${lat}&lon=${lon}&radius_km=12`)
       if (!r.ok) return
       const data = await r.json()
-      reportMarkers.current.forEach(m => m.remove())
-      reportMarkers.current = []
-      data.forEach(rep => {
-        const repIcon = { police:'🚔', camera:'📷', accident:'💥', hazard:'⚠️' }[rep.type] || '📍'
-        const el = document.createElement('div')
-        el.className = `marker-icon marker-icon--report marker-icon--${rep.type}`
-        el.textContent = repIcon
-        el.title = rep.call_type
-        const marker = new mapboxgl.Marker({ element: el, anchor: 'center' })
-          .setLngLat([rep.lon, rep.lat])
-          .setPopup(new mapboxgl.Popup({ className: 'olik-popup', offset: 10 }).setHTML(
-            `<div class="popup-inner"><div class="popup-type">${rep.call_type}</div><div class="popup-summary">${rep.note || 'User reported'}</div><div class="popup-time">${timeAgo(rep.timestamp)}</div></div>`
-          )).addTo(map.current)
-        reportMarkers.current.push(marker)
-      })
+      const repIconMap = { police:'🚔', camera:'📷', accident:'💥', hazard:'⚠️' }
+      setGLSource('reports-src', data.map(rep => ({
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [rep.lon, rep.lat] },
+        properties: { ...rep, icon: repIconMap[rep.type] || '📍' },
+      })))
     } catch (e) { console.warn('Reports fetch failed:', e) }
   }, [])
 
@@ -537,43 +573,37 @@ export default function HudPage() {
     } catch (e) { setSpeaking(false); setStatus(`Brief error: ${e.message}`) }
   }
 
-  // ── Marker helpers ────────────────────────────────────────────────────────
+  // ── GL source helper ─────────────────────────────────────────────────────
+  function setGLSource(id, features) {
+    const src = mapLoaded.current && map.current?.getSource(id)
+    if (src) src.setData({ type: 'FeatureCollection', features })
+  }
+
+  function evIcon(callType) {
+    return /shoot|gun|firearm/i.test(callType) ? '🔫'
+      : /robbery|rob/i.test(callType) ? '💰'
+      : /pursuit|chase/i.test(callType) ? '🚨'
+      : /accident|crash|traffic/i.test(callType) ? '💥'
+      : /disturbance|fight|battery/i.test(callType) ? '⚡'
+      : /fire/i.test(callType) ? '🔥'
+      : /medical|ems/i.test(callType) ? '🚑'
+      : '🚨'
+  }
+
   function placeEventMarkers(evs) {
-    eventMarkers.current.forEach(m => m.remove()); eventMarkers.current = []
-    evs.forEach(ev => {
-      const evIcon = /shoot|gun|firearm/i.test(ev.call_type) ? '🔫'
-        : /robbery|rob/i.test(ev.call_type) ? '💰'
-        : /pursuit|chase/i.test(ev.call_type) ? '🚨'
-        : /accident|crash|traffic/i.test(ev.call_type) ? '💥'
-        : /disturbance|fight|battery/i.test(ev.call_type) ? '⚡'
-        : /fire/i.test(ev.call_type) ? '🔥'
-        : /medical|ems/i.test(ev.call_type) ? '🚑'
-        : '🚨'
-      const el = document.createElement('div')
-      el.className = ev.distance_km <= ALERT_RADIUS_KM ? 'marker-icon marker-icon--event marker-icon--alert' : 'marker-icon marker-icon--event'
-      el.textContent = evIcon
-      el.title = ev.summary
-      const marker = new mapboxgl.Marker({ element: el, anchor: 'center' })
-        .setLngLat([ev.lon, ev.lat])
-        .setPopup(new mapboxgl.Popup({ className: 'olik-popup', offset: 12 }).setHTML(
-          `<div class="popup-inner"><div class="popup-type">${ev.call_type}</div><div class="popup-summary">${ev.summary}</div><div class="popup-time">${fmtTime(ev.timestamp)}</div></div>`
-        )).addTo(map.current)
-      eventMarkers.current.push(marker)
-    })
+    setGLSource('events-src', evs.map(ev => ({
+      type: 'Feature',
+      geometry: { type: 'Point', coordinates: [ev.lon, ev.lat] },
+      properties: { ...ev, icon: evIcon(ev.call_type) },
+    })))
   }
 
   function placeSignalMarkers(sigs) {
-    signalMarkers.current.forEach(m => m.remove()); signalMarkers.current = []
-    sigs.forEach(sig => {
-      const el = document.createElement('div'); el.className = 'signal-dot'
-      el.style.background = signalColor(sig.state); el.title = `${sig.name}: ${sig.state}`
-      const marker = new mapboxgl.Marker({ element: el, anchor: 'center' })
-        .setLngLat([sig.lon, sig.lat])
-        .setPopup(new mapboxgl.Popup({ className: 'olik-popup', offset: 10 }).setHTML(
-          `<div class="popup-inner"><div class="popup-type">SIGNAL</div><div class="popup-summary">${sig.name}</div><div class="popup-state" style="color:${signalColor(sig.state)}">${sig.state.toUpperCase()}</div></div>`
-        )).addTo(map.current)
-      signalMarkers.current.push(marker)
-    })
+    setGLSource('signals-src', sigs.map(sig => ({
+      type: 'Feature',
+      geometry: { type: 'Point', coordinates: [sig.lon, sig.lat] },
+      properties: sig,
+    })))
   }
 
   function emptyGeoJSON() {
