@@ -280,11 +280,17 @@ export default function ComingSoon() {
         )}
       </div>
       <Link to="/login" style={{
-        position: 'absolute', bottom: 14, right: 18, zIndex: 10,
-        fontSize: 9, color: '#1a0000', letterSpacing: '0.08em',
+        position: 'absolute', bottom: 16, right: 18, zIndex: 10,
+        fontSize: 10, color: RED_DIM, letterSpacing: '0.12em',
         textDecoration: 'none', fontFamily: FONT,
-        opacity: 0.4,
-      }}>admin bypass</Link>
+        border: `1px solid #3a0000`,
+        padding: '4px 10px',
+        opacity: 0.55,
+        transition: 'opacity 0.2s',
+      }}
+      onMouseEnter={e => e.currentTarget.style.opacity = '1'}
+      onMouseLeave={e => e.currentTarget.style.opacity = '0.55'}
+      >⬡ ADMIN LOGIN</Link>
     </div>
   );
 }
