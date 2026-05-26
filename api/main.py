@@ -244,7 +244,8 @@ Format: [{"call_type": "...", "location": "...", "summary": "...", "units": "...
 - summary: one sentence under 15 words describing the incident
 - units: unit IDs mentioned (e.g. "C12", "Delta 4")
 Miami police codes: Code 3 = emergency, 10-30 = robbery, 10-31 = burglary, 10-54 = accident, Baker = B-unit, Charlie = C-unit.
-Only include entries with a clear geocodable Miami street location. Return [] for radio noise, status checks, or unclear traffic."""
+Only include entries with a clear geocodable Miami street location. Return [] for radio noise, status checks, or unclear traffic.
+IMPORTANT: Return [] immediately if the transcript contains advertisement language, music, jingles, website URLs, phone numbers for businesses, product names, or promotional content. Broadcastify streams include audio ads — never parse ads as incidents."""
 
 
 async def _parse_transcript(raw: str) -> list:
