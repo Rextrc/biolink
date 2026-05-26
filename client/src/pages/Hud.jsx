@@ -487,7 +487,9 @@ export default function HudPage() {
       <div className="top-bar">
         <div className="top-bar-row1">
           <div className="hud-brand">
-            OLIK<span className="brand-sub"> RADAR</span>
+            <span className="hud-brand-olik">OLIK</span>
+            <div className="hud-brand-dot"></div>
+            <span className="brand-sub">RADAR</span>
           </div>
           <div className="hud-top-right">
             {nearbyCount > 0 && (

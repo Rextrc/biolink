@@ -581,26 +581,84 @@ async def get_brief(text: str = Query(...)):
 
 # Known Miami-Dade County red-light camera intersections (public record)
 _MDC_CAMERAS = [
-    {"id":"cam001","lat":25.7743,"lon":-80.1937,"name":"NW 27th Ave & 79th St","type":"red_light"},
-    {"id":"cam002","lat":25.7617,"lon":-80.3137,"name":"SW 8th St & 87th Ave","type":"red_light"},
-    {"id":"cam003","lat":25.7742,"lon":-80.2945,"name":"NW 7th Ave & 79th St","type":"red_light"},
-    {"id":"cam004","lat":25.7484,"lon":-80.2614,"name":"SW 8th St & 57th Ave","type":"red_light"},
-    {"id":"cam005","lat":25.7832,"lon":-80.2143,"name":"NW 7th Ave & 95th St","type":"red_light"},
-    {"id":"cam006","lat":25.8128,"lon":-80.2012,"name":"NW 27th Ave & 135th St","type":"red_light"},
-    {"id":"cam007","lat":25.7617,"lon":-80.2271,"name":"SW 8th St & 37th Ave","type":"red_light"},
-    {"id":"cam008","lat":25.7747,"lon":-80.1848,"name":"Biscayne Blvd & 79th St","type":"red_light"},
-    {"id":"cam009","lat":25.7639,"lon":-80.1918,"name":"NE 2nd Ave & 36th St","type":"red_light"},
-    {"id":"cam010","lat":25.7564,"lon":-80.3754,"name":"SW 8th St & 107th Ave","type":"red_light"},
-    {"id":"cam011","lat":25.7900,"lon":-80.3200,"name":"NW 103rd St & 27th Ave","type":"red_light"},
-    {"id":"cam012","lat":25.8216,"lon":-80.3127,"name":"NW 27th Ave & 151st St","type":"red_light"},
-    {"id":"cam013","lat":25.7422,"lon":-80.3127,"name":"SW 40th St & 87th Ave","type":"red_light"},
-    {"id":"cam014","lat":25.7617,"lon":-80.1848,"name":"Brickell Ave & 8th St","type":"red_light"},
-    {"id":"cam015","lat":25.7748,"lon":-80.3412,"name":"NW 27th Ave & 103rd St","type":"red_light"},
-    {"id":"cam016","lat":25.8450,"lon":-80.2614,"name":"NW 57th Ave & 167th St","type":"red_light"},
-    {"id":"cam017","lat":25.7270,"lon":-80.2614,"name":"SW 57th Ave & 72nd St","type":"red_light"},
-    {"id":"cam018","lat":25.7617,"lon":-80.3412,"name":"SW 8th St & 97th Ave","type":"red_light"},
-    {"id":"cam019","lat":25.8010,"lon":-80.1720,"name":"Biscayne Blvd & 119th St","type":"red_light"},
-    {"id":"cam020","lat":25.7617,"lon":-80.2614,"name":"SW 8th St & 67th Ave","type":"red_light"},
+    # ── Calle Ocho / SW 8th St corridor ──────────────────────────────────────
+    {"id":"cam001","lat":25.7617,"lon":-80.1848,"name":"SW 8th St & Brickell Ave","type":"red_light"},
+    {"id":"cam002","lat":25.7617,"lon":-80.1975,"name":"SW 8th St & SW 12th Ave","type":"red_light"},
+    {"id":"cam003","lat":25.7617,"lon":-80.2271,"name":"SW 8th St & SW 37th Ave (Douglas Rd)","type":"red_light"},
+    {"id":"cam004","lat":25.7617,"lon":-80.2614,"name":"SW 8th St & SW 67th Ave","type":"red_light"},
+    {"id":"cam005","lat":25.7484,"lon":-80.2614,"name":"SW 8th St & SW 57th Ave","type":"red_light"},
+    {"id":"cam006","lat":25.7617,"lon":-80.3137,"name":"SW 8th St & SW 87th Ave","type":"red_light"},
+    {"id":"cam007","lat":25.7617,"lon":-80.3412,"name":"SW 8th St & SW 97th Ave","type":"red_light"},
+    {"id":"cam008","lat":25.7564,"lon":-80.3754,"name":"SW 8th St & SW 107th Ave","type":"red_light"},
+    # ── Biscayne Blvd / US-1 corridor ────────────────────────────────────────
+    {"id":"cam009","lat":25.7639,"lon":-80.1918,"name":"Biscayne Blvd & NE 36th St","type":"red_light"},
+    {"id":"cam010","lat":25.7747,"lon":-80.1848,"name":"Biscayne Blvd & NE 79th St","type":"red_light"},
+    {"id":"cam011","lat":25.8010,"lon":-80.1720,"name":"Biscayne Blvd & NE 119th St","type":"red_light"},
+    {"id":"cam012","lat":25.8310,"lon":-80.1650,"name":"Biscayne Blvd & NE 163rd St","type":"red_light"},
+    {"id":"cam013","lat":25.8500,"lon":-80.1570,"name":"Biscayne Blvd & NE 185th St","type":"red_light"},
+    # ── NW 27th Ave corridor ──────────────────────────────────────────────────
+    {"id":"cam014","lat":25.7743,"lon":-80.1937,"name":"NW 27th Ave & NW 79th St","type":"red_light"},
+    {"id":"cam015","lat":25.7748,"lon":-80.3412,"name":"NW 27th Ave & NW 103rd St","type":"red_light"},
+    {"id":"cam016","lat":25.7900,"lon":-80.3200,"name":"NW 27th Ave & NW 119th St","type":"red_light"},
+    {"id":"cam017","lat":25.8128,"lon":-80.2012,"name":"NW 27th Ave & NW 135th St","type":"red_light"},
+    {"id":"cam018","lat":25.8216,"lon":-80.3127,"name":"NW 27th Ave & NW 151st St","type":"red_light"},
+    # ── NW/SW 7th Ave corridor ────────────────────────────────────────────────
+    {"id":"cam019","lat":25.7742,"lon":-80.2945,"name":"NW 7th Ave & NW 79th St","type":"red_light"},
+    {"id":"cam020","lat":25.7832,"lon":-80.2143,"name":"NW 7th Ave & NW 95th St","type":"red_light"},
+    {"id":"cam021","lat":25.7639,"lon":-80.1950,"name":"NW 7th Ave & NW 36th St","type":"red_light"},
+    # ── SW/NW 57th Ave (Red Rd) ───────────────────────────────────────────────
+    {"id":"cam022","lat":25.7270,"lon":-80.2614,"name":"SW 57th Ave & SW 72nd St (Sunset Dr)","type":"red_light"},
+    {"id":"cam023","lat":25.7422,"lon":-80.2614,"name":"SW 57th Ave & SW 40th St (Bird Rd)","type":"red_light"},
+    {"id":"cam024","lat":25.8450,"lon":-80.2614,"name":"NW 57th Ave & NW 167th St","type":"red_light"},
+    # ── Flagler St / W Flagler ────────────────────────────────────────────────
+    {"id":"cam025","lat":25.7741,"lon":-80.1938,"name":"W Flagler St & NW 27th Ave","type":"red_light"},
+    {"id":"cam026","lat":25.7741,"lon":-80.2271,"name":"W Flagler St & SW 37th Ave","type":"red_light"},
+    {"id":"cam027","lat":25.7741,"lon":-80.2614,"name":"W Flagler St & SW 67th Ave","type":"red_light"},
+    # ── US-1 / S Dixie Hwy ───────────────────────────────────────────────────
+    {"id":"cam028","lat":25.7070,"lon":-80.2720,"name":"US-1 & SW 88th St (Kendall Dr)","type":"red_light"},
+    {"id":"cam029","lat":25.6951,"lon":-80.3127,"name":"US-1 & SW 104th St","type":"red_light"},
+    {"id":"cam030","lat":25.6800,"lon":-80.3412,"name":"US-1 & SW 120th St","type":"red_light"},
+    # ── Kendall Dr (SW 88th St) ───────────────────────────────────────────────
+    {"id":"cam031","lat":25.7070,"lon":-80.2271,"name":"Kendall Dr & SW 37th Ave","type":"red_light"},
+    {"id":"cam032","lat":25.7070,"lon":-80.2614,"name":"Kendall Dr & SW 67th Ave","type":"red_light"},
+    {"id":"cam033","lat":25.7070,"lon":-80.3137,"name":"Kendall Dr & SW 87th Ave","type":"red_light"},
+    {"id":"cam034","lat":25.7070,"lon":-80.3412,"name":"Kendall Dr & SW 97th Ave","type":"red_light"},
+    {"id":"cam035","lat":25.7070,"lon":-80.3754,"name":"Kendall Dr & SW 107th Ave","type":"red_light"},
+    # ── Bird Rd (SW 40th St) ──────────────────────────────────────────────────
+    {"id":"cam036","lat":25.7422,"lon":-80.2271,"name":"Bird Rd & SW 37th Ave (Douglas Rd)","type":"red_light"},
+    {"id":"cam037","lat":25.7422,"lon":-80.2945,"name":"Bird Rd & SW 82nd Ave","type":"red_light"},
+    {"id":"cam038","lat":25.7422,"lon":-80.3412,"name":"Bird Rd & SW 97th Ave","type":"red_light"},
+    # ── 836 / Dolphin Expressway ramps ───────────────────────────────────────
+    {"id":"cam039","lat":25.7750,"lon":-80.2614,"name":"836 & NW 67th Ave","type":"speed"},
+    {"id":"cam040","lat":25.7750,"lon":-80.3137,"name":"836 & NW 87th Ave","type":"speed"},
+    # ── I-95 speed enforcement ────────────────────────────────────────────────
+    {"id":"cam041","lat":25.7980,"lon":-80.2050,"name":"I-95 NB @ NW 125th St","type":"speed"},
+    {"id":"cam042","lat":25.8200,"lon":-80.1980,"name":"I-95 NB @ NW 151st St","type":"speed"},
+    # ── Coral Gables / South Miami ────────────────────────────────────────────
+    {"id":"cam043","lat":25.7220,"lon":-80.2680,"name":"S Dixie Hwy & Sunset Dr","type":"red_light"},
+    {"id":"cam044","lat":25.7485,"lon":-80.2700,"name":"Miracle Mile & Douglas Rd","type":"red_light"},
+    {"id":"cam045","lat":25.7325,"lon":-80.2800,"name":"Coral Way & Red Rd","type":"red_light"},
+    # ── Miami Beach ───────────────────────────────────────────────────────────
+    {"id":"cam046","lat":25.7907,"lon":-80.1302,"name":"5th St & Washington Ave (SoBe)","type":"red_light"},
+    {"id":"cam047","lat":25.7950,"lon":-80.1290,"name":"Alton Rd & 17th St","type":"red_light"},
+    {"id":"cam048","lat":25.8130,"lon":-80.1280,"name":"Arthur Godfrey Rd & Collins Ave","type":"red_light"},
+    # ── Hialeah ──────────────────────────────────────────────────────────────
+    {"id":"cam049","lat":25.8576,"lon":-80.2781,"name":"E 4th Ave & W 49th St (Hialeah)","type":"red_light"},
+    {"id":"cam050","lat":25.8624,"lon":-80.2950,"name":"W 29th St & W 4th Ave (Hialeah)","type":"red_light"},
+    {"id":"cam051","lat":25.8451,"lon":-80.2881,"name":"Palm Ave & E 8th Ave (Hialeah)","type":"red_light"},
+    # ── Homestead / South Dade ────────────────────────────────────────────────
+    {"id":"cam052","lat":25.4687,"lon":-80.4776,"name":"Krome Ave & SW 312th St (Homestead)","type":"red_light"},
+    {"id":"cam053","lat":25.4773,"lon":-80.4564,"name":"N Homestead Blvd & NW 7th Ave","type":"red_light"},
+    # ── Aventura / North Dade ─────────────────────────────────────────────────
+    {"id":"cam054","lat":25.9565,"lon":-80.1389,"name":"Biscayne Blvd & NE 211th St (Aventura)","type":"red_light"},
+    {"id":"cam055","lat":25.9500,"lon":-80.1450,"name":"Ives Dairy Rd & Biscayne Blvd","type":"red_light"},
+    # ── Airport area ─────────────────────────────────────────────────────────
+    {"id":"cam056","lat":25.7959,"lon":-80.2870,"name":"NW 36th St & NW 72nd Ave (MIA area)","type":"red_light"},
+    {"id":"cam057","lat":25.8000,"lon":-80.3000,"name":"Le Jeune Rd & NW 36th St","type":"red_light"},
+    {"id":"cam058","lat":25.7900,"lon":-80.2780,"name":"NW 42nd Ave & NW 36th St","type":"red_light"},
+    # ── Doral ─────────────────────────────────────────────────────────────────
+    {"id":"cam059","lat":25.8193,"lon":-80.3540,"name":"NW 87th Ave & NW 41st St (Doral)","type":"red_light"},
+    {"id":"cam060","lat":25.8142,"lon":-80.3654,"name":"NW 97th Ave & NW 36th St (Doral)","type":"red_light"},
 ]
 
 
