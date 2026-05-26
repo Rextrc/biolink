@@ -58,8 +58,9 @@ export default function HudPage() {
   const [destination, setDestination] = useState('')
   const [events,      setEvents]      = useState([])
   const [signals,     setSignals]     = useState([])
-  const [routeSteps,  setRouteSteps]  = useState([])
-  const [stepIndex,   setStepIndex]   = useState(0)
+  const [routeSteps,   setRouteSteps]   = useState([])
+  const [stepIndex,    setStepIndex]    = useState(0)
+  const [routeHazards, setRouteHazards] = useState([])
   const [status,      setStatus]      = useState('Initialising OLIK RADAR …')
   const [speaking,    setSpeaking]    = useState(false)
   const [panelOpen,   setPanelOpen]   = useState(false)
@@ -306,7 +307,10 @@ export default function HudPage() {
       const steps = route.legs[0]?.steps?.map(s => s.maneuver?.instruction ?? '') ?? []
       setRouteSteps(steps)
       setStepIndex(0)
-      setStatus(`Route set — ${Math.round(route.duration / 60)} min`)
+      const hazards = data.route_hazards ?? []
+      setRouteHazards(hazards)
+      const hazardNote = hazards.length ? ` · ⚠ ${hazards.length} hazard${hazards.length > 1 ? 's' : ''} on route` : ''
+      setStatus(`Route set — ${Math.round(route.duration / 60)} min${hazardNote}`)
     } catch (e) { setStatus(`Route error: ${e.message}`) }
   }
 
@@ -577,6 +581,21 @@ export default function HudPage() {
           <span className="nav-arrow">▶</span>
           <span className="nav-step">{routeSteps[stepIndex]}</span>
           <span className="nav-count">{stepIndex + 1}/{routeSteps.length}</span>
+        </div>
+      )}
+
+      {/* ── ROUTE HAZARDS ── */}
+      {routeHazards.length > 0 && (
+        <div className="route-hazards">
+          <div className="route-hazards-title">⚠ {routeHazards.length} hazard{routeHazards.length > 1 ? 's' : ''} on route</div>
+          {routeHazards.map((h, i) => (
+            <div key={i} className="route-hazard-row">
+              <span className="route-hazard-dot" style={{ background: h.color }} />
+              <span className="route-hazard-type">{h.type}</span>
+              {h.description && <span className="route-hazard-desc">{h.description}</span>}
+              {h.road && <span className="route-hazard-road">{h.road}</span>}
+            </div>
+          ))}
         </div>
       )}
 

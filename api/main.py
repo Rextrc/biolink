@@ -410,8 +410,109 @@ async def get_events(
 
 
 # ---------------------------------------------------------------------------
-# /route  — Mapbox Geocoding + Directions
+# /route  — Mapbox Geocoding + Directions + hazard scan
 # ---------------------------------------------------------------------------
+
+def _min_dist_to_route_km(pt_lat: float, pt_lon: float, coords: list) -> float:
+    """Minimum haversine distance from a point to any vertex in the route polyline."""
+    best = float("inf")
+    for c in coords:
+        d = haversine_km(pt_lat, pt_lon, c[1], c[0])
+        if d < best:
+            best = d
+    return best
+
+
+async def _scan_route_hazards(coords: list, origin_lat: float, origin_lon: float) -> list:
+    """Return incidents, cameras, and reports that fall within 300 m of the route."""
+    THRESHOLD_KM = 0.30
+    hazards = []
+
+    # ── TomTom incidents ──────────────────────────────────────────────────────
+    if TOMTOM_API_KEY and coords:
+        lats = [c[1] for c in coords]; lons = [c[0] for c in coords]
+        bbox = f"{min(lons):.5f},{min(lats):.5f},{max(lons):.5f},{max(lats):.5f}"
+        fields = ("{incidents{type,geometry{type,coordinates},"
+                  "properties{iconCategory,magnitudeOfDelay,"
+                  "events{description},from,to,roadNumbers}}}")
+        try:
+            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=8)) as s:
+                async with s.get(
+                    "https://api.tomtom.com/traffic/services/5/incidentDetails",
+                    params={"key": TOMTOM_API_KEY, "bbox": bbox,
+                            "fields": fields, "language": "en-GB",
+                            "timeValidityFilter": "present"},
+                    headers={"User-Agent": "OlikRadar/1.0"},
+                ) as resp:
+                    if resp.status == 200:
+                        data = await resp.json(content_type=None)
+                        for feat in data.get("incidents", []):
+                            props = feat.get("properties", {})
+                            geom  = feat.get("geometry", {})
+                            c2    = geom.get("coordinates", [])
+                            if geom.get("type") == "Point":
+                                inc_lon2, inc_lat2 = c2[0], c2[1]
+                            elif geom.get("type") == "LineString" and c2:
+                                inc_lon2, inc_lat2 = c2[0][0], c2[0][1]
+                            else:
+                                continue
+                            if _min_dist_to_route_km(inc_lat2, inc_lon2, coords) <= THRESHOLD_KM:
+                                icon_cat = props.get("iconCategory", 0)
+                                events   = props.get("events", [])
+                                desc     = events[0]["description"] if events else _INCIDENT_TYPES.get(icon_cat, {}).get("label", "Incident")
+                                road     = (props.get("roadNumbers") or [""])[0]
+                                hazards.append({
+                                    "source":      "tomtom",
+                                    "type":        _INCIDENT_TYPES.get(icon_cat, {}).get("label", "Incident"),
+                                    "color":       _INCIDENT_TYPES.get(icon_cat, {}).get("color", "#ff6600"),
+                                    "description": desc,
+                                    "road":        road,
+                                    "lat": inc_lat2, "lon": inc_lon2,
+                                })
+        except Exception as e:
+            print(f"[RouteHazards/TomTom] {e}")
+
+    # ── Cameras ───────────────────────────────────────────────────────────────
+    for cam in _MDC_CAMERAS:
+        if _min_dist_to_route_km(cam["lat"], cam["lon"], coords) <= THRESHOLD_KM:
+            hazards.append({
+                "source":      "camera",
+                "type":        "Red Light Camera" if cam["type"] == "red_light" else "Speed Camera",
+                "color":       "#ffaa00",
+                "description": cam["name"],
+                "road":        "",
+                "lat": cam["lat"], "lon": cam["lon"],
+            })
+
+    # ── User reports ──────────────────────────────────────────────────────────
+    now = time.time()
+    for r in list(_user_reports):
+        if now - r["timestamp"] > 3600:
+            continue
+        if _min_dist_to_route_km(r["lat"], r["lon"], coords) <= THRESHOLD_KM:
+            hazards.append({
+                "source":      "report",
+                "type":        r["call_type"].capitalize(),
+                "color":       "#3b82f6" if r["call_type"] == "police" else "#f97316",
+                "description": r.get("note") or f"User reported {r['call_type']}",
+                "road":        "",
+                "lat": r["lat"], "lon": r["lon"],
+            })
+
+    # ── Scanner events ────────────────────────────────────────────────────────
+    for ev in list(_live_events):
+        if _min_dist_to_route_km(ev["lat"], ev["lon"], coords) <= THRESHOLD_KM:
+            hazards.append({
+                "source":      "scanner",
+                "type":        ev.get("call_type", "Scanner Alert"),
+                "color":       "#ff2244",
+                "description": ev.get("summary", ""),
+                "road":        ev.get("address", ""),
+                "lat": ev["lat"], "lon": ev["lon"],
+            })
+
+    return hazards
+
 
 @app.get("/route")
 async def get_route(
@@ -452,6 +553,9 @@ async def get_route(
     if not data.get("routes"):
         raise HTTPException(status_code=404, detail="No route found")
 
+    route_coords = data["routes"][0]["geometry"]["coordinates"]
+    hazards = await _scan_route_hazards(route_coords, lat, lon)
+    data["route_hazards"] = hazards
     return data
 
 

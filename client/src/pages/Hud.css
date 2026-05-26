@@ -286,6 +286,47 @@
 .nav-step  { flex: 1; font-size: 0.74rem; font-weight: 500; color: #fff; line-height: 1.4; }
 .nav-count { font-family: var(--font-mono); font-size: 0.56rem; color: var(--text-dim); flex-shrink: 0; }
 
+/* ── ROUTE HAZARDS ───────────────────────────────────────────────────────── */
+.route-hazards {
+  position: absolute;
+  bottom: 120px;
+  left: 12px;
+  right: 12px;
+  background: var(--panel-bg);
+  border: 1px solid var(--border-red);
+  border-radius: 10px;
+  padding: 10px 12px 8px;
+  backdrop-filter: blur(16px);
+  z-index: 30;
+  max-height: 180px;
+  overflow-y: auto;
+}
+.route-hazards-title {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: var(--red);
+  letter-spacing: 0.08em;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+.route-hazard-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 0;
+  border-top: 1px solid var(--border);
+  font-size: 0.7rem;
+}
+.route-hazard-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.route-hazard-type  { font-weight: 600; color: var(--text); white-space: nowrap; }
+.route-hazard-desc  { color: var(--text-dim); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.route-hazard-road  { font-family: var(--font-mono); font-size: 0.58rem; color: var(--text-muted); white-space: nowrap; }
+
 /* ── PANEL TOGGLE ─────────────────────────────────────────────────────────── */
 .panel-toggle {
   position: absolute;
