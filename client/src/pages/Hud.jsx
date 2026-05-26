@@ -73,6 +73,8 @@ export default function HudPage() {
   const [aiPicking,      setAiPicking]      = useState(false)
   const [reportOpen,     setReportOpen]     = useState(false)
   const [devOpen,        setDevOpen]        = useState(false)
+  const [devAuthed,      setDevAuthed]      = useState(false)
+  const [devPassword,    setDevPassword]    = useState('')
   const [devAlerts,      setDevAlerts]      = useState([])
   const [devForm,        setDevForm]        = useState({ call_type:'', summary:'', address:'', priority:2 })
   const [pickingPin,     setPickingPin]     = useState(false)
@@ -607,9 +609,7 @@ export default function HudPage() {
                 ⚠ {nearbyCount} nearby
               </div>
             )}
-            {ADMIN_SECRET && (
-              <button className="btn btn-dev" onClick={() => { setDevOpen(o => !o); devLoadAlerts() }} title="Dev Panel">⚙</button>
-            )}
+            <button className="btn btn-dev" onClick={() => { setDevOpen(o => !o); if (!devOpen) { setDevAuthed(false); setDevPassword('') } }} title="Dev Panel">⚙</button>
             <button className="btn btn-back" onClick={() => { clearAuth(); navigate('/login') }}>⏻</button>
           </div>
         </div>
@@ -660,7 +660,27 @@ export default function HudPage() {
       {devOpen && (
         <div className="dev-panel">
           <div className="dev-panel-title">⚙ DEV CONSOLE</div>
-          <button className="report-close" onClick={() => setDevOpen(false)}>✕</button>
+          <button className="report-close" onClick={() => { setDevOpen(false); setDevAuthed(false); setDevPassword('') }}>✕</button>
+          {!devAuthed ? (
+            <>
+              <div className="dev-section-label">AUTHENTICATION REQUIRED</div>
+              <input
+                className="dev-input" type="password" placeholder="Enter dev password"
+                value={devPassword} onChange={e => setDevPassword(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    if (devPassword === ADMIN_SECRET) { setDevAuthed(true); devLoadAlerts() }
+                    else { setDevPassword(''); setStatus('Incorrect dev password.') }
+                  }
+                }}
+              />
+              <button className="btn btn-primary dev-submit" onClick={() => {
+                if (devPassword === ADMIN_SECRET) { setDevAuthed(true); devLoadAlerts() }
+                else { setDevPassword(''); setStatus('Incorrect dev password.') }
+              }}>UNLOCK</button>
+            </>
+          ) : (
+          <>
           <div className="dev-section-label">PIN ALERT</div>
           <input className="dev-input" placeholder="Type (e.g. Shooting)" value={devForm.call_type}
             onChange={e => setDevForm(f => ({...f, call_type: e.target.value}))} />
@@ -698,6 +718,8 @@ export default function HudPage() {
                 </div>
               ))}
             </>
+          )}
+          </>
           )}
         </div>
       )}
