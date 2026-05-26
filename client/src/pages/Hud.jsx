@@ -72,6 +72,10 @@ export default function HudPage() {
   const [aiPickReason,   setAiPickReason]   = useState('')
   const [aiPicking,      setAiPicking]      = useState(false)
   const [reportOpen,     setReportOpen]     = useState(false)
+  const [devOpen,        setDevOpen]        = useState(false)
+  const [devAlerts,      setDevAlerts]      = useState([])
+  const [devForm,        setDevForm]        = useState({ call_type:'', summary:'', address:'', priority:2 })
+  const ADMIN_SECRET = import.meta.env.VITE_ADMIN_SECRET || ''
   const audioRef      = useRef(null)
   const recorderRef   = useRef(null)
   const userPosRef    = useRef(null)
@@ -213,12 +217,13 @@ export default function HudPage() {
       cameraMarkers.current = []
       data.forEach(cam => {
         const el = document.createElement('div')
-        el.className = 'camera-dot'
+        el.className = 'marker-icon marker-icon--camera'
+        el.textContent = cam.type === 'red_light' ? '📷' : '🚦'
         el.title = cam.name
         const marker = new mapboxgl.Marker({ element: el, anchor: 'center' })
           .setLngLat([cam.lon, cam.lat])
           .setPopup(new mapboxgl.Popup({ className: 'olik-popup', offset: 10 }).setHTML(
-            `<div class="popup-inner"><div class="popup-type">${cam.type === 'red_light' ? '🔴 RED LIGHT CAM' : '📷 SPEED CAM'}</div><div class="popup-summary">${cam.name}</div><div class="popup-time">${cam.distance_km} km away</div></div>`
+            `<div class="popup-inner"><div class="popup-type">${cam.type === 'red_light' ? '📷 RED LIGHT CAM' : '🚦 SPEED CAM'}</div><div class="popup-summary">${cam.name}</div><div class="popup-time">${cam.distance_km} km away</div></div>`
           )).addTo(map.current)
         cameraMarkers.current.push(marker)
       })
@@ -235,9 +240,11 @@ export default function HudPage() {
       incidentMarkers.current.forEach(m => m.remove())
       incidentMarkers.current = []
       data.incidents?.forEach(inc => {
+        const incIcon = { 1:'💥', 2:'🌫️', 3:'⚠️', 4:'🌧️', 5:'🧊', 6:'🚗', 7:'🚧', 8:'🚫', 9:'🔨', 10:'💨', 11:'🌊', 12:'↩️', 14:'🚘' }[inc.icon_category] || '⚠️'
         const el = document.createElement('div')
-        el.className = 'incident-dot'
+        el.className = 'marker-icon marker-icon--incident'
         el.style.setProperty('--inc-color', inc.color)
+        el.textContent = incIcon
         el.title = inc.type
         const locLine = inc.location ? `<div class="popup-time">${inc.location}</div>` : ''
         const marker = new mapboxgl.Marker({ element: el, anchor: 'center' })
@@ -259,8 +266,10 @@ export default function HudPage() {
       reportMarkers.current.forEach(m => m.remove())
       reportMarkers.current = []
       data.forEach(rep => {
+        const repIcon = { police:'🚔', camera:'📷', accident:'💥', hazard:'⚠️' }[rep.type] || '📍'
         const el = document.createElement('div')
-        el.className = `report-dot report-dot--${rep.type}`
+        el.className = `marker-icon marker-icon--report marker-icon--${rep.type}`
+        el.textContent = repIcon
         el.title = rep.call_type
         const marker = new mapboxgl.Marker({ element: el, anchor: 'center' })
           .setLngLat([rep.lon, rep.lat])
@@ -443,6 +452,43 @@ export default function HudPage() {
     } catch (e) { setStatus(`Report failed: ${e.message}`) }
   }
 
+  // ── Dev/Admin alert functions ─────────────────────────────────────────────
+  async function devLoadAlerts() {
+    try {
+      const r = await fetch(`${API_BASE}/admin/alerts?secret=${encodeURIComponent(ADMIN_SECRET)}`)
+      if (!r.ok) return
+      setDevAlerts(await r.json())
+    } catch {}
+  }
+  async function devPostAlert() {
+    if (!devForm.call_type || !devForm.summary) return
+    const lat = devForm.lat ? parseFloat(devForm.lat) : userPos?.lat
+    const lon = devForm.lon ? parseFloat(devForm.lon) : userPos?.lon
+    if (!lat || !lon) { setStatus('GPS required or enter lat/lon'); return }
+    const form = new FormData()
+    form.append('secret', ADMIN_SECRET)
+    form.append('lat', String(lat))
+    form.append('lon', String(lon))
+    form.append('call_type', devForm.call_type)
+    form.append('summary', devForm.summary)
+    form.append('priority', String(devForm.priority))
+    form.append('address', devForm.address || '')
+    try {
+      const r = await fetch(`${API_BASE}/admin/alert`, { method: 'POST', body: form })
+      if (!r.ok) throw new Error(r.statusText)
+      setDevForm({ call_type:'', summary:'', address:'', priority:2 })
+      devLoadAlerts()
+      if (userPos) fetchEvents(userPos.lat, userPos.lon)
+    } catch (e) { setStatus(`Dev alert failed: ${e.message}`) }
+  }
+  async function devDeleteAlert(id) {
+    try {
+      await fetch(`${API_BASE}/admin/alert/${id}?secret=${encodeURIComponent(ADMIN_SECRET)}`, { method: 'DELETE' })
+      devLoadAlerts()
+      if (userPos) fetchEvents(userPos.lat, userPos.lon)
+    } catch {}
+  }
+
   // ── Speak brief ───────────────────────────────────────────────────────────
   async function speakBrief() {
     if (speaking) return
@@ -470,8 +516,17 @@ export default function HudPage() {
   function placeEventMarkers(evs) {
     eventMarkers.current.forEach(m => m.remove()); eventMarkers.current = []
     evs.forEach(ev => {
+      const evIcon = /shoot|gun|firearm/i.test(ev.call_type) ? '🔫'
+        : /robbery|rob/i.test(ev.call_type) ? '💰'
+        : /pursuit|chase/i.test(ev.call_type) ? '🚨'
+        : /accident|crash|traffic/i.test(ev.call_type) ? '💥'
+        : /disturbance|fight|battery/i.test(ev.call_type) ? '⚡'
+        : /fire/i.test(ev.call_type) ? '🔥'
+        : /medical|ems/i.test(ev.call_type) ? '🚑'
+        : '🚨'
       const el = document.createElement('div')
-      el.className = ev.distance_km <= ALERT_RADIUS_KM ? 'event-dot event-dot--alert' : 'event-dot'
+      el.className = ev.distance_km <= ALERT_RADIUS_KM ? 'marker-icon marker-icon--event marker-icon--alert' : 'marker-icon marker-icon--event'
+      el.textContent = evIcon
       el.title = ev.summary
       const marker = new mapboxgl.Marker({ element: el, anchor: 'center' })
         .setLngLat([ev.lon, ev.lat])
@@ -529,6 +584,9 @@ export default function HudPage() {
                 ⚠ {nearbyCount} nearby
               </div>
             )}
+            {ADMIN_SECRET && (
+              <button className="btn btn-dev" onClick={() => { setDevOpen(o => !o); devLoadAlerts() }} title="Dev Panel">⚙</button>
+            )}
             <button className="btn btn-back" onClick={() => { clearAuth(); navigate('/login') }}>⏻</button>
           </div>
         </div>
@@ -572,6 +630,44 @@ export default function HudPage() {
             </button>
           </div>
           <button className="report-close" onClick={() => setReportOpen(false)}>✕</button>
+        </div>
+      )}
+
+      {/* ── DEV PANEL ── */}
+      {devOpen && (
+        <div className="dev-panel">
+          <div className="dev-panel-title">⚙ DEV CONSOLE</div>
+          <button className="report-close" onClick={() => setDevOpen(false)}>✕</button>
+          <div className="dev-section-label">PIN ALERT</div>
+          <input className="dev-input" placeholder="Type (e.g. Shooting)" value={devForm.call_type}
+            onChange={e => setDevForm(f => ({...f, call_type: e.target.value}))} />
+          <input className="dev-input" placeholder="Summary" value={devForm.summary}
+            onChange={e => setDevForm(f => ({...f, summary: e.target.value}))} />
+          <input className="dev-input" placeholder="Address (optional)" value={devForm.address}
+            onChange={e => setDevForm(f => ({...f, address: e.target.value}))} />
+          <input className="dev-input" placeholder="Lat (blank = my location)" value={devForm.lat || ''}
+            onChange={e => setDevForm(f => ({...f, lat: e.target.value}))} />
+          <input className="dev-input" placeholder="Lon (blank = my location)" value={devForm.lon || ''}
+            onChange={e => setDevForm(f => ({...f, lon: e.target.value}))} />
+          <select className="dev-input" value={devForm.priority}
+            onChange={e => setDevForm(f => ({...f, priority: Number(e.target.value)}))}>
+            <option value={1}>Priority 1 — CRITICAL</option>
+            <option value={2}>Priority 2 — HIGH</option>
+            <option value={3}>Priority 3 — NORMAL</option>
+          </select>
+          <button className="btn btn-primary dev-submit" onClick={devPostAlert}>PIN ALERT</button>
+          {devAlerts.length > 0 && (
+            <>
+              <div className="dev-section-label">ACTIVE ALERTS</div>
+              {devAlerts.map(a => (
+                <div key={a.id} className="dev-alert-row">
+                  <span className="dev-alert-type">{a.call_type}</span>
+                  <span className="dev-alert-sum">{a.summary}</span>
+                  <button className="dev-alert-del" onClick={() => devDeleteAlert(a.id)}>✕</button>
+                </div>
+              ))}
+            </>
+          )}
         </div>
       )}
 

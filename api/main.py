@@ -402,9 +402,18 @@ async def get_events(
         try:
             real = await fetch_spotcrime(lat, lon, radius_km)
             if real:
-                return real
+                results = list(real)
         except Exception as e:
             print(f"SpotCrime error: {e}")
+
+    # Always merge admin-pinned alerts (no TTL — persist until manually removed)
+    for a in _admin_alerts:
+        d = haversine_km(lat, lon, a["lat"], a["lon"])
+        if d <= radius_km:
+            results.append({**{k: v for k, v in a.items() if k != "_ts"}, "distance_km": round(d, 2)})
+
+    if results:
+        return sorted(results, key=lambda e: e["distance_km"])
 
     # No real data yet — return empty, scanner will populate within 90s
     return []
@@ -912,6 +921,11 @@ async def get_cameras(
 _user_reports: list = []
 _REPORT_TTL_SEC = 3600  # 1 hour
 
+# Admin alert system — dev/admin can pin alerts anywhere on the map
+ADMIN_EMAIL  = os.getenv("ADMIN_EMAIL", "oliverk5578@gmail.com")
+ADMIN_SECRET = os.getenv("ADMIN_SECRET", "")   # set in Railway env vars
+_admin_alerts: list = []   # persists until manually removed
+
 
 def _prune_reports():
     cutoff = time.time() - _REPORT_TTL_SEC
@@ -960,6 +974,58 @@ async def get_reports(
             results.append({k: v for k, v in r.items() if k != "_ts"} | {"distance_km": round(d, 2)})
     results.sort(key=lambda r: r["distance_km"])
     return results
+
+
+# ---------------------------------------------------------------------------
+# Admin alert system
+# ---------------------------------------------------------------------------
+
+def _check_admin(secret: str):
+    if not ADMIN_SECRET:
+        raise HTTPException(status_code=503, detail="ADMIN_SECRET not configured")
+    if secret != ADMIN_SECRET:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+
+@app.post("/admin/alert")
+async def admin_post_alert(
+    secret: str = Form(...),
+    lat: float = Form(...),
+    lon: float = Form(...),
+    call_type: str = Form(...),
+    summary: str = Form(...),
+    priority: int = Form(2),
+    address: str = Form(""),
+):
+    _check_admin(secret)
+    alert_id = f"admin-{int(time.time())}-{len(_admin_alerts)}"
+    _admin_alerts.append({
+        "id": alert_id,
+        "lat": lat,
+        "lon": lon,
+        "call_type": call_type,
+        "summary": summary,
+        "priority": priority,
+        "address": address,
+        "source": "admin",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "_ts": time.time(),
+    })
+    return {"status": "ok", "id": alert_id}
+
+
+@app.delete("/admin/alert/{alert_id}")
+async def admin_delete_alert(alert_id: str, secret: str = Query(...)):
+    _check_admin(secret)
+    before = len(_admin_alerts)
+    _admin_alerts[:] = [a for a in _admin_alerts if a["id"] != alert_id]
+    return {"status": "ok", "removed": before - len(_admin_alerts)}
+
+
+@app.get("/admin/alerts")
+async def admin_list_alerts(secret: str = Query(...)):
+    _check_admin(secret)
+    return _admin_alerts
 
 
 # ---------------------------------------------------------------------------
