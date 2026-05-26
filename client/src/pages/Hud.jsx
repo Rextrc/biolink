@@ -70,9 +70,12 @@ export default function HudPage() {
   const [scannerOpen,    setScannerOpen]     = useState(false)
   const [aiPickReason,   setAiPickReason]   = useState('')
   const [aiPicking,      setAiPicking]      = useState(false)
-  const audioRef   = useRef(null)
-  const recorderRef = useRef(null)  // AbortController for capture fetch
-  const userPosRef  = useRef(null)
+  const [reportOpen,     setReportOpen]     = useState(false)
+  const audioRef      = useRef(null)
+  const recorderRef   = useRef(null)
+  const userPosRef    = useRef(null)
+  const cameraMarkers = useRef([])
+  const reportMarkers = useRef([])
 
   // ── Lock body scroll ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -198,17 +201,64 @@ export default function HudPage() {
     } catch (e) { console.warn('Signals fetch failed:', e) }
   }, [])
 
+  // ── Fetch cameras ─────────────────────────────────────────────────────────
+  const fetchCameras = useCallback(async (lat, lon) => {
+    try {
+      const r = await fetch(`${API_BASE}/cameras?lat=${lat}&lon=${lon}&radius_km=12`)
+      if (!r.ok) return
+      const data = await r.json()
+      cameraMarkers.current.forEach(m => m.remove())
+      cameraMarkers.current = []
+      data.forEach(cam => {
+        const el = document.createElement('div')
+        el.className = 'camera-dot'
+        el.title = cam.name
+        const marker = new mapboxgl.Marker({ element: el, anchor: 'center' })
+          .setLngLat([cam.lon, cam.lat])
+          .setPopup(new mapboxgl.Popup({ className: 'olik-popup', offset: 10 }).setHTML(
+            `<div class="popup-inner"><div class="popup-type">${cam.type === 'red_light' ? '🔴 RED LIGHT CAM' : '📷 SPEED CAM'}</div><div class="popup-summary">${cam.name}</div><div class="popup-time">${cam.distance_km} km away</div></div>`
+          )).addTo(map.current)
+        cameraMarkers.current.push(marker)
+      })
+    } catch (e) { console.warn('Cameras fetch failed:', e) }
+  }, [])
+
+  // ── Fetch user reports ────────────────────────────────────────────────────
+  const fetchReports = useCallback(async (lat, lon) => {
+    try {
+      const r = await fetch(`${API_BASE}/reports?lat=${lat}&lon=${lon}&radius_km=12`)
+      if (!r.ok) return
+      const data = await r.json()
+      reportMarkers.current.forEach(m => m.remove())
+      reportMarkers.current = []
+      data.forEach(rep => {
+        const el = document.createElement('div')
+        el.className = `report-dot report-dot--${rep.type}`
+        el.title = rep.call_type
+        const marker = new mapboxgl.Marker({ element: el, anchor: 'center' })
+          .setLngLat([rep.lon, rep.lat])
+          .setPopup(new mapboxgl.Popup({ className: 'olik-popup', offset: 10 }).setHTML(
+            `<div class="popup-inner"><div class="popup-type">${rep.call_type}</div><div class="popup-summary">${rep.note || 'User reported'}</div><div class="popup-time">${timeAgo(rep.timestamp)}</div></div>`
+          )).addTo(map.current)
+        reportMarkers.current.push(marker)
+      })
+    } catch (e) { console.warn('Reports fetch failed:', e) }
+  }, [])
+
   // ── Auto-refresh ──────────────────────────────────────────────────────────
   useEffect(() => {
     if (!userPos) return
     fetchEvents(userPos.lat, userPos.lon)
     fetchSignals(userPos.lat, userPos.lon)
+    fetchCameras(userPos.lat, userPos.lon)
+    fetchReports(userPos.lat, userPos.lon)
     const t = setInterval(() => {
       fetchEvents(userPos.lat, userPos.lon)
       fetchSignals(userPos.lat, userPos.lon)
+      fetchReports(userPos.lat, userPos.lon)
     }, REFRESH_MS)
     return () => clearInterval(t)
-  }, [userPos?.lat, userPos?.lon, fetchEvents, fetchSignals])
+  }, [userPos?.lat, userPos?.lon, fetchEvents, fetchSignals, fetchCameras, fetchReports])
 
   // ── Set route ─────────────────────────────────────────────────────────────
   async function setRoute() {
@@ -344,6 +394,23 @@ export default function HudPage() {
     }
   }
 
+  // ── Submit user report ────────────────────────────────────────────────────
+  async function submitReport(type) {
+    if (!userPos) { setStatus('GPS required to report.'); return }
+    const form = new FormData()
+    form.append('type', type)
+    form.append('lat', String(userPos.lat))
+    form.append('lon', String(userPos.lon))
+    form.append('note', '')
+    try {
+      const r = await fetch(`${API_BASE}/report`, { method: 'POST', body: form })
+      if (!r.ok) throw new Error(r.statusText)
+      setStatus(`Reported: ${type} — thanks!`)
+      setReportOpen(false)
+      fetchReports(userPos.lat, userPos.lon)
+    } catch (e) { setStatus(`Report failed: ${e.message}`) }
+  }
+
   // ── Speak brief ───────────────────────────────────────────────────────────
   async function speakBrief() {
     if (speaking) return
@@ -437,6 +504,7 @@ export default function HudPage() {
             value={destination} onChange={e => setDestination(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && setRoute()} />
           <button className="btn btn-primary" onClick={setRoute}>GO</button>
+          <button className="btn btn-report" onClick={() => setReportOpen(o => !o)} title="Report">⚑</button>
           <button
             className={`btn btn-speak ${speaking ? 'pulsing' : ''}`}
             onClick={speakBrief} disabled={speaking}>
@@ -446,6 +514,32 @@ export default function HudPage() {
 
         <div className="status-bar">{status}</div>
       </div>
+
+      {/* ── REPORT MODAL ── */}
+      {reportOpen && (
+        <div className="report-modal">
+          <div className="report-title">⚑ REPORT</div>
+          <div className="report-grid">
+            <button className="report-btn report-btn--police" onClick={() => submitReport('police')}>
+              <span className="report-icon">🚔</span>
+              <span>Police</span>
+            </button>
+            <button className="report-btn report-btn--camera" onClick={() => submitReport('camera')}>
+              <span className="report-icon">📷</span>
+              <span>Camera</span>
+            </button>
+            <button className="report-btn report-btn--accident" onClick={() => submitReport('accident')}>
+              <span className="report-icon">💥</span>
+              <span>Accident</span>
+            </button>
+            <button className="report-btn report-btn--hazard" onClick={() => submitReport('hazard')}>
+              <span className="report-icon">⚠</span>
+              <span>Hazard</span>
+            </button>
+          </div>
+          <button className="report-close" onClick={() => setReportOpen(false)}>✕</button>
+        </div>
+      )}
 
       {/* ── NEXT STEP STRIP (driving nav) ── */}
       {routeSteps.length > 0 && (

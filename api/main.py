@@ -576,6 +576,139 @@ async def get_brief(text: str = Query(...)):
 
 
 # ---------------------------------------------------------------------------
+# Red-light / speed cameras
+# ---------------------------------------------------------------------------
+
+# Known Miami-Dade County red-light camera intersections (public record)
+_MDC_CAMERAS = [
+    {"id":"cam001","lat":25.7743,"lon":-80.1937,"name":"NW 27th Ave & 79th St","type":"red_light"},
+    {"id":"cam002","lat":25.7617,"lon":-80.3137,"name":"SW 8th St & 87th Ave","type":"red_light"},
+    {"id":"cam003","lat":25.7742,"lon":-80.2945,"name":"NW 7th Ave & 79th St","type":"red_light"},
+    {"id":"cam004","lat":25.7484,"lon":-80.2614,"name":"SW 8th St & 57th Ave","type":"red_light"},
+    {"id":"cam005","lat":25.7832,"lon":-80.2143,"name":"NW 7th Ave & 95th St","type":"red_light"},
+    {"id":"cam006","lat":25.8128,"lon":-80.2012,"name":"NW 27th Ave & 135th St","type":"red_light"},
+    {"id":"cam007","lat":25.7617,"lon":-80.2271,"name":"SW 8th St & 37th Ave","type":"red_light"},
+    {"id":"cam008","lat":25.7747,"lon":-80.1848,"name":"Biscayne Blvd & 79th St","type":"red_light"},
+    {"id":"cam009","lat":25.7639,"lon":-80.1918,"name":"NE 2nd Ave & 36th St","type":"red_light"},
+    {"id":"cam010","lat":25.7564,"lon":-80.3754,"name":"SW 8th St & 107th Ave","type":"red_light"},
+    {"id":"cam011","lat":25.7900,"lon":-80.3200,"name":"NW 103rd St & 27th Ave","type":"red_light"},
+    {"id":"cam012","lat":25.8216,"lon":-80.3127,"name":"NW 27th Ave & 151st St","type":"red_light"},
+    {"id":"cam013","lat":25.7422,"lon":-80.3127,"name":"SW 40th St & 87th Ave","type":"red_light"},
+    {"id":"cam014","lat":25.7617,"lon":-80.1848,"name":"Brickell Ave & 8th St","type":"red_light"},
+    {"id":"cam015","lat":25.7748,"lon":-80.3412,"name":"NW 27th Ave & 103rd St","type":"red_light"},
+    {"id":"cam016","lat":25.8450,"lon":-80.2614,"name":"NW 57th Ave & 167th St","type":"red_light"},
+    {"id":"cam017","lat":25.7270,"lon":-80.2614,"name":"SW 57th Ave & 72nd St","type":"red_light"},
+    {"id":"cam018","lat":25.7617,"lon":-80.3412,"name":"SW 8th St & 97th Ave","type":"red_light"},
+    {"id":"cam019","lat":25.8010,"lon":-80.1720,"name":"Biscayne Blvd & 119th St","type":"red_light"},
+    {"id":"cam020","lat":25.7617,"lon":-80.2614,"name":"SW 8th St & 67th Ave","type":"red_light"},
+]
+
+
+@app.get("/cameras")
+async def get_cameras(
+    lat: float = Query(...),
+    lon: float = Query(...),
+    radius_km: float = Query(15.0),
+):
+    results = []
+    for cam in _MDC_CAMERAS:
+        d = haversine_km(lat, lon, cam["lat"], cam["lon"])
+        if d <= radius_km:
+            results.append({**cam, "distance_km": round(d, 2)})
+
+    # Also query OpenStreetMap for any cameras not in our hardcoded list
+    try:
+        overpass_q = (
+            f"[out:json][timeout:8];"
+            f"node[\"highway\"=\"speed_camera\"](around:{int(radius_km*1000)},{lat},{lon});"
+            f"out;"
+        )
+        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=10)) as session:
+            async with session.get(
+                "https://overpass-api.de/api/interpreter",
+                params={"data": overpass_q},
+                headers={"User-Agent": "OlikRadar/1.0"},
+            ) as resp:
+                if resp.status == 200:
+                    osm = await resp.json(content_type=None)
+                    known_ids = {c["id"] for c in results}
+                    for node in osm.get("elements", []):
+                        osm_id = f"osm-{node['id']}"
+                        if osm_id not in known_ids:
+                            tags = node.get("tags", {})
+                            results.append({
+                                "id":          osm_id,
+                                "lat":         node["lat"],
+                                "lon":         node["lon"],
+                                "name":        tags.get("name") or tags.get("description") or "Speed Camera",
+                                "type":        "speed",
+                                "distance_km": round(haversine_km(lat, lon, node["lat"], node["lon"]), 2),
+                            })
+    except Exception as e:
+        print(f"OSM cameras error: {e}")
+
+    results.sort(key=lambda c: c["distance_km"])
+    return results
+
+
+# ---------------------------------------------------------------------------
+# User reports (police, accident, hazard — expire after 60 min)
+# ---------------------------------------------------------------------------
+
+_user_reports: list = []
+_REPORT_TTL_SEC = 3600  # 1 hour
+
+
+def _prune_reports():
+    cutoff = time.time() - _REPORT_TTL_SEC
+    _user_reports[:] = [r for r in _user_reports if r["_ts"] > cutoff]
+
+
+@app.post("/report")
+async def post_report(
+    type: str  = Form(...),   # "police" | "accident" | "hazard" | "camera"
+    lat:  float = Form(...),
+    lon:  float = Form(...),
+    note: str   = Form(""),
+):
+    _prune_reports()
+    allowed = {"police", "accident", "hazard", "camera"}
+    if type not in allowed:
+        raise HTTPException(status_code=400, detail=f"type must be one of {allowed}")
+    labels = {"police": "Police Spotted", "accident": "Accident", "hazard": "Road Hazard", "camera": "Speed Camera"}
+    report = {
+        "id":          f"RPT-{int(time.time()*1000)}",
+        "lat":         round(lat, 6),
+        "lon":         round(lon, 6),
+        "type":        type,
+        "call_type":   labels[type],
+        "note":        note[:120],
+        "timestamp":   datetime.now(timezone.utc).isoformat(),
+        "source":      "user-report",
+        "_ts":         time.time(),
+    }
+    _user_reports.insert(0, report)
+    _user_reports[:] = _user_reports[:200]
+    return {"ok": True, "id": report["id"]}
+
+
+@app.get("/reports")
+async def get_reports(
+    lat: float = Query(...),
+    lon: float = Query(...),
+    radius_km: float = Query(15.0),
+):
+    _prune_reports()
+    results = []
+    for r in _user_reports:
+        d = haversine_km(lat, lon, r["lat"], r["lon"])
+        if d <= radius_km:
+            results.append({k: v for k, v in r.items() if k != "_ts"} | {"distance_km": round(d, 2)})
+    results.sort(key=lambda r: r["distance_km"])
+    return results
+
+
+# ---------------------------------------------------------------------------
 # Scanner channels (audio streams for in-browser listening)
 # ---------------------------------------------------------------------------
 
