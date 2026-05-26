@@ -639,9 +639,9 @@ _MDC_CAMERAS = [
     {"id":"cam044","lat":25.7485,"lon":-80.2700,"name":"Miracle Mile & Douglas Rd","type":"red_light"},
     {"id":"cam045","lat":25.7325,"lon":-80.2800,"name":"Coral Way & Red Rd","type":"red_light"},
     # ── Miami Beach ───────────────────────────────────────────────────────────
-    {"id":"cam046","lat":25.7907,"lon":-80.1302,"name":"5th St & Washington Ave (SoBe)","type":"red_light"},
-    {"id":"cam047","lat":25.7950,"lon":-80.1290,"name":"Alton Rd & 17th St","type":"red_light"},
-    {"id":"cam048","lat":25.8130,"lon":-80.1280,"name":"Arthur Godfrey Rd & Collins Ave","type":"red_light"},
+    {"id":"cam046","lat":25.7685,"lon":-80.1305,"name":"5th St & Washington Ave (SoBe)","type":"red_light"},
+    {"id":"cam047","lat":25.7915,"lon":-80.1403,"name":"Alton Rd & 17th St","type":"red_light"},
+    {"id":"cam048","lat":25.8130,"lon":-80.1220,"name":"Arthur Godfrey Rd & Collins Ave","type":"red_light"},
     # ── Hialeah ──────────────────────────────────────────────────────────────
     {"id":"cam049","lat":25.8576,"lon":-80.2781,"name":"E 4th Ave & W 49th St (Hialeah)","type":"red_light"},
     {"id":"cam050","lat":25.8624,"lon":-80.2950,"name":"W 29th St & W 4th Ave (Hialeah)","type":"red_light"},
@@ -694,11 +694,15 @@ async def get_cameras(
                         osm_id = f"osm-{node['id']}"
                         if osm_id not in known_ids:
                             tags = node.get("tags", {})
+                            cam_name = tags.get("name") or tags.get("description") or tags.get("ref")
+                            # Skip unnamed OSM nodes — likely misplaced or in water
+                            if not cam_name:
+                                continue
                             results.append({
                                 "id":          osm_id,
                                 "lat":         node["lat"],
                                 "lon":         node["lon"],
-                                "name":        tags.get("name") or tags.get("description") or "Speed Camera",
+                                "name":        cam_name,
                                 "type":        "speed",
                                 "distance_km": round(haversine_km(lat, lon, node["lat"], node["lon"]), 2),
                             })
