@@ -170,6 +170,27 @@ export default function HudPage() {
       map.current.addLayer({ id: 'reports-icons', type: 'symbol', source: 'reports-src',
         layout: { 'text-field': ['get', 'icon'], 'text-size': 12, 'text-allow-overlap': true, 'text-ignore-placement': true } })
 
+      // ── AI police estimates ─────────────────────────────────────────────
+      addCircleSource('police-est-src')
+      map.current.addLayer({ id: 'police-est-outer', type: 'circle', source: 'police-est-src',
+        paint: {
+          'circle-radius': ['interpolate', ['linear'], ['get', 'confidence'], 0.4, 14, 1.0, 20],
+          'circle-color': '#ff8c00',
+          'circle-opacity': ['interpolate', ['linear'], ['get', 'confidence'], 0.4, 0.15, 1.0, 0.30],
+        }
+      })
+      map.current.addLayer({ id: 'police-est-circles', type: 'circle', source: 'police-est-src',
+        paint: {
+          'circle-radius': 10,
+          'circle-color': '#1a1a1a',
+          'circle-stroke-width': 2,
+          'circle-stroke-color': ['interpolate', ['linear'], ['get', 'confidence'], 0.4, '#ff8c00', 1.0, '#ffcc00'],
+          'circle-opacity': 0.92,
+        }
+      })
+      map.current.addLayer({ id: 'police-est-label', type: 'symbol', source: 'police-est-src',
+        layout: { 'text-field': '👮', 'text-size': 11, 'text-allow-overlap': true, 'text-ignore-placement': true } })
+
       // ── Popup click handlers ────────────────────────────────────────────
       const addPopup = (layerId, htmlFn) => {
         map.current.on('click', layerId, (e) => {
@@ -185,6 +206,7 @@ export default function HudPage() {
       addPopup('cameras-circles', p => `<div class="popup-inner"><div class="popup-type">${p.type === 'speed' ? '🚦 SPEED CAM' : '📷 RED LIGHT CAM'}</div><div class="popup-summary">${p.name}</div><div class="popup-time">${p.distance_km} km away</div></div>`)
       addPopup('incidents-circles', p => `<div class="popup-inner"><div class="popup-type" style="color:${p.color}">${(p.type||'').toUpperCase()}</div><div class="popup-summary">${p.description}</div><div class="popup-time">${p.distance_km} km away</div></div>`)
       addPopup('reports-circles', p => `<div class="popup-inner"><div class="popup-type">${p.call_type}</div><div class="popup-summary">${p.note || 'User reported'}</div><div class="popup-time">${timeAgo(p.timestamp)}</div></div>`)
+      addPopup('police-est-circles', p => `<div class="popup-inner"><div class="popup-type" style="color:#ffcc00">👮 AI ESTIMATE</div><div class="popup-summary">${p.reason}</div><div class="popup-time">Confidence: ${Math.round(p.confidence * 100)}% · ~${p.unit_count} unit${p.unit_count > 1 ? 's' : ''}</div></div>`)
 
       mapLoaded.current = true
 
@@ -326,6 +348,20 @@ export default function HudPage() {
     } catch (e) { console.warn('Incidents fetch failed:', e) }
   }, [])
 
+  // ── Fetch AI police estimates ─────────────────────────────────────────────
+  const fetchPoliceEstimate = useCallback(async (lat, lon) => {
+    try {
+      const r = await fetch(`${API_BASE}/police-estimate?lat=${lat}&lon=${lon}&radius_km=10`)
+      if (!r.ok) return
+      const data = await r.json()
+      setGLSource('police-est-src', data.map(est => ({
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [est.lon, est.lat] },
+        properties: est,
+      })))
+    } catch (e) { console.warn('Police estimate failed:', e) }
+  }, [])
+
   // ── Fetch user reports ────────────────────────────────────────────────────
   const fetchReports = useCallback(async (lat, lon) => {
     try {
@@ -352,14 +388,16 @@ export default function HudPage() {
     fetchCameras(userPos.lat, userPos.lon)
     fetchReports(userPos.lat, userPos.lon)
     fetchIncidents(userPos.lat, userPos.lon)
+    fetchPoliceEstimate(userPos.lat, userPos.lon)
     const t = setInterval(() => {
       fetchEvents(userPos.lat, userPos.lon)
       fetchSignals(userPos.lat, userPos.lon)
       fetchReports(userPos.lat, userPos.lon)
       fetchIncidents(userPos.lat, userPos.lon)
+      fetchPoliceEstimate(userPos.lat, userPos.lon)
     }, REFRESH_MS)
     return () => clearInterval(t)
-  }, [userPos?.lat, userPos?.lon, fetchEvents, fetchSignals, fetchCameras, fetchReports, fetchIncidents])
+  }, [userPos?.lat, userPos?.lon, fetchEvents, fetchSignals, fetchCameras, fetchReports, fetchIncidents, fetchPoliceEstimate])
 
   // ── Set route ─────────────────────────────────────────────────────────────
   async function setRoute() {
