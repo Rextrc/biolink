@@ -126,7 +126,9 @@ export default function HudPage() {
         paint: { 'line-color': '#ff4444', 'line-width': 14, 'line-opacity': 0.15, 'line-blur': 8 },
       }, 'route-line')
       // ── Traffic flow lines ──────────────────────────────────────────────
-      map.current.addSource('mapbox-traffic', { type: 'vector', url: 'mapbox://mapbox.mapbox-traffic-v1' })
+      if (!map.current.getSource('mapbox-traffic')) {
+        map.current.addSource('mapbox-traffic', { type: 'vector', url: 'mapbox://mapbox.mapbox-traffic-v1' })
+      }
       map.current.addLayer({
         id: 'traffic-flow', type: 'line', source: 'mapbox-traffic', 'source-layer': 'traffic',
         layout: { 'line-join': 'round', 'line-cap': 'round' },
@@ -142,7 +144,7 @@ export default function HudPage() {
 
       addCircleSource('events-src')
       map.current.addLayer({ id: 'events-circles', type: 'circle', source: 'events-src',
-        paint: { 'circle-radius': 14, 'circle-color': ['case', ['<=', ['get', 'distance_km'], ALERT_RADIUS_KM], '#330000', '#0a0a2a'], 'circle-stroke-width': 1.5, 'circle-stroke-color': ['case', ['<=', ['get', 'distance_km'], ALERT_RADIUS_KM], '#ff2222', '#1a8cff'], 'circle-opacity': 0.9 } })
+        paint: { 'circle-radius': 14, 'circle-color': ['case', ['<=', ['get', 'distance_km'], ALERT_RADIUS_KM], '#ff2222', '#1a6aff'], 'circle-stroke-width': 2, 'circle-stroke-color': '#ffffff', 'circle-opacity': 0.85 } })
       map.current.addLayer({ id: 'events-icons', type: 'symbol', source: 'events-src',
         layout: { 'text-field': ['get', 'icon'], 'text-size': 13, 'text-allow-overlap': true, 'text-ignore-placement': true } })
 
