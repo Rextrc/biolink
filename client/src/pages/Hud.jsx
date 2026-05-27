@@ -153,10 +153,33 @@ export default function HudPage() {
         paint: { 'circle-radius': 7, 'circle-color': ['match', ['get', 'state'], 'likely red / queued', '#ff2222', 'possibly red soon', '#ff8800', '#444444'], 'circle-stroke-width': 1, 'circle-stroke-color': 'rgba(255,255,255,0.25)', 'circle-opacity': 0.9 } })
 
       addCircleSource('cameras-src')
+      map.current.addLayer({ id: 'cameras-glow', type: 'circle', source: 'cameras-src',
+        paint: {
+          'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 7, 15, 16],
+          'circle-color': ['match', ['get', 'type'], 'speed', '#ff6600', '#ffdd00'],
+          'circle-opacity': 0.18,
+          'circle-blur': 1,
+        }
+      })
       map.current.addLayer({ id: 'cameras-circles', type: 'circle', source: 'cameras-src',
-        paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 4, 14, 8], 'circle-color': ['match', ['get', 'type'], 'speed', '#ff6600', '#ffdd00'], 'circle-stroke-width': 2, 'circle-stroke-color': '#000000', 'circle-opacity': 0.95 } })
-      map.current.addLayer({ id: 'cameras-icons', type: 'symbol', source: 'cameras-src',
-        layout: { 'text-field': ['match', ['get', 'type'], 'speed', '🚦', '📷'], 'text-size': 11, 'text-allow-overlap': true, 'text-ignore-placement': true } })
+        paint: {
+          'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 4, 13, 7, 16, 10],
+          'circle-color': ['match', ['get', 'type'], 'speed', '#ff6600', '#ffdd00'],
+          'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 10, 1.5, 15, 2.5],
+          'circle-stroke-color': '#000000',
+          'circle-opacity': 0.95,
+          'circle-pitch-alignment': 'map',
+        }
+      })
+      map.current.addLayer({ id: 'cameras-label', type: 'symbol', source: 'cameras-src',
+        minzoom: 13,
+        layout: {
+          'text-field': ['match', ['get', 'type'], 'speed', '⚡', '🔴'],
+          'text-size': ['interpolate', ['linear'], ['zoom'], 13, 9, 16, 13],
+          'text-allow-overlap': true,
+          'text-ignore-placement': true,
+        }
+      })
 
       addCircleSource('incidents-src')
       map.current.addLayer({ id: 'incidents-circles', type: 'circle', source: 'incidents-src',
