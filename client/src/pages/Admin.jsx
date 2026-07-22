@@ -15,6 +15,29 @@ const ACCENT_GLOW  = 'rgba(255,34,34,0.15)';
 const ACCENT_FILL  = 'rgba(255,34,34,0.08)';
 const ACCENT_BORD  = 'rgba(255,34,34,0.25)';
 
+/* Module-scope (not defined inside Admin()) so React keeps the same component
+   identity across renders — defining these inline in the render body made
+   React remount the <input>/<textarea> on every keystroke, kicking focus out. */
+const SInput = ({ label, value, onChange, rows, placeholder }) => (
+  <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+    <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 1 }}>{label}</span>
+    {rows ? (
+      <textarea value={value} onChange={e => onChange(e.target.value)} rows={rows} placeholder={placeholder}
+        style={{ background: '#161616', border: '1px solid #2a2a2a', borderRadius: 8, padding: '8px 10px', color: '#fff', fontSize: 13, outline: 'none', fontFamily: 'inherit', resize: 'vertical' }} />
+    ) : (
+      <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
+        style={{ background: '#161616', border: '1px solid #2a2a2a', borderRadius: 8, padding: '8px 10px', color: '#fff', fontSize: 13, outline: 'none', fontFamily: 'inherit' }} />
+    )}
+  </div>
+);
+
+const Row = ({ label, value, mono }) => (
+  <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+    <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1 }}>{label}</span>
+    <span style={{ fontSize: 12, color: '#fff', fontFamily: mono ? 'monospace' : 'inherit', wordBreak: 'break-all' }}>{value || '—'}</span>
+  </div>
+);
+
 export default function Admin() {
   const navigate = useNavigate();
   const [stats, setStats]     = useState(null);
@@ -111,26 +134,6 @@ export default function Admin() {
     setCfgSaved(true);
     setTimeout(() => setCfgSaved(false), 2000);
   }
-
-  const SInput = ({ label, value, onChange, rows, placeholder }) => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-      <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 1 }}>{label}</span>
-      {rows ? (
-        <textarea value={value} onChange={e => onChange(e.target.value)} rows={rows} placeholder={placeholder}
-          style={{ background: '#161616', border: '1px solid #2a2a2a', borderRadius: 8, padding: '8px 10px', color: '#fff', fontSize: 13, outline: 'none', fontFamily: 'inherit', resize: 'vertical' }} />
-      ) : (
-        <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
-          style={{ background: '#161616', border: '1px solid #2a2a2a', borderRadius: 8, padding: '8px 10px', color: '#fff', fontSize: 13, outline: 'none', fontFamily: 'inherit' }} />
-      )}
-    </div>
-  );
-
-  const Row = ({ label, value, mono }) => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1 }}>{label}</span>
-      <span style={{ fontSize: 12, color: '#fff', fontFamily: mono ? 'monospace' : 'inherit', wordBreak: 'break-all' }}>{value || '—'}</span>
-    </div>
-  );
 
   return (
     <div style={{ minHeight: '100vh', background: '#0a0606', color: '#fff', fontFamily: 'Inter, sans-serif' }}>
