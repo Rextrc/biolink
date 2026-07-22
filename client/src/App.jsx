@@ -10,7 +10,6 @@ import Verify from './pages/Verify';
 import Inbox from './pages/Inbox';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
-import ComingSoon from './pages/ComingSoon';
 import { getAuth } from './utils/auth';
 
 function PrivateRoute({ children }) {
@@ -30,16 +29,11 @@ function AdminRoute({ children }) {
   return children;
 }
 
-const COMING_SOON = import.meta.env.VITE_COMING_SOON === 'true';
-
 export default function App() {
-  const { isAdmin } = getAuth();
-  const showComingSoon = COMING_SOON && !isAdmin;
-
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={showComingSoon ? <ComingSoon /> : <Landing />} />
+        <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/verify" element={<Verify />} />
