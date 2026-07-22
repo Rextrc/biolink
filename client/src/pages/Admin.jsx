@@ -112,14 +112,14 @@ export default function Admin() {
     setTimeout(() => setCfgSaved(false), 2000);
   }
 
-  const SInput = ({ label, value, onChange, rows }) => (
+  const SInput = ({ label, value, onChange, rows, placeholder }) => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
       <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 1 }}>{label}</span>
       {rows ? (
-        <textarea value={value} onChange={e => onChange(e.target.value)} rows={rows}
+        <textarea value={value} onChange={e => onChange(e.target.value)} rows={rows} placeholder={placeholder}
           style={{ background: '#161616', border: '1px solid #2a2a2a', borderRadius: 8, padding: '8px 10px', color: '#fff', fontSize: 13, outline: 'none', fontFamily: 'inherit', resize: 'vertical' }} />
       ) : (
-        <input value={value} onChange={e => onChange(e.target.value)}
+        <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
           style={{ background: '#161616', border: '1px solid #2a2a2a', borderRadius: 8, padding: '8px 10px', color: '#fff', fontSize: 13, outline: 'none', fontFamily: 'inherit' }} />
       )}
     </div>
@@ -267,22 +267,23 @@ export default function Admin() {
                   onChange={v => setSiteCfg(c => ({ ...c, skills: v.split(',').map(s => s.trim()).filter(Boolean) }))} />
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                   {[
-                    ['email',     'Email'],
-                    ['github',    'GitHub'],
-                    ['twitter',   'Twitter'],
-                    ['linkedin',  'LinkedIn'],
-                    ['instagram', 'Instagram'],
-                    ['youtube',   'YouTube'],
-                    ['twitch',    'Twitch'],
-                    ['discord',   'Discord'],
-                    ['website',   'Website'],
-                  ].map(([key, label]) => (
-                    <SInput key={key} label={label} value={siteCfg.links?.[key] || ''}
+                    ['email',     'Email',     'you@example.com'],
+                    ['github',    'GitHub',    'username or full URL'],
+                    ['twitter',   'Twitter',   'username or full URL'],
+                    ['linkedin',  'LinkedIn',  'username or full URL'],
+                    ['instagram', 'Instagram', 'username or full URL'],
+                    ['youtube',   'YouTube',   'handle or full URL'],
+                    ['twitch',    'Twitch',    'username or full URL'],
+                    ['discord',   'Discord',   'invite code or full URL'],
+                    ['website',   'Website',   'yourdomain.com'],
+                  ].map(([key, label, placeholder]) => (
+                    <SInput key={key} label={label} value={siteCfg.links?.[key] || ''} placeholder={placeholder}
                       onChange={v => setSiteCfg(c => ({ ...c, links: { ...c.links, [key]: v } }))} />
                   ))}
                 </div>
                 <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>
-                  Leave any field blank to hide that icon on the card. Email uses mailto:, everything else expects a full URL.
+                  Leave any field blank to hide that icon on the card. For each field you can paste just your username/handle
+                  (e.g. "olik") or a full URL — either works, the site fills in the right domain automatically.
                 </span>
               </div>
             </div>
