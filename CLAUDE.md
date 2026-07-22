@@ -35,14 +35,13 @@ git add . && git commit -m "..." && git push   # deploy
 ## Notable features
 - GIF banners, video backgrounds, card glow, Spotify embed on profiles
 - Verified badge (purple checkmark) on admin profiles
-- Landing page (`client/src/pages/Landing.jsx`): personal dev portfolio — hero (name/role glitch
-  effect, tagline, subtext), fake code-editor preview card, count-up stats bar, 3D tilt skill
-  cards (Frontend/Backend/Databases/Cloud/Design/OSS), "About me" glass card (bio, skill chips,
-  social links), contact CTA
-- Parallax orb background + floating particles + spinning orbital rings on landing hero
-- Magnetic CTA button, 3D tilt cards, terminal/code-editor preview on landing hero
-- Landing page copy (hero name/role/tagline/badge/sub, about bio, skills, social links, stats,
-  CTA) editable live from `/god` → "Front Page" tab, including a dedicated "About Me" card
+- Landing page (`client/src/pages/Landing.jsx`): minimal personal dev page — single-column
+  hero (name + gradient role, static, no animation), short intro, contact/social buttons,
+  "About" section (bio + skill chips), and a small "Say hello" contact block + footer. Calm
+  dark/red aesthetic: two soft parallax orbs, subtle fade-up entrance, hover lift on buttons.
+  Deliberately NOT SaaS-styled — no stats bar, no feature grid, no scramble/rotating effects.
+- Landing page copy (hero badge/name/role/subtext, about bio, skills, social links [email,
+  GitHub, LinkedIn, Twitter], contact line) editable live from `/god` → "Front Page" tab
 - `site_config` table in DB stores landing page JSON; GET `/api/site-config` (public, consumed
   by `Landing.jsx` on load), PUT `/api/admin/site-config` (admin). Shared defaults live in
   `client/src/utils/siteConfig.js` (`DEFAULT_SITE_CFG`) — imported by both Landing and Admin so
