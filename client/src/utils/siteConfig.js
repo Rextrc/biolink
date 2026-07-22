@@ -9,9 +9,14 @@ export const DEFAULT_SITE_CFG = {
   hero_sub:   'I build things for the web — fast, minimal, made with care.',
   skills: ['JavaScript', 'React', 'Node.js', 'Python', 'SQL', 'Tailwind'],
   links: {
-    github:   '',
-    linkedin: '',
-    twitter:  '',
-    email:    'oliverk5578@gmail.com',
+    github:    '',
+    twitter:   '',
+    linkedin:  '',
+    instagram: '',
+    youtube:   '',
+    twitch:    '',
+    discord:   '',
+    website:   '',
+    email:     'oliverk5578@gmail.com',
   },
 };
