@@ -20,7 +20,9 @@ git add . && git commit -m "..." && git push   # deploy
 ```
 
 ## Routes
-- `/` — Landing page
+- `/` — Landing page (always public; the old `VITE_COMING_SOON` radar coming-soon gate was
+  removed from `App.jsx`, so `pages/ComingSoon.jsx` is now unused. `Login.jsx` still checks the
+  flag to block non-admin login.)
 - `/dashboard` — User dashboard (mobile bottom nav on iPhone)
 - `/god` — Admin panel (admin only)
 - `/inbox` — Email inbox (admin only)
