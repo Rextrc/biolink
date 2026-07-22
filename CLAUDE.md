@@ -37,17 +37,19 @@ git add . && git commit -m "..." && git push   # deploy
 ## Notable features
 - GIF banners, video backgrounds, card glow, Spotify embed on profiles
 - Verified badge (purple checkmark) on admin profiles
-- Landing page (`client/src/pages/Landing.jsx`): typography-first personal dev page, 660px
-  single column on `#050505`. Space Grotesk display lockup ("Olik." white / "Developer." dim),
-  JetBrains Mono accents, film-grain overlay + one faint red halo, numbered mono section labels
-  (01/about, 02/stack, 03/contact) with hairlines, white pill CTA, big animated email link,
-  scroll-reveal sections. Red used only as punctuation (name period, labels, link underlines,
-  selection). Deliberately NOT SaaS-styled — no gradient text, no stats bar, no feature grid.
+- Landing page (`client/src/pages/Landing.jsx`): e-z.bio-style profile card (per owner request,
+  modeled on e-z.bio/8ball). Fullscreen `#050505` viewport, single centered glass card
+  (blur 24px, red glow shadow, gentle mouse tilt ±5°): red-ringed circular avatar (image URL or
+  "o." monogram fallback), name + red period, spaced mono uppercase role, green status dot,
+  one-line bio, wrapping mono skills row with red dots, circular social icon buttons. Behind it:
+  pulsing red halo, rising ember particles, film grain. `© year olik.app` watermark at bottom.
+  No sections/scroll — the card IS the page. NOT SaaS-styled.
 - Package names are `olik-app` / `olik-client` / `olik-server` (renamed from biolink-era names;
   lockfiles kept in sync — if you rename a package, rerun `npm install --package-lock-only`
   there or Railway's `npm ci` fails).
-- Landing page copy (hero badge/name/role/subtext, about bio, skills, social links [email,
-  GitHub, LinkedIn, Twitter], contact line) editable live from `/god` → "Front Page" tab
+- All card content editable live from `/god` → "Front Page" tab (single "Profile Card" panel):
+  avatar_url, hero_name, hero_role, hero_badge (status line), hero_sub (bio line), skills,
+  links {email, github, linkedin, twitter}
 - `site_config` table in DB stores landing page JSON; GET `/api/site-config` (public, consumed
   by `Landing.jsx` on load), PUT `/api/admin/site-config` (admin). Shared defaults live in
   `client/src/utils/siteConfig.js` (`DEFAULT_SITE_CFG`) — imported by both Landing and Admin so

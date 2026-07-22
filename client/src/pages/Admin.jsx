@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../utils/api';
 import { getAuth } from '../utils/auth';
-import { Users, Trash2, Shield, ShieldOff, KeyRound, ExternalLink, Radio, Copy, Plus, Layout, Save, Check, Mail, Download, Search, X, User } from 'lucide-react';
+import { Users, Trash2, Shield, ShieldOff, KeyRound, ExternalLink, Radio, Copy, Plus, Save, Check, Mail, Download, Search, X, User } from 'lucide-react';
 import { DEFAULT_SITE_CFG } from '../utils/siteConfig';
 
 /* ── Landing page defaults (kept in sync with Landing.jsx / utils/siteConfig.js) ── */
@@ -251,24 +251,17 @@ export default function Admin() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20, maxWidth: 680 }}>
             <div style={{ background: '#111', border: `1px solid ${ACCENT_BORD}`, borderRadius: 14, overflow: 'hidden' }}>
               <div style={{ padding: '12px 18px', borderBottom: `1px solid ${ACCENT_BORD}`, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Layout size={14} color={ACCENT} />
-                <span style={{ fontWeight: 600, fontSize: 13 }}>Hero Section</span>
-              </div>
-              <div style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
-                <SInput label="Badge text"      value={siteCfg.hero_badge} onChange={v => setSiteCfg(c => ({ ...c, hero_badge: v }))} />
-                <SInput label="Your name"       value={siteCfg.hero_name}  onChange={v => setSiteCfg(c => ({ ...c, hero_name: v }))} />
-                <SInput label="Role"            value={siteCfg.hero_role}  onChange={v => setSiteCfg(c => ({ ...c, hero_role: v }))} />
-                <SInput label="Subtext"         value={siteCfg.hero_sub}   onChange={v => setSiteCfg(c => ({ ...c, hero_sub: v }))} rows={3} />
-              </div>
-            </div>
-
-            <div style={{ background: '#111', border: `1px solid ${ACCENT_BORD}`, borderRadius: 14, overflow: 'hidden' }}>
-              <div style={{ padding: '12px 18px', borderBottom: `1px solid ${ACCENT_BORD}`, display: 'flex', alignItems: 'center', gap: 8 }}>
                 <User size={14} color={ACCENT} />
-                <span style={{ fontWeight: 600, fontSize: 13 }}>About Me</span>
+                <span style={{ fontWeight: 600, fontSize: 13 }}>Profile Card</span>
               </div>
               <div style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
-                <SInput label="Bio" value={siteCfg.about_bio} onChange={v => setSiteCfg(c => ({ ...c, about_bio: v }))} rows={4} />
+                <SInput label="Avatar image URL (blank = monogram)" value={siteCfg.avatar_url || ''} onChange={v => setSiteCfg(c => ({ ...c, avatar_url: v }))} />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                  <SInput label="Name" value={siteCfg.hero_name} onChange={v => setSiteCfg(c => ({ ...c, hero_name: v }))} />
+                  <SInput label="Role" value={siteCfg.hero_role} onChange={v => setSiteCfg(c => ({ ...c, hero_role: v }))} />
+                </div>
+                <SInput label="Status line (green dot)" value={siteCfg.hero_badge} onChange={v => setSiteCfg(c => ({ ...c, hero_badge: v }))} />
+                <SInput label="Bio line" value={siteCfg.hero_sub} onChange={v => setSiteCfg(c => ({ ...c, hero_sub: v }))} rows={2} />
                 <SInput label="Skills (comma separated)"
                   value={(siteCfg.skills || []).join(', ')}
                   onChange={v => setSiteCfg(c => ({ ...c, skills: v.split(',').map(s => s.trim()).filter(Boolean) }))} />
@@ -278,16 +271,6 @@ export default function Admin() {
                   <SInput label="LinkedIn" value={siteCfg.links?.linkedin || ''} onChange={v => setSiteCfg(c => ({ ...c, links: { ...c.links, linkedin: v } }))} />
                   <SInput label="Twitter"  value={siteCfg.links?.twitter  || ''} onChange={v => setSiteCfg(c => ({ ...c, links: { ...c.links, twitter: v } }))} />
                 </div>
-              </div>
-            </div>
-
-            <div style={{ background: '#111', border: `1px solid ${ACCENT_BORD}`, borderRadius: 14, overflow: 'hidden' }}>
-              <div style={{ padding: '12px 18px', borderBottom: `1px solid ${ACCENT_BORD}`, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Mail size={14} color={ACCENT} />
-                <span style={{ fontWeight: 600, fontSize: 13 }}>Contact Section</span>
-              </div>
-              <div style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
-                <SInput label="Contact line" value={siteCfg.contact_line} onChange={v => setSiteCfg(c => ({ ...c, contact_line: v }))} rows={2} />
               </div>
             </div>
 
