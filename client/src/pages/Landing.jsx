@@ -9,6 +9,29 @@ const DISPLAY = "'Space Grotesk', Inter, sans-serif";
 /* Film-grain overlay, inlined so it costs no request */
 const NOISE = `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`;
 
+/* Base URL each platform is prefixed with when the admin enters a bare
+   username instead of a full link (e.g. "olik" -> "https://github.com/olik").
+   A value that already looks like a URL (has a scheme) is left untouched. */
+const SOCIAL_BASE = {
+  github:    'https://github.com/',
+  twitter:   'https://twitter.com/',
+  linkedin:  'https://linkedin.com/in/',
+  instagram: 'https://instagram.com/',
+  youtube:   'https://youtube.com/@',
+  twitch:    'https://twitch.tv/',
+  discord:   'https://discord.gg/',
+  website:   'https://',
+};
+
+function resolveSocialUrl(platform, raw) {
+  if (!raw) return undefined;
+  const v = raw.trim().replace(/^@/, '');
+  if (!v) return undefined;
+  if (/^https?:\/\//i.test(v)) return v;
+  const base = SOCIAL_BASE[platform];
+  return base ? `${base}${v.replace(/^\/+/, '')}` : `https://${v}`;
+}
+
 /* Ember particles drifting up behind the card — fixed layout so it never reshuffles */
 const EMBERS = [
   { l: 8,  s: 3, d: 0,    t: 13 }, { l: 16, s: 2, d: 4.2, t: 16 },
@@ -59,15 +82,15 @@ export default function Landing() {
   const mailHref = links.email ? `mailto:${links.email}` : undefined;
 
   const socials = [
-    { key: 'github',    label: 'GitHub',    href: links.github,    Icon: Github },
-    { key: 'twitter',   label: 'Twitter',   href: links.twitter,   Icon: Twitter },
-    { key: 'linkedin',  label: 'LinkedIn',  href: links.linkedin,  Icon: Linkedin },
-    { key: 'instagram', label: 'Instagram', href: links.instagram, Icon: Instagram },
-    { key: 'youtube',   label: 'YouTube',   href: links.youtube,   Icon: Youtube },
-    { key: 'twitch',    label: 'Twitch',    href: links.twitch,    Icon: Twitch },
-    { key: 'discord',   label: 'Discord',   href: links.discord,   Icon: MessageCircle },
-    { key: 'website',   label: 'Website',   href: links.website,   Icon: Globe },
-    { key: 'email',     label: 'Email',     href: mailHref,        Icon: Mail },
+    { key: 'github',    label: 'GitHub',    href: resolveSocialUrl('github', links.github),       Icon: Github },
+    { key: 'twitter',   label: 'Twitter',   href: resolveSocialUrl('twitter', links.twitter),     Icon: Twitter },
+    { key: 'linkedin',  label: 'LinkedIn',  href: resolveSocialUrl('linkedin', links.linkedin),   Icon: Linkedin },
+    { key: 'instagram', label: 'Instagram', href: resolveSocialUrl('instagram', links.instagram), Icon: Instagram },
+    { key: 'youtube',   label: 'YouTube',   href: resolveSocialUrl('youtube', links.youtube),     Icon: Youtube },
+    { key: 'twitch',    label: 'Twitch',    href: resolveSocialUrl('twitch', links.twitch),       Icon: Twitch },
+    { key: 'discord',   label: 'Discord',   href: resolveSocialUrl('discord', links.discord),     Icon: MessageCircle },
+    { key: 'website',   label: 'Website',   href: resolveSocialUrl('website', links.website),     Icon: Globe },
+    { key: 'email',     label: 'Email',     href: mailHref,                                       Icon: Mail },
   ].filter(s => s.href);
 
   return (
