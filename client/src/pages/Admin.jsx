@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../utils/api';
 import { getAuth } from '../utils/auth';
-import { Users, Trash2, Shield, ShieldOff, KeyRound, ExternalLink, Radio, Copy, Plus, Save, Check, Mail, Download, Search, X, User } from 'lucide-react';
+import { Users, Trash2, Shield, ShieldOff, KeyRound, ExternalLink, Radio, Copy, Plus, Save, Check, Mail, Download, Search, X, User, Music2 } from 'lucide-react';
 import { DEFAULT_SITE_CFG } from '../utils/siteConfig';
 
 /* ── Landing page defaults (kept in sync with Landing.jsx / utils/siteConfig.js) ── */
@@ -54,6 +54,8 @@ export default function Admin() {
   const [siteCfg, setSiteCfg]         = useState(DEFAULT_CFG);
   const [skillsText, setSkillsText]   = useState((DEFAULT_CFG.skills || []).join(', '));
   const [cfgSaved, setCfgSaved]       = useState(false);
+  const [spotifyStatus, setSpotifyStatus] = useState(null);
+  const [spotifyMsg, setSpotifyMsg]       = useState('');
   const [waitlist, setWaitlist]       = useState([]);
   const [wlSearch, setWlSearch]       = useState('');
   const [wlSort, setWlSort]           = useState('newest');
@@ -63,7 +65,18 @@ export default function Admin() {
     const auth = getAuth();
     if (!auth) return navigate('/login');
     load();
+    loadSpotifyStatus();
+
+    const params = new URLSearchParams(window.location.search);
+    const spotify = params.get('spotify');
+    if (spotify === 'connected') setSpotifyMsg('Spotify connected.');
+    else if (spotify === 'error') setSpotifyMsg('Spotify connection failed — check server env vars and try again.');
+    if (spotify) window.history.replaceState({}, '', window.location.pathname);
   }, []);
+
+  async function loadSpotifyStatus() {
+    try { setSpotifyStatus(await api.admin.spotifyStatus()); } catch { setSpotifyStatus(null); }
+  }
 
   async function load() {
     try {
@@ -302,6 +315,44 @@ export default function Admin() {
                   Leave any field blank to hide that icon on the card. For each field you can paste just your username/handle
                   (e.g. "olik") or a full URL — either works, the site fills in the right domain automatically.
                 </span>
+              </div>
+            </div>
+
+            <div style={{ background: '#111', border: `1px solid ${ACCENT_BORD}`, borderRadius: 14, overflow: 'hidden' }}>
+              <div style={{ padding: '12px 18px', borderBottom: `1px solid ${ACCENT_BORD}`, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Music2 size={14} color={ACCENT} />
+                <span style={{ fontWeight: 600, fontSize: 13 }}>Spotify</span>
+              </div>
+              <div style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', lineHeight: 1.6 }}>
+                  When connected, the card shows a "Now playing" row with live album art whenever you're actively
+                  playing something on Spotify — it disappears automatically when you stop.
+                </span>
+                {spotifyMsg && (
+                  <span style={{ fontSize: 12, color: spotifyMsg.includes('failed') ? '#ff6666' : '#34d399' }}>{spotifyMsg}</span>
+                )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  {spotifyStatus?.connected ? (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: '#34d399' }}>
+                      <Check size={14} /> Connected
+                    </span>
+                  ) : (
+                    <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>Not connected</span>
+                  )}
+                  <a href={`/api/spotify/connect?token=${encodeURIComponent(getAuth().token || '')}`}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: '#fff',
+                      background: '#1DB954', borderRadius: 9, padding: '8px 16px', textDecoration: 'none',
+                    }}>
+                    <Music2 size={13} /> {spotifyStatus?.connected ? 'Reconnect' : 'Connect Spotify'}
+                  </a>
+                </div>
+                {spotifyStatus && !spotifyStatus.configured && (
+                  <span style={{ fontSize: 11, color: 'rgba(255,180,60,0.85)' }}>
+                    Server is missing SPOTIFY_CLIENT_ID / SPOTIFY_CLIENT_SECRET / SPOTIFY_REDIRECT_URI env vars — set
+                    those in Railway before connecting.
+                  </span>
+                )}
               </div>
             </div>
 

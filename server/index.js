@@ -23,6 +23,7 @@ app.use('/api/links',   require('./routes/links'));
 app.use('/api/admin',   require('./routes/admin'));
 app.use('/api/inbox',   require('./routes/inbox'));
 app.use('/api/upload',  require('./routes/upload'));
+app.use('/api/spotify', require('./routes/spotify'));
 
 // Coming soon mode flag
 app.get('/api/mode', (req, res) => {
@@ -54,6 +55,23 @@ app.get('/api/site-config', (req, res) => {
     const row = db.prepare('SELECT data FROM site_config WHERE id=1').get();
     res.json(row ? JSON.parse(row.data) : {});
   } catch { res.json({}); }
+});
+
+// Landing page view counter — POST increments, GET just reads
+app.post('/api/view', (req, res) => {
+  try {
+    const db = require('./db');
+    db.prepare('UPDATE page_views SET count = count + 1 WHERE id = 1').run();
+    const row = db.prepare('SELECT count FROM page_views WHERE id = 1').get();
+    res.json({ count: row?.count ?? 0 });
+  } catch { res.json({ count: 0 }); }
+});
+app.get('/api/view', (req, res) => {
+  try {
+    const db = require('./db');
+    const row = db.prepare('SELECT count FROM page_views WHERE id = 1').get();
+    res.json({ count: row?.count ?? 0 });
+  } catch { res.json({ count: 0 }); }
 });
 
 // Serve uploaded images

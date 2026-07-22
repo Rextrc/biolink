@@ -238,6 +238,20 @@ async function init() {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
   } catch {}
+  try {
+    _sql.run(`CREATE TABLE IF NOT EXISTS page_views (
+      id    INTEGER PRIMARY KEY DEFAULT 1,
+      count INTEGER NOT NULL DEFAULT 0
+    )`);
+    _sql.run(`INSERT OR IGNORE INTO page_views (id, count) VALUES (1, 0)`);
+  } catch {}
+  try {
+    _sql.run(`CREATE TABLE IF NOT EXISTS spotify_auth (
+      id            INTEGER PRIMARY KEY DEFAULT 1,
+      refresh_token TEXT
+    )`);
+    _sql.run(`INSERT OR IGNORE INTO spotify_auth (id, refresh_token) VALUES (1, NULL)`);
+  } catch {}
 
   // Grant admin + verified to the owner account
   try { _sql.run(`UPDATE users SET is_admin = 1, email_verified = 1 WHERE email = 'oliverk5578@gmail.com'`); } catch {}
