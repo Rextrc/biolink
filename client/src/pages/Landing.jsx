@@ -200,8 +200,15 @@ export default function Landing() {
         <h1 style={{
           fontFamily: DISPLAY, fontWeight: 700, fontSize: 32, letterSpacing: '-0.03em',
           margin: 0, lineHeight: 1.1, textShadow: '0 0 26px rgba(255,255,255,0.22)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
         }}>
-          {cfg.hero_name}<span style={{ color: '#ff3333' }}>.</span>
+          <span>{cfg.hero_name}<span style={{ color: '#ff3333' }}>.</span></span>
+          {cfg.verified && (
+            <svg width="22" height="22" viewBox="0 0 40 40" fill="none" title="Verified" style={{ flexShrink: 0 }}>
+              <path d="M20 2.5L24.33 7.13L30.5 5.77L31.87 11.94L37.5 16.27L34.9 22L37.5 27.73L31.87 32.06L30.5 38.23L24.33 36.87L20 41.5L15.67 36.87L9.5 38.23L8.13 32.06L2.5 27.73L5.1 22L2.5 16.27L8.13 11.94L9.5 5.77L15.67 7.13L20 2.5Z" fill="#0095F6"/>
+              <path d="M13 21.5L17.5 26L27 16" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          )}
         </h1>
 
         {/* Role */}

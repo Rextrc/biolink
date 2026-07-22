@@ -268,6 +268,12 @@ export default function Admin() {
                   <SInput label="Name" value={siteCfg.hero_name} onChange={v => setSiteCfg(c => ({ ...c, hero_name: v }))} />
                   <SInput label="Role" value={siteCfg.hero_role} onChange={v => setSiteCfg(c => ({ ...c, hero_role: v }))} />
                 </div>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 9, cursor: 'pointer', userSelect: 'none' }}>
+                  <input type="checkbox" checked={!!siteCfg.verified}
+                    onChange={e => setSiteCfg(c => ({ ...c, verified: e.target.checked }))}
+                    style={{ width: 15, height: 15, accentColor: ACCENT, cursor: 'pointer' }} />
+                  <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>Show verified badge next to name</span>
+                </label>
                 <SInput label="Status line (green dot)" value={siteCfg.hero_badge} onChange={v => setSiteCfg(c => ({ ...c, hero_badge: v }))} />
                 <SInput label="Bio line" value={siteCfg.hero_sub} onChange={v => setSiteCfg(c => ({ ...c, hero_sub: v }))} rows={2} />
                 <SInput label="Skills (comma separated)"

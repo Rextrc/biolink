@@ -3,6 +3,7 @@
    sides always agree on the shape of the site_config JSON blob. */
 export const DEFAULT_SITE_CFG = {
   avatar_url: '',
+  verified: true,
   hero_badge: 'available for work',
   hero_name:  'Olik',
   hero_role:  'Developer',
