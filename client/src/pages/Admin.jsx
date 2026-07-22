@@ -288,6 +288,8 @@ export default function Admin() {
                   <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>Show verified badge next to name</span>
                 </label>
                 <SInput label="Status line (green dot)" value={siteCfg.hero_badge} onChange={v => setSiteCfg(c => ({ ...c, hero_badge: v }))} />
+                <SInput label="Timezone (IANA, drives the live clock)" value={siteCfg.timezone || ''} placeholder="America/New_York"
+                  onChange={v => setSiteCfg(c => ({ ...c, timezone: v }))} />
                 <SInput label="Bio line" value={siteCfg.hero_sub} onChange={v => setSiteCfg(c => ({ ...c, hero_sub: v }))} rows={2} />
                 <SInput label="Skills (comma separated)"
                   value={skillsText}

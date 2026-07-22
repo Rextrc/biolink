@@ -43,11 +43,20 @@ git add . && git commit -m "..." && git push   # deploy
   glare sheen + directional shadow): red-ringed circular avatar (image URL or "o." monogram
   fallback), name + red period + optional verified badge, spaced mono uppercase role, green
   status dot, one-line bio, wrapping mono skills row with red dots, circular social icon
-  buttons, optional "Now playing" Spotify row. Behind the card: pulsing red halo, rising ember
-  particles, film grain (rendered *behind* the card so backdrop-blur softens it — grain painted
-  on top of the card reads as an "orange peel" texture on the glare, so don't move it back
-  in front). `© year olik.app · N visits` watermark at bottom. No sections/scroll — the card IS
-  the page. NOT SaaS-styled.
+  buttons, optional "Now playing" Spotify row, small ember-burst micro-interaction when a social
+  icon is clicked (10 particles radiating out via `bursts` state + `.burst-particle`/`burstFly`
+  keyframe — hold full size/opacity while traveling ~80% of the distance, only shrink+fade in the
+  final third, or the dots visually vanish before they've traveled far enough to read as a burst).
+  Status line can also show a live clock (`timezone` in site config, IANA string, ticks every
+  second via `Intl.DateTimeFormat`) next to the badge text. Behind the card: pulsing red halo,
+  rising ember particles, film grain (rendered *behind* the card so backdrop-blur softens it —
+  grain painted on top of the card reads as an "orange peel" texture on the glare, so don't move
+  it back in front). `© year olik.app · N visits` watermark at bottom. No sections/scroll — the
+  card IS the page. NOT SaaS-styled.
+- Browser tab title rotates o -> l -> i -> k (0.5s each) while the tab is active/visible; pauses
+  on a static "OLIK" via the `visibilitychange` event when the tab isn't focused, so switching
+  away is what actually shows in the tab strip. Restores the static "Olik — Developer" title on
+  unmount.
 - Verified badge: blue Instagram-style checkmark next to the name (reuses the exact SVG from
   `ProfileView.jsx`'s admin badge). Toggle: `verified` in site config / "Show verified badge"
   checkbox in `/god`.
@@ -74,11 +83,14 @@ git add . && git commit -m "..." && git push   # deploy
   lockfiles kept in sync — if you rename a package, rerun `npm install --package-lock-only`
   there or Railway's `npm ci` fails).
 - All card content editable live from `/god` → "Front Page" tab: "Profile Card" panel
-  (avatar_url, hero_name, hero_role, verified, hero_badge (status line), hero_sub (bio line),
-  skills, links {email, github, twitter, linkedin, instagram, youtube, twitch, discord,
-  website}) and a separate "Spotify" panel (connect/status). Social link fields accept either a
-  bare username or a full URL — `resolveSocialUrl()` in `Landing.jsx` prefixes bare values with
-  the right domain so they don't resolve as relative `olik.app/...` paths.
+  (avatar_url, hero_name, hero_role, verified, timezone, hero_badge (status line), hero_sub
+  (bio line), skills, links {email, github, twitter, linkedin, instagram, photography, youtube,
+  twitch, discord, website}) and a separate "Spotify" panel (connect/status). Social link fields
+  accept either a bare username or a full URL — `resolveSocialUrl()` in `Landing.jsx` prefixes
+  bare values with the right domain so they don't resolve as relative `olik.app/...` paths.
+  `photography` is a second, distinct Instagram account (camera icon instead of the Instagram
+  glyph so it doesn't read as a duplicate) — both instagram links can be filled in and shown at
+  once, they're independent fields, not a fallback for each other.
 - `site_config` table in DB stores landing page JSON; GET `/api/site-config` (public, consumed
   by `Landing.jsx` on load), PUT `/api/admin/site-config` (admin). Shared defaults live in
   `client/src/utils/siteConfig.js` (`DEFAULT_SITE_CFG`) — imported by both Landing and Admin so

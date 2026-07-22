@@ -49,6 +49,8 @@ export default function Landing() {
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
   const [viewCount, setViewCount] = useState(null);
   const [nowPlaying, setNowPlaying] = useState(null);
+  const [clock, setClock] = useState('');
+  const [bursts, setBursts] = useState([]);
   const cardRef = useRef(null);
 
   useEffect(() => {
@@ -82,17 +84,52 @@ export default function Landing() {
   }, []);
 
   // Rotating browser-tab title: o -> l -> i -> k -> loop, 0.5s each.
+  // Pauses on a static "OLIK" while the tab isn't the active one, so
+  // switching away is what glancing at the tab strip actually shows.
   useEffect(() => {
     const original = document.title;
     const letters = ['o', 'l', 'i', 'k'];
     let i = 0;
-    document.title = letters[0];
-    const t = setInterval(() => {
-      i = (i + 1) % letters.length;
-      document.title = letters[i];
-    }, 500);
-    return () => { clearInterval(t); document.title = original; };
+    let intervalId = null;
+
+    const start = () => {
+      i = 0;
+      document.title = letters[0];
+      intervalId = setInterval(() => {
+        i = (i + 1) % letters.length;
+        document.title = letters[i];
+      }, 500);
+    };
+    const stop = () => { clearInterval(intervalId); intervalId = null; };
+
+    const onVisibility = () => {
+      if (document.hidden) { stop(); document.title = 'OLIK'; }
+      else start();
+    };
+
+    start();
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      stop();
+      document.removeEventListener('visibilitychange', onVisibility);
+      document.title = original;
+    };
   }, []);
+
+  // Live clock in Olik's own timezone (not the visitor's) — ticks every second.
+  useEffect(() => {
+    const tz = cfg.timezone || DEFAULT_SITE_CFG.timezone;
+    const fmt = () => {
+      try {
+        setClock(new Intl.DateTimeFormat('en-US', {
+          timeZone: tz, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+        }).format(new Date()));
+      } catch { setClock(''); }
+    };
+    fmt();
+    const t = setInterval(fmt, 1000);
+    return () => clearInterval(t);
+  }, [cfg.timezone]);
 
   useEffect(() => {
     const onMove = (e) => {
@@ -128,6 +165,21 @@ export default function Landing() {
     { key: 'website',   label: 'Website',   href: resolveSocialUrl('website', links.website),     Icon: Globe },
     { key: 'email',     label: 'Email',     href: mailHref,                                       Icon: Mail },
   ].filter(s => s.href);
+
+  // Small ember burst radiating from wherever a social icon was clicked.
+  // Purely decorative — never blocks the link's normal navigation.
+  function triggerBurst(e) {
+    const r = e.currentTarget.getBoundingClientRect();
+    const id = `${Date.now()}-${Math.random()}`;
+    const particles = Array.from({ length: 10 }, (_, i) => {
+      const angle = (360 / 10) * i + (Math.random() * 24 - 12);
+      const dist = 30 + Math.random() * 22;
+      const rad = (angle * Math.PI) / 180;
+      return { dx: Math.cos(rad) * dist, dy: Math.sin(rad) * dist, warm: i % 2 === 0 };
+    });
+    setBursts(b => [...b, { id, x: r.left + r.width / 2, y: r.top + r.height / 2, particles }]);
+    setTimeout(() => setBursts(b => b.filter(burst => burst.id !== id)), 650);
+  }
 
   return (
     <div style={{
@@ -165,6 +217,16 @@ export default function Landing() {
         .eq-bar { width: 3px; border-radius: 2px; background: #1DB954; animation: eqBounce 0.9s ease-in-out infinite; }
         .now-playing { transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease; }
         .now-playing:hover { border-color: rgba(29,185,84,0.5); background: rgba(29,185,84,0.1); transform: translateY(-2px); }
+
+        @keyframes burstFly {
+          0%   { transform: translate(0, 0) scale(1); opacity: 1; }
+          65%  { transform: translate(calc(var(--dx) * 0.8), calc(var(--dy) * 0.8)) scale(1); opacity: 1; }
+          100% { transform: translate(var(--dx), var(--dy)) scale(0.3); opacity: 0; }
+        }
+        .burst-particle {
+          position: absolute; top: -3px; left: -3px; width: 6px; height: 6px; border-radius: 50%;
+          animation: burstFly 0.6s ease-out forwards;
+        }
       `}</style>
 
       {/* Halo behind the card */}
@@ -191,6 +253,19 @@ export default function Landing() {
       {/* Grain — sits behind the card so the backdrop-blur softens it naturally,
           instead of texturing the sheen/text on top like an "orange peel". */}
       <div style={{ position: 'fixed', inset: 0, zIndex: 1, pointerEvents: 'none', backgroundImage: NOISE, opacity: 0.025 }} />
+
+      {/* Ember bursts fired from clicked social icons */}
+      {bursts.map(burst => (
+        <div key={burst.id} style={{ position: 'fixed', left: burst.x, top: burst.y, zIndex: 50, pointerEvents: 'none' }}>
+          {burst.particles.map((p, i) => (
+            <span key={i} className="burst-particle" style={{
+              '--dx': `${p.dx}px`, '--dy': `${p.dy}px`,
+              background: p.warm ? '#ff3333' : '#ff9999',
+              boxShadow: `0 0 6px ${p.warm ? 'rgba(255,40,40,0.7)' : 'rgba(255,140,140,0.6)'}`,
+            }} />
+          ))}
+        </div>
+      ))}
 
       {/* Profile card */}
       <div
@@ -259,10 +334,16 @@ export default function Landing() {
         </div>
 
         {/* Status */}
-        {cfg.hero_badge && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, marginTop: 16 }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#2fd575', boxShadow: '0 0 9px rgba(47,213,117,0.6)', animation: 'breathe 2.6s ease-in-out infinite' }} />
-            <span style={{ fontFamily: MONO, fontSize: 11.5, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.42)' }}>{cfg.hero_badge}</span>
+        {(cfg.hero_badge || clock) && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, marginTop: 16, flexWrap: 'wrap' }}>
+            {cfg.hero_badge && <>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#2fd575', boxShadow: '0 0 9px rgba(47,213,117,0.6)', animation: 'breathe 2.6s ease-in-out infinite' }} />
+              <span style={{ fontFamily: MONO, fontSize: 11.5, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.42)' }}>{cfg.hero_badge}</span>
+            </>}
+            {cfg.hero_badge && clock && <span style={{ color: 'rgba(255,255,255,0.2)' }}>·</span>}
+            {clock && (
+              <span style={{ fontFamily: MONO, fontSize: 11.5, letterSpacing: '0.06em', color: 'rgba(255,255,255,0.3)' }}>{clock}</span>
+            )}
           </div>
         )}
 
@@ -293,7 +374,7 @@ export default function Landing() {
           <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginTop: 26 }}>
             {socials.map(({ key, label, href, Icon }) => (
               <a key={key} href={href} className="icon-btn" aria-label={label} title={label}
-                target={key === 'email' ? undefined : '_blank'} rel="noreferrer">
+                target={key === 'email' ? undefined : '_blank'} rel="noreferrer" onClick={triggerBurst}>
                 <Icon size={18} strokeWidth={1.8} />
               </a>
             ))}

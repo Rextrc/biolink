@@ -4,6 +4,7 @@
 export const DEFAULT_SITE_CFG = {
   avatar_url: '',
   verified: true,
+  timezone: 'America/New_York',
   hero_badge: 'available for work',
   hero_name:  'Olik',
   hero_role:  'Developer',
