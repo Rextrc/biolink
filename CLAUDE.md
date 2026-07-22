@@ -20,9 +20,9 @@ git add . && git commit -m "..." && git push   # deploy
 ```
 
 ## Routes
-- `/` — Landing page (always public; the old `VITE_COMING_SOON` radar coming-soon gate was
-  removed from `App.jsx`, so `pages/ComingSoon.jsx` is now unused. `Login.jsx` still checks the
-  flag to block non-admin login.)
+- `/` — Landing page (always public; the old `VITE_COMING_SOON` radar coming-soon gate and
+  `pages/ComingSoon.jsx` were removed entirely. `Login.jsx` still checks the flag to block
+  non-admin login.)
 - `/dashboard` — User dashboard (mobile bottom nav on iPhone)
 - `/god` — Admin panel (admin only)
 - `/inbox` — Email inbox (admin only)
@@ -37,11 +37,15 @@ git add . && git commit -m "..." && git push   # deploy
 ## Notable features
 - GIF banners, video backgrounds, card glow, Spotify embed on profiles
 - Verified badge (purple checkmark) on admin profiles
-- Landing page (`client/src/pages/Landing.jsx`): minimal personal dev page — single-column
-  hero (name + gradient role, static, no animation), short intro, contact/social buttons,
-  "About" section (bio + skill chips), and a small "Say hello" contact block + footer. Calm
-  dark/red aesthetic: two soft parallax orbs, subtle fade-up entrance, hover lift on buttons.
-  Deliberately NOT SaaS-styled — no stats bar, no feature grid, no scramble/rotating effects.
+- Landing page (`client/src/pages/Landing.jsx`): typography-first personal dev page, 660px
+  single column on `#050505`. Space Grotesk display lockup ("Olik." white / "Developer." dim),
+  JetBrains Mono accents, film-grain overlay + one faint red halo, numbered mono section labels
+  (01/about, 02/stack, 03/contact) with hairlines, white pill CTA, big animated email link,
+  scroll-reveal sections. Red used only as punctuation (name period, labels, link underlines,
+  selection). Deliberately NOT SaaS-styled — no gradient text, no stats bar, no feature grid.
+- Package names are `olik-app` / `olik-client` / `olik-server` (renamed from biolink-era names;
+  lockfiles kept in sync — if you rename a package, rerun `npm install --package-lock-only`
+  there or Railway's `npm ci` fails).
 - Landing page copy (hero badge/name/role/subtext, about bio, skills, social links [email,
   GitHub, LinkedIn, Twitter], contact line) editable live from `/god` → "Front Page" tab
 - `site_config` table in DB stores landing page JSON; GET `/api/site-config` (public, consumed

@@ -257,7 +257,7 @@ export default function Admin() {
               <div style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <SInput label="Badge text"      value={siteCfg.hero_badge} onChange={v => setSiteCfg(c => ({ ...c, hero_badge: v }))} />
                 <SInput label="Your name"       value={siteCfg.hero_name}  onChange={v => setSiteCfg(c => ({ ...c, hero_name: v }))} />
-                <SInput label="Role (gradient)" value={siteCfg.hero_role}  onChange={v => setSiteCfg(c => ({ ...c, hero_role: v }))} />
+                <SInput label="Role"            value={siteCfg.hero_role}  onChange={v => setSiteCfg(c => ({ ...c, hero_role: v }))} />
                 <SInput label="Subtext"         value={siteCfg.hero_sub}   onChange={v => setSiteCfg(c => ({ ...c, hero_sub: v }))} rows={3} />
               </div>
             </div>
