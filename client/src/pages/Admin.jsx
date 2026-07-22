@@ -2,22 +2,11 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../utils/api';
 import { getAuth } from '../utils/auth';
-import { Users, Trash2, Shield, ShieldOff, KeyRound, ExternalLink, Radio, Copy, Plus, Layout, Save, Check, Mail, Download, Search, X } from 'lucide-react';
+import { Users, Trash2, Shield, ShieldOff, KeyRound, ExternalLink, Radio, Copy, Plus, Layout, Save, Check, Mail, Download, Search, X, User } from 'lucide-react';
+import { DEFAULT_SITE_CFG } from '../utils/siteConfig';
 
-/* ── Radar landing defaults (kept in sync with Landing.jsx) ─────────────── */
-const DEFAULT_CFG = {
-  hero_badge: 'invite only — situational awareness',
-  hero_line1: 'See everything.',
-  hero_line2: 'Stay ahead.',
-  hero_sub:   'Real-time public safety radar. GPS-tracked map, live scanner activity, signal predictions, and AI tactical briefings. For those who need to know.',
-  stats: [
-    { val: 30,  suffix: 's', label: 'Refresh interval' },
-    { val: 100, suffix: '%', label: 'Public data only' },
-    { val: 6,   suffix: '+', label: 'Feed sources' },
-  ],
-  cta_title: 'Ready to see more?',
-  cta_sub:   'OLIK radar is invite only. Get your key from someone inside, or request access.',
-};
+/* ── Landing page defaults (kept in sync with Landing.jsx / utils/siteConfig.js) ── */
+const DEFAULT_CFG = DEFAULT_SITE_CFG;
 
 /* ── Theme tokens ──────────────────────────────────────────────────────── */
 const ACCENT       = '#ff2222';
@@ -61,7 +50,7 @@ export default function Admin() {
       setUsers(u);
       setKeys(k);
       setWaitlist(wl);
-      if (cfg && Object.keys(cfg).length > 0) setSiteCfg({ ...DEFAULT_CFG, ...cfg });
+      if (cfg && Object.keys(cfg).length > 0) setSiteCfg({ ...DEFAULT_CFG, ...cfg, links: { ...DEFAULT_CFG.links, ...(cfg.links || {}) } });
     } catch { navigate('/dashboard'); }
   }
 
@@ -266,10 +255,30 @@ export default function Admin() {
                 <span style={{ fontWeight: 600, fontSize: 13 }}>Hero Section</span>
               </div>
               <div style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
-                <SInput label="Badge text"                  value={siteCfg.hero_badge} onChange={v => setSiteCfg(c => ({ ...c, hero_badge: v }))} />
-                <SInput label="Headline line 1"             value={siteCfg.hero_line1} onChange={v => setSiteCfg(c => ({ ...c, hero_line1: v }))} />
-                <SInput label="Headline line 2 (gradient)"  value={siteCfg.hero_line2} onChange={v => setSiteCfg(c => ({ ...c, hero_line2: v }))} />
-                <SInput label="Subtext"                     value={siteCfg.hero_sub}   onChange={v => setSiteCfg(c => ({ ...c, hero_sub: v }))} rows={3} />
+                <SInput label="Badge text"                    value={siteCfg.hero_badge}   onChange={v => setSiteCfg(c => ({ ...c, hero_badge: v }))} />
+                <SInput label="Your name"                     value={siteCfg.hero_name}    onChange={v => setSiteCfg(c => ({ ...c, hero_name: v }))} />
+                <SInput label="Role (glitches in from name)"  value={siteCfg.hero_role}    onChange={v => setSiteCfg(c => ({ ...c, hero_role: v }))} />
+                <SInput label="Tagline (gradient line)"       value={siteCfg.hero_tagline} onChange={v => setSiteCfg(c => ({ ...c, hero_tagline: v }))} />
+                <SInput label="Subtext"                       value={siteCfg.hero_sub}     onChange={v => setSiteCfg(c => ({ ...c, hero_sub: v }))} rows={3} />
+              </div>
+            </div>
+
+            <div style={{ background: '#111', border: `1px solid ${ACCENT_BORD}`, borderRadius: 14, overflow: 'hidden' }}>
+              <div style={{ padding: '12px 18px', borderBottom: `1px solid ${ACCENT_BORD}`, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <User size={14} color={ACCENT} />
+                <span style={{ fontWeight: 600, fontSize: 13 }}>About Me</span>
+              </div>
+              <div style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <SInput label="Bio" value={siteCfg.about_bio} onChange={v => setSiteCfg(c => ({ ...c, about_bio: v }))} rows={4} />
+                <SInput label="Skills (comma separated)"
+                  value={(siteCfg.skills || []).join(', ')}
+                  onChange={v => setSiteCfg(c => ({ ...c, skills: v.split(',').map(s => s.trim()).filter(Boolean) }))} />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                  <SInput label="Email"    value={siteCfg.links?.email    || ''} onChange={v => setSiteCfg(c => ({ ...c, links: { ...c.links, email: v } }))} />
+                  <SInput label="GitHub"   value={siteCfg.links?.github   || ''} onChange={v => setSiteCfg(c => ({ ...c, links: { ...c.links, github: v } }))} />
+                  <SInput label="LinkedIn" value={siteCfg.links?.linkedin || ''} onChange={v => setSiteCfg(c => ({ ...c, links: { ...c.links, linkedin: v } }))} />
+                  <SInput label="Twitter"  value={siteCfg.links?.twitter  || ''} onChange={v => setSiteCfg(c => ({ ...c, links: { ...c.links, twitter: v } }))} />
+                </div>
               </div>
             </div>
 

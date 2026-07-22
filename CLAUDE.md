@@ -1,6 +1,8 @@
-# olik.app — Bio Link Platform
+# olik.app — Personal Dev Landing Page + Bio Link Platform
 
-Invite-only bio link platform. Owner: oli (oliverk5578@gmail.com).
+`/` is Olik's personal developer landing page (hero, skills, about me, contact). The invite-only
+bio link/dashboard platform (auth, `/dashboard`, `/god`, invite keys) still runs underneath —
+only the public landing page content changed. Owner: oli (oliverk5578@gmail.com).
 
 ## Deploy
 Push to `master` → Railway auto-deploys. GitHub: `Rextrc/biolink`.
@@ -33,11 +35,18 @@ git add . && git commit -m "..." && git push   # deploy
 ## Notable features
 - GIF banners, video backgrounds, card glow, Spotify embed on profiles
 - Verified badge (purple checkmark) on admin profiles
-- 3D tilt card on landing page hero with interactive preview links + Spotify equalizer
+- Landing page (`client/src/pages/Landing.jsx`): personal dev portfolio — hero (name/role glitch
+  effect, tagline, subtext), fake code-editor preview card, count-up stats bar, 3D tilt skill
+  cards (Frontend/Backend/Databases/Cloud/Design/OSS), "About me" glass card (bio, skill chips,
+  social links), contact CTA
 - Parallax orb background + floating particles + spinning orbital rings on landing hero
-- Magnetic CTA button, 3D tilt feature cards, terminal/coding screen section on landing
-- Landing page copy (hero, stats, CTA) editable live from `/god` → "Front Page" tab
-- `site_config` table in DB stores landing page JSON; GET `/api/site-config` (public), PUT `/api/admin/site-config` (admin)
+- Magnetic CTA button, 3D tilt cards, terminal/code-editor preview on landing hero
+- Landing page copy (hero name/role/tagline/badge/sub, about bio, skills, social links, stats,
+  CTA) editable live from `/god` → "Front Page" tab, including a dedicated "About Me" card
+- `site_config` table in DB stores landing page JSON; GET `/api/site-config` (public, consumed
+  by `Landing.jsx` on load), PUT `/api/admin/site-config` (admin). Shared defaults live in
+  `client/src/utils/siteConfig.js` (`DEFAULT_SITE_CFG`) — imported by both Landing and Admin so
+  they never drift.
 - File upload via multer → `/app/data/uploads/`
 - Email via Resend from `verify@olik.app`
 

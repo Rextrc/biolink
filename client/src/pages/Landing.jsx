@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ArrowRight, Radio, MapPin, Shield, Zap, Mic, Navigation } from 'lucide-react';
+import { ArrowRight, Terminal, Code2, Server, Database, Cloud, Palette, GitBranch, Github, Linkedin, Twitter, Mail } from 'lucide-react';
 import { getAuth } from '../utils/auth';
+import { api } from '../utils/api';
+import { DEFAULT_SITE_CFG } from '../utils/siteConfig';
 
 function useInView(threshold = 0.15) {
   const ref = useRef(null);
@@ -35,6 +37,7 @@ function GlitchWord({ from, to }) {
   const [text, setText] = useState(from);
   const [glitching, setGlitching] = useState(false);
   useEffect(() => {
+    setText(from);
     const start = setTimeout(() => {
       setGlitching(true);
       let iter = 0;
@@ -50,7 +53,7 @@ function GlitchWord({ from, to }) {
       return () => clearInterval(interval);
     }, 1400);
     return () => clearTimeout(start);
-  }, [to]);
+  }, [from, to]);
   return (
     <span style={{ display: 'block', marginBottom: 8, fontFamily: glitching ? 'monospace' : 'inherit', letterSpacing: glitching ? '-0.02em' : '-0.05em', transition: 'letter-spacing 0.4s', color: glitching ? '#fca5a5' : '#fff' }}>
       {text}
@@ -77,86 +80,48 @@ function MagneticButton({ children, style, ...props }) {
   );
 }
 
-/* Fake HUD preview card */
-function HudPreviewCard() {
-  const [tick, setTick] = useState(0);
+/* Fake code editor preview card — dev-flavored replacement for the old HUD map card */
+function CodeCard({ name, role }) {
+  const [blink, setBlink] = useState(true);
   useEffect(() => {
-    const t = setInterval(() => setTick(v => v + 1), 1800);
+    const t = setInterval(() => setBlink(v => !v), 600);
     return () => clearInterval(t);
   }, []);
 
-  const events = [
-    { type: 'Traffic Stop',    dist: '0.4 km', prio: 'MEDIUM' },
-    { type: 'Accident – PD',   dist: '1.1 km', prio: 'HIGH'   },
-    { type: 'Road Hazard',     dist: '2.3 km', prio: 'MEDIUM' },
-  ];
-
-  const signals = [
-    { name: 'Main & 1st', state: tick % 3 === 0 ? 'LIKELY RED' : tick % 3 === 1 ? 'POSSIBLY SOON' : 'LIKELY GREEN', color: tick % 3 === 0 ? '#ff2222' : tick % 3 === 1 ? '#ff8800' : '#333' },
-    { name: 'Oak & 5th',  state: tick % 3 === 2 ? 'LIKELY RED' : 'LIKELY GREEN', color: tick % 3 === 2 ? '#ff2222' : '#333' },
-  ];
+  const stack = ['React', 'Node', 'Postgres'];
 
   return (
     <div style={{
-      width: 270, borderRadius: 12, background: 'rgba(8,0,0,0.97)',
+      width: 280, borderRadius: 12, background: 'rgba(8,0,0,0.97)',
       border: '1px solid rgba(255,26,26,0.4)',
       boxShadow: '0 0 40px rgba(255,26,26,0.15), 0 20px 60px rgba(0,0,0,0.8)',
       fontFamily: "'Courier New', monospace", overflow: 'hidden',
     }}>
-      {/* Mock map area */}
-      <div style={{ height: 120, background: 'linear-gradient(135deg, #0a0000 0%, #110000 50%, #0a0005 100%)', position: 'relative', borderBottom: '1px solid rgba(255,26,26,0.2)', overflow: 'hidden' }}>
-        {/* Grid lines */}
-        {[20,40,60,80].map(x => <div key={x} style={{ position:'absolute', left:`${x}%`, top:0, bottom:0, width:1, background:'rgba(255,26,26,0.06)' }} />)}
-        {[33,66].map(y => <div key={y} style={{ position:'absolute', top:`${y}%`, left:0, right:0, height:1, background:'rgba(255,26,26,0.06)' }} />)}
-        {/* Route line */}
-        <svg style={{ position:'absolute', inset:0, width:'100%', height:'100%' }}>
-          <path d="M 30,90 Q 80,60 130,50 Q 180,40 240,30" stroke="#ff1a1a" strokeWidth="2.5" fill="none" strokeLinecap="round" opacity="0.9"/>
-          <path d="M 30,90 Q 80,60 130,50 Q 180,40 240,30" stroke="#ff4444" strokeWidth="8" fill="none" strokeLinecap="round" opacity="0.15"/>
-        </svg>
-        {/* User dot */}
-        <div style={{ position:'absolute', left:26, top:82, width:10, height:10, borderRadius:'50%', background:'#fff', border:'2px solid #ff1a1a', boxShadow:'0 0 8px rgba(255,26,26,0.8)' }} />
-        {/* Event dots */}
-        <div style={{ position:'absolute', left:90, top:48, width:7, height:7, borderRadius:'50%', background:'#1a8cff', boxShadow:'0 0 10px rgba(26,140,255,0.7)' }} />
-        <div style={{ position:'absolute', left:155, top:38, width:7, height:7, borderRadius:'50%', background:'#1a8cff', boxShadow:'0 0 10px rgba(26,140,255,0.7)' }} />
-        {/* Signal dots */}
-        <div style={{ position:'absolute', left:130, top:44, width:6, height:6, borderRadius:'50%', background: signals[0].color, boxShadow:`0 0 8px ${signals[0].color}` }} />
-        {/* HUD label */}
-        <div style={{ position:'absolute', top:6, left:8, fontSize:9, color:'rgba(255,26,26,0.7)', letterSpacing:'0.15em' }}>J.A.R.V.I.S HUD</div>
-        <div style={{ position:'absolute', top:6, right:8, fontSize:8, color:'rgba(255,26,26,0.5)', letterSpacing:'0.1em' }}>GPS ●</div>
+      {/* Window chrome */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 10px', borderBottom: '1px solid rgba(255,26,26,0.2)', background: 'linear-gradient(135deg, #0a0000 0%, #110000 100%)' }}>
+        <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ff5f56' }} />
+        <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ffbd2e' }} />
+        <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#27c93f' }} />
+        <span style={{ marginLeft: 6, fontSize: 9, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.05em' }}>olik.dev</span>
       </div>
 
-      {/* Panel */}
-      <div style={{ padding: '8px 10px', display:'flex', flexDirection:'column', gap:5 }}>
-        <div style={{ fontSize:9, color:'#ff1a1a', letterSpacing:'0.2em', borderBottom:'1px solid rgba(255,26,26,0.2)', paddingBottom:5, display:'flex', justifyContent:'space-between' }}>
-          <span>POLICE ACTIVITY</span>
-          <span style={{ color:'rgba(255,26,26,0.5)' }}>{events.length} ACTIVE</span>
-        </div>
+      {/* Code body */}
+      <div style={{ padding: '14px 16px', fontSize: 11, lineHeight: 1.85 }}>
+        <div><span style={{ color: '#ff6666' }}>const</span> <span style={{ color: '#7dd3fc' }}>dev</span> <span style={{ color: 'rgba(255,255,255,0.5)' }}>=</span> <span style={{ color: 'rgba(255,255,255,0.5)' }}>{'{'}</span></div>
+        <div style={{ paddingLeft: 16 }}><span style={{ color: '#ffaaaa' }}>name</span><span style={{ color: 'rgba(255,255,255,0.4)' }}>:</span> <span style={{ color: '#a3e635' }}>"{name}"</span><span style={{ color: 'rgba(255,255,255,0.4)' }}>,</span></div>
+        <div style={{ paddingLeft: 16 }}><span style={{ color: '#ffaaaa' }}>role</span><span style={{ color: 'rgba(255,255,255,0.4)' }}>:</span> <span style={{ color: '#a3e635' }}>"{role}"</span><span style={{ color: 'rgba(255,255,255,0.4)' }}>,</span></div>
+        <div style={{ paddingLeft: 16 }}><span style={{ color: '#ffaaaa' }}>stack</span><span style={{ color: 'rgba(255,255,255,0.4)' }}>:</span> <span style={{ color: 'rgba(255,255,255,0.5)' }}>[</span><span style={{ color: '#a3e635' }}>{stack.map(s => `"${s}"`).join(', ')}</span><span style={{ color: 'rgba(255,255,255,0.5)' }}>]</span><span style={{ color: 'rgba(255,255,255,0.4)' }}>,</span></div>
+        <div style={{ paddingLeft: 16 }}><span style={{ color: '#ffaaaa' }}>status</span><span style={{ color: 'rgba(255,255,255,0.4)' }}>:</span> <span style={{ color: '#a3e635' }}>"shipping"</span><span style={{ opacity: blink ? 1 : 0, color: '#ff4444' }}>▍</span></div>
+        <div><span style={{ color: 'rgba(255,255,255,0.5)' }}>{'};'}</span></div>
+      </div>
 
-        {/* Signals */}
-        <div style={{ display:'flex', gap:4 }}>
-          {signals.map(s => (
-            <div key={s.name} style={{ flex:1, border:`1px solid ${s.color}`, borderRadius:3, padding:'3px 5px' }}>
-              <div style={{ fontSize:7, color:'#666', letterSpacing:'0.05em' }}>{s.name}</div>
-              <div style={{ fontSize:7, color:s.color, fontWeight:'bold', letterSpacing:'0.05em' }}>{s.state}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* Events */}
-        {events.slice(0,2).map(ev => (
-          <div key={ev.type} style={{ background:'rgba(30,0,0,0.8)', border:'1px solid rgba(255,26,26,0.2)', borderRadius:3, padding:'4px 7px', borderLeft:'2px solid #ff1a1a' }}>
-            <div style={{ display:'flex', justifyContent:'space-between' }}>
-              <span style={{ fontSize:8, color:'#ff4444', letterSpacing:'0.08em' }}>{ev.type}</span>
-              <span style={{ fontSize:7, color: ev.prio === 'HIGH' ? '#ff6600' : '#ffcc00', letterSpacing:'0.06em' }}>{ev.prio}</span>
-            </div>
-            <div style={{ fontSize:7, color:'#664444', marginTop:1 }}>{ev.dist} away</div>
-          </div>
-        ))}
-
-        {/* Speak brief button */}
-        <div style={{ marginTop:2, border:'1px solid rgba(26,140,255,0.5)', borderRadius:3, padding:'4px 8px', fontSize:8, color:'#1a8cff', letterSpacing:'0.12em', textAlign:'center' }}>
-          ⬡ SPEAK BRIEF
-        </div>
+      {/* Footer status bar */}
+      <div style={{ padding: '8px 14px', borderTop: '1px solid rgba(255,26,26,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 9, color: '#34d399', letterSpacing: '0.1em' }}>
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#34d399', animation: 'pulse 2s infinite' }} />
+          AVAILABLE FOR WORK
+        </span>
+        <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)' }}>v1.0</span>
       </div>
     </div>
   );
@@ -199,15 +164,26 @@ function Feature3D({ icon, title, desc, accent, delay, visible }) {
   );
 }
 
+const SKILL_AREAS = [
+  { key: 'frontend', icon: <Code2 size={18} color="#ff4444" />,     title: 'Frontend Engineering', desc: 'React, TypeScript, and pixel-tight UI — built to feel fast and hold up under real use.', accent: '#ff2222' },
+  { key: 'backend',  icon: <Server size={18} color="#1a8cff" />,    title: 'Backend & APIs',       desc: 'Node and Python services, REST and realtime, designed to scale without falling over.', accent: '#1a8cff' },
+  { key: 'data',     icon: <Database size={18} color="#ff8800" />,  title: 'Databases',            desc: 'Schema design, query tuning, and data models that stay sane as the product grows.', accent: '#ff8800' },
+  { key: 'cloud',    icon: <Cloud size={18} color="#34d399" />,     title: 'Cloud & DevOps',        desc: 'CI/CD, containers, and deploys that just work — from a single VM to autoscaling infra.', accent: '#10b981' },
+  { key: 'design',   icon: <Palette size={18} color="#ff6666" />,   title: 'UI/UX & Design',        desc: 'Interfaces that look considered — motion, spacing, and detail treated as first-class.', accent: '#ff4444' },
+  { key: 'oss',      icon: <GitBranch size={18} color="#a78bfa" />, title: 'Open Source',            desc: 'I ship in the open when I can, and read other people\'s code even when I don\'t have to.', accent: '#8b5cf6' },
+];
+
 export default function Landing() {
   const navigate = useNavigate();
   const { isLoggedIn } = getAuth();
   const [scrollY, setScrollY] = useState(0);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [cfg, setCfg] = useState(DEFAULT_SITE_CFG);
 
   const [heroRef,  heroVisible]  = useInView(0.1);
   const [featRef,  featVisible]  = useInView(0.1);
   const [statsRef, statsVisible] = useInView(0.3);
+  const [aboutRef, aboutVisible] = useInView(0.2);
   const [ctaRef,   ctaVisible]   = useInView(0.2);
 
   useEffect(() => {
@@ -218,6 +194,19 @@ export default function Landing() {
     return () => { window.removeEventListener('scroll', onScroll); window.removeEventListener('mousemove', onMouse); };
   }, []);
 
+  useEffect(() => {
+    api.getSiteConfig().then(data => {
+      if (data && Object.keys(data).length > 0) {
+        setCfg(c => ({ ...c, ...data, links: { ...c.links, ...(data.links || {}) } }));
+      }
+    }).catch(() => {});
+  }, []);
+
+  const skills = cfg.skills?.length ? cfg.skills : DEFAULT_SITE_CFG.skills;
+  const stats  = cfg.stats?.length  ? cfg.stats  : DEFAULT_SITE_CFG.stats;
+  const links  = cfg.links || DEFAULT_SITE_CFG.links;
+  const mailHref = links.email ? `mailto:${links.email}` : undefined;
+
   return (
     <div style={{ minHeight: '100vh', background: '#050508', color: '#fff', fontFamily: 'Inter, sans-serif', overflowX: 'hidden' }}>
       <style>{`
@@ -226,10 +215,8 @@ export default function Landing() {
         @keyframes spinRing { from { transform: rotateX(72deg) rotate(0deg); } to { transform: rotateX(72deg) rotate(360deg); } }
         @keyframes spinRingB { from { transform: rotateX(60deg) rotateY(30deg) rotate(0deg); } to { transform: rotateX(60deg) rotateY(30deg) rotate(-360deg); } }
         @keyframes pulse { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
-        @keyframes radarSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         .feat-ring  { animation: spinRing  12s linear infinite; }
         .feat-ring-b{ animation: spinRingB 18s linear infinite; }
-        .radar-sweep{ animation: radarSpin  3s linear  infinite; }
       `}</style>
 
       {/* Parallax orb background — red toned */}
@@ -251,18 +238,17 @@ export default function Landing() {
       <nav style={{ position: 'relative', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 32px', maxWidth: 1200, margin: '0 auto' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{ width: 30, height: 30, borderRadius: 9, background: 'linear-gradient(135deg, #cc0000, #ff2222)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 16px rgba(200,0,0,0.5)' }}>
-            <Radio size={14} color="#fff" />
+            <Terminal size={14} color="#fff" />
           </div>
-          <span style={{ fontWeight: 800, fontSize: 18, letterSpacing: '-0.04em' }}>olik</span>
+          <span style={{ fontWeight: 800, fontSize: 18, letterSpacing: '-0.04em' }}>{cfg.hero_name || 'olik'}</span>
         </div>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+          <a href="#work" style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, textDecoration: 'none' }}>Work</a>
+          <a href="#about" style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, textDecoration: 'none' }}>About</a>
           {isLoggedIn ? (
-            <Link to="/dashboard" style={{ background: 'linear-gradient(135deg,#cc0000,#ff2222)', color: '#fff', padding: '8px 20px', borderRadius: 9, fontSize: 13, fontWeight: 600, textDecoration: 'none', boxShadow: '0 4px 16px rgba(200,0,0,0.4)' }}>Open HUD</Link>
+            <Link to="/dashboard" style={{ background: 'linear-gradient(135deg,#cc0000,#ff2222)', color: '#fff', padding: '8px 20px', borderRadius: 9, fontSize: 13, fontWeight: 600, textDecoration: 'none', boxShadow: '0 4px 16px rgba(200,0,0,0.4)' }}>Dashboard</Link>
           ) : (
-            <>
-              <Link to="/login"  style={{ color: 'rgba(255,255,255,0.4)', padding: '8px 16px', fontSize: 13, textDecoration: 'none' }}>Log in</Link>
-              <Link to="/signup" style={{ background: 'linear-gradient(135deg,#cc0000,#ff2222)', color: '#fff', padding: '8px 20px', borderRadius: 9, fontSize: 13, fontWeight: 600, textDecoration: 'none', boxShadow: '0 4px 16px rgba(200,0,0,0.35)' }}>Get Access</Link>
-            </>
+            <Link to="/login" style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12, textDecoration: 'none' }}>Sign in</Link>
           )}
         </div>
       </nav>
@@ -273,29 +259,29 @@ export default function Landing() {
           <div style={{ flex: 1, minWidth: 300, textAlign: 'left', opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'none' : 'translateY(24px)', transition: 'all 0.8s cubic-bezier(.22,.68,0,1.2)' }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(200,0,0,0.1)', border: '1px solid rgba(200,0,0,0.25)', borderRadius: 100, padding: '6px 16px', fontSize: 12, color: 'rgba(255,160,160,0.8)', marginBottom: 36 }}>
               <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#ff2222', display: 'inline-block', animation: 'pulse 2s infinite' }} />
-              invite only — situational awareness
+              {cfg.hero_badge}
             </div>
             <h1 style={{ fontSize: 'clamp(48px,8vw,96px)', fontWeight: 900, lineHeight: 0.95, letterSpacing: '-0.05em', marginBottom: 28 }}>
-              <GlitchWord from="OLIK" to="See everything." />
+              <GlitchWord from={cfg.hero_name} to={cfg.hero_role} />
               <span style={{ display: 'block', background: 'linear-gradient(135deg, #ff4444 0%, #ff8888 40%, #ffaaaa 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-                Stay ahead.
+                {cfg.hero_tagline}
               </span>
             </h1>
             <p style={{ fontSize: 17, color: 'rgba(255,255,255,0.38)', lineHeight: 1.78, maxWidth: 460, marginBottom: 44 }}>
-              Real-time public safety radar. GPS-tracked map, live scanner activity, signal predictions, and AI tactical briefings. For those who need to know.
+              {cfg.hero_sub}
             </p>
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 28 }}>
-              <MagneticButton onClick={() => navigate('/signup')}
+              <MagneticButton onClick={() => document.getElementById('work')?.scrollIntoView({ behavior: 'smooth' })}
                 style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'linear-gradient(135deg,#cc0000,#ff2222)', border: 'none', color: '#fff', padding: '14px 28px', borderRadius: 12, fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 8px 32px rgba(200,0,0,0.4)' }}>
-                Enter invite key <ArrowRight size={15} />
+                View my work <ArrowRight size={15} />
               </MagneticButton>
-              <button onClick={() => navigate('/login')}
-                style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)', padding: '14px 24px', borderRadius: 12, fontWeight: 600, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>
-                Log in
-              </button>
+              <a href={mailHref}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)', padding: '14px 24px', borderRadius: 12, fontWeight: 600, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'none' }}>
+                Get in touch
+              </a>
             </div>
             <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
-              {['Invite only', 'Public data only', 'AI powered'].map(t => (
+              {['Available now', 'Remote-friendly', 'Full-stack'].map(t => (
                 <span key={t} style={{ fontSize: 12, color: 'rgba(255,255,255,0.25)', display: 'flex', alignItems: 'center', gap: 5 }}>
                   <span style={{ color: '#ff4444' }}>✓</span> {t}
                 </span>
@@ -303,7 +289,7 @@ export default function Landing() {
             </div>
           </div>
 
-          {/* Live HUD preview card */}
+          {/* Code preview card */}
           <div style={{ opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'none' : 'translateY(32px)', transition: 'all 1s cubic-bezier(.22,.68,0,1.2) 0.2s', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', animation: heroVisible ? 'floatA 7s ease-in-out infinite' : 'none' }}>
             <div style={{ position: 'absolute', width: 360, height: 360, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
               <div className="feat-ring"   style={{ width: 340, height: 340, borderRadius: '50%', border: '1px solid rgba(200,0,0,0.2)', boxShadow: '0 0 40px rgba(200,0,0,0.06) inset', position: 'absolute' }} />
@@ -312,7 +298,7 @@ export default function Landing() {
                 <div key={deg} style={{ position: 'absolute', width: 5, height: 5, borderRadius: '50%', background: 'rgba(255,26,26,0.5)', boxShadow: '0 0 8px rgba(255,26,26,0.6)', transform: `rotate(${deg}deg) translateX(170px)` }} />
               ))}
             </div>
-            <HudPreviewCard />
+            <CodeCard name={cfg.hero_name} role={cfg.hero_role} />
           </div>
         </div>
 
@@ -325,11 +311,7 @@ export default function Landing() {
       {/* Stats */}
       <div ref={statsRef} style={{ position: 'relative', zIndex: 1, maxWidth: 800, margin: '0 auto 100px', padding: '0 32px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 2, background: 'rgba(200,0,0,0.1)', borderRadius: 22, overflow: 'hidden', border: '1px solid rgba(200,0,0,0.15)' }}>
-          {[
-            { val: 30,  suffix: 's', label: 'Refresh interval' },
-            { val: 100, suffix: '%', label: 'Public data only' },
-            { val: 6,   suffix: '+', label: 'Feed sources' },
-          ].map(s => (
+          {stats.map(s => (
             <div key={s.label} style={{ background: '#050508', padding: '40px 20px', textAlign: 'center' }}>
               <div style={{ fontSize: 46, fontWeight: 900, letterSpacing: '-0.04em', background: 'linear-gradient(135deg, #ff4444, #ff9999)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
                 <CountUp target={s.val} suffix={s.suffix} active={statsVisible} />
@@ -340,24 +322,58 @@ export default function Landing() {
         </div>
       </div>
 
-      {/* Features */}
-      <div ref={featRef} style={{ position: 'relative', zIndex: 1, maxWidth: 1100, margin: '0 auto 110px', padding: '0 32px' }}>
+      {/* Skills / Work */}
+      <div id="work" ref={featRef} style={{ position: 'relative', zIndex: 1, maxWidth: 1100, margin: '0 auto 110px', padding: '0 32px', scrollMarginTop: 90 }}>
         <div style={{ textAlign: 'center', marginBottom: 64, opacity: featVisible ? 1 : 0, transform: featVisible ? 'none' : 'translateY(20px)', transition: 'all 0.7s ease' }}>
           <h2 style={{ fontSize: 'clamp(28px,5vw,46px)', fontWeight: 800, letterSpacing: '-0.04em', marginBottom: 14 }}>
-            Full situational awareness.{' '}
-            <span style={{ background: 'linear-gradient(135deg, #ff4444, #ff9999)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>One screen.</span>
+            What I do.{' '}
+            <span style={{ background: 'linear-gradient(135deg, #ff4444, #ff9999)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>End to end.</span>
           </h2>
-          <p style={{ color: 'rgba(255,255,255,0.32)', fontSize: 15, maxWidth: 400, margin: '0 auto' }}>Everything you need to understand your surroundings in real time.</p>
+          <p style={{ color: 'rgba(255,255,255,0.32)', fontSize: 15, maxWidth: 400, margin: '0 auto' }}>From first sketch to production deploy — I cover the whole stack.</p>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 12 }}>
-          {[
-            { icon: <MapPin size={18} color="#ff4444" />,    title: 'Live GPS Map',          desc: 'Fullscreen dark map that auto-follows your position and rotates with your heading as you move.', accent: '#ff2222', delay: 0 },
-            { icon: <Radio size={18} color="#1a8cff" />,     title: 'Scanner Activity',      desc: 'Public safety events shown as glowing blue dots. Tap any dot for the full incident summary and transcript.', accent: '#1a8cff', delay: 0.08 },
-            { icon: <Zap size={18} color="#ff8800" />,       title: 'Signal Predictions',    desc: 'Upcoming intersections color-coded red, orange, or gray based on predicted signal state and traffic flow.', accent: '#ff8800', delay: 0.16 },
-            { icon: <Mic size={18} color="#ff4444" />,       title: 'AI Tactical Brief',     desc: 'One tap. Jarvis reads your next nav step, signal states, and nearest activity aloud in a crisp voice briefing.', accent: '#cc0000', delay: 0.24 },
-            { icon: <Navigation size={18} color="#ff6666" />,title: 'Route Overlay',         desc: 'Type any destination — a bright red polyline route appears on the map with live ETA and step-by-step nav.', accent: '#ff4444', delay: 0.32 },
-            { icon: <Shield size={18} color="#34d399" />,    title: 'Invite Only',           desc: 'Exclusive access. Get a key from someone inside, or request one. Keeps the platform focused and private.', accent: '#10b981', delay: 0.4 },
-          ].map(f => <Feature3D key={f.title} {...f} visible={featVisible} />)}
+          {SKILL_AREAS.map((f, i) => <Feature3D key={f.key} {...f} delay={i * 0.08} visible={featVisible} />)}
+        </div>
+      </div>
+
+      {/* About */}
+      <div id="about" ref={aboutRef} style={{ position: 'relative', zIndex: 1, maxWidth: 800, margin: '0 auto 110px', padding: '0 32px', scrollMarginTop: 90 }}>
+        <div style={{
+          opacity: aboutVisible ? 1 : 0, transform: aboutVisible ? 'none' : 'translateY(24px)', transition: 'all 0.7s ease',
+          background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 24, padding: '48px 40px',
+          backdropFilter: 'blur(14px) saturate(1.4)', WebkitBackdropFilter: 'blur(14px) saturate(1.4)',
+        }}>
+          <h2 style={{ fontSize: 'clamp(24px,4vw,34px)', fontWeight: 800, letterSpacing: '-0.03em', marginBottom: 18 }}>About me</h2>
+          <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 15, lineHeight: 1.85, marginBottom: 28, maxWidth: 620 }}>
+            {cfg.about_bio}
+          </p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 28 }}>
+            {skills.map(s => (
+              <span key={s} style={{ fontSize: 12, color: 'rgba(255,160,160,0.85)', background: 'rgba(200,0,0,0.1)', border: '1px solid rgba(200,0,0,0.25)', borderRadius: 100, padding: '6px 14px' }}>{s}</span>
+            ))}
+          </div>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            {links.github && (
+              <a href={links.github} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 7, color: 'rgba(255,255,255,0.5)', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '9px 16px', fontSize: 13, textDecoration: 'none' }}>
+                <Github size={14} /> GitHub
+              </a>
+            )}
+            {links.linkedin && (
+              <a href={links.linkedin} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 7, color: 'rgba(255,255,255,0.5)', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '9px 16px', fontSize: 13, textDecoration: 'none' }}>
+                <Linkedin size={14} /> LinkedIn
+              </a>
+            )}
+            {links.twitter && (
+              <a href={links.twitter} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 7, color: 'rgba(255,255,255,0.5)', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '9px 16px', fontSize: 13, textDecoration: 'none' }}>
+                <Twitter size={14} /> Twitter
+              </a>
+            )}
+            {links.email && (
+              <a href={mailHref} style={{ display: 'flex', alignItems: 'center', gap: 7, color: 'rgba(255,255,255,0.5)', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '9px 16px', fontSize: 13, textDecoration: 'none' }}>
+                <Mail size={14} /> Email
+              </a>
+            )}
+          </div>
         </div>
       </div>
 
@@ -370,17 +386,19 @@ export default function Landing() {
         }}>
           <div style={{ position: 'absolute', top: -120, left: '50%', transform: 'translateX(-50%)', width: 500, height: 300, borderRadius: '50%', background: 'radial-gradient(ellipse, rgba(200,0,0,0.12), transparent 70%)', pointerEvents: 'none' }} />
           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, background: 'linear-gradient(90deg, transparent, rgba(200,0,0,0.5), transparent)' }} />
-          <h2 style={{ fontSize: 'clamp(32px,5vw,52px)', fontWeight: 900, letterSpacing: '-0.04em', marginBottom: 16 }}>Ready to see more?</h2>
+          <h2 style={{ fontSize: 'clamp(32px,5vw,52px)', fontWeight: 900, letterSpacing: '-0.04em', marginBottom: 16 }}>{cfg.cta_title}</h2>
           <p style={{ color: 'rgba(255,255,255,0.32)', fontSize: 15, margin: '0 auto 44px', maxWidth: 380, lineHeight: 1.7 }}>
-            olik radar is invite only. Get your key from someone inside, or request access.
+            {cfg.cta_sub}
           </p>
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Link to="/signup" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'linear-gradient(135deg,#cc0000,#ff2222)', color: '#fff', padding: '16px 36px', borderRadius: 14, fontWeight: 700, fontSize: 15, textDecoration: 'none', boxShadow: '0 8px 32px rgba(200,0,0,0.35)' }}>
-              Enter invite key <ArrowRight size={16} />
-            </Link>
-            <Link to="/login" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.45)', padding: '16px 28px', borderRadius: 14, fontWeight: 600, fontSize: 15, textDecoration: 'none' }}>
-              Log in
-            </Link>
+            <a href={mailHref} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'linear-gradient(135deg,#cc0000,#ff2222)', color: '#fff', padding: '16px 36px', borderRadius: 14, fontWeight: 700, fontSize: 15, textDecoration: 'none', boxShadow: '0 8px 32px rgba(200,0,0,0.35)' }}>
+              Say hi <ArrowRight size={16} />
+            </a>
+            {links.github && (
+              <a href={links.github} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.45)', padding: '16px 28px', borderRadius: 14, fontWeight: 600, fontSize: 15, textDecoration: 'none' }}>
+                <Github size={16} /> GitHub
+              </a>
+            )}
           </div>
         </div>
       </div>
