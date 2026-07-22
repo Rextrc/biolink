@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Github, Linkedin, Twitter, Mail, Instagram, Youtube, Twitch, MessageCircle, Globe } from 'lucide-react';
+import { Github, Linkedin, Twitter, Mail, Instagram, Youtube, Twitch, MessageCircle, Globe, Camera } from 'lucide-react';
 import { api } from '../utils/api';
 import { DEFAULT_SITE_CFG } from '../utils/siteConfig';
 
@@ -17,6 +17,7 @@ const SOCIAL_BASE = {
   twitter:   'https://twitter.com/',
   linkedin:  'https://linkedin.com/in/',
   instagram: 'https://instagram.com/',
+  photography: 'https://instagram.com/',
   youtube:   'https://youtube.com/@',
   twitch:    'https://twitch.tv/',
   discord:   'https://discord.gg/',
@@ -106,7 +107,8 @@ export default function Landing() {
     { key: 'github',    label: 'GitHub',    href: resolveSocialUrl('github', links.github),       Icon: Github },
     { key: 'twitter',   label: 'Twitter',   href: resolveSocialUrl('twitter', links.twitter),     Icon: Twitter },
     { key: 'linkedin',  label: 'LinkedIn',  href: resolveSocialUrl('linkedin', links.linkedin),   Icon: Linkedin },
-    { key: 'instagram', label: 'Instagram', href: resolveSocialUrl('instagram', links.instagram), Icon: Instagram },
+    { key: 'instagram',   label: 'Instagram',        href: resolveSocialUrl('instagram', links.instagram),     Icon: Instagram },
+    { key: 'photography', label: 'Photography (IG)', href: resolveSocialUrl('photography', links.photography), Icon: Camera },
     { key: 'youtube',   label: 'YouTube',   href: resolveSocialUrl('youtube', links.youtube),     Icon: Youtube },
     { key: 'twitch',    label: 'Twitch',    href: resolveSocialUrl('twitch', links.twitch),       Icon: Twitch },
     { key: 'discord',   label: 'Discord',   href: resolveSocialUrl('discord', links.discord),     Icon: MessageCircle },

@@ -244,6 +244,10 @@ async function init() {
       count INTEGER NOT NULL DEFAULT 0
     )`);
     _sql.run(`INSERT OR IGNORE INTO page_views (id, count) VALUES (1, 0)`);
+    // Seed a starting count so the watermark doesn't launch at 0. Guarded by
+    // count < baseline so it's a one-time bump -- once real traffic organically
+    // passes it, this becomes a permanent no-op instead of resetting the counter.
+    _sql.run(`UPDATE page_views SET count = 2438 WHERE id = 1 AND count < 2438`);
   } catch {}
   try {
     _sql.run(`CREATE TABLE IF NOT EXISTS spotify_auth (
