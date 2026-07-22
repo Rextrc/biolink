@@ -255,11 +255,10 @@ export default function Admin() {
                 <span style={{ fontWeight: 600, fontSize: 13 }}>Hero Section</span>
               </div>
               <div style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
-                <SInput label="Badge text"                    value={siteCfg.hero_badge}   onChange={v => setSiteCfg(c => ({ ...c, hero_badge: v }))} />
-                <SInput label="Your name"                     value={siteCfg.hero_name}    onChange={v => setSiteCfg(c => ({ ...c, hero_name: v }))} />
-                <SInput label="Role (glitches in from name)"  value={siteCfg.hero_role}    onChange={v => setSiteCfg(c => ({ ...c, hero_role: v }))} />
-                <SInput label="Tagline (gradient line)"       value={siteCfg.hero_tagline} onChange={v => setSiteCfg(c => ({ ...c, hero_tagline: v }))} />
-                <SInput label="Subtext"                       value={siteCfg.hero_sub}     onChange={v => setSiteCfg(c => ({ ...c, hero_sub: v }))} rows={3} />
+                <SInput label="Badge text"      value={siteCfg.hero_badge} onChange={v => setSiteCfg(c => ({ ...c, hero_badge: v }))} />
+                <SInput label="Your name"       value={siteCfg.hero_name}  onChange={v => setSiteCfg(c => ({ ...c, hero_name: v }))} />
+                <SInput label="Role (gradient)" value={siteCfg.hero_role}  onChange={v => setSiteCfg(c => ({ ...c, hero_role: v }))} />
+                <SInput label="Subtext"         value={siteCfg.hero_sub}   onChange={v => setSiteCfg(c => ({ ...c, hero_sub: v }))} rows={3} />
               </div>
             </div>
 
@@ -284,43 +283,11 @@ export default function Admin() {
 
             <div style={{ background: '#111', border: `1px solid ${ACCENT_BORD}`, borderRadius: 14, overflow: 'hidden' }}>
               <div style={{ padding: '12px 18px', borderBottom: `1px solid ${ACCENT_BORD}`, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Layout size={14} color={ACCENT} />
-                <span style={{ fontWeight: 600, fontSize: 13 }}>Stats Bar</span>
+                <Mail size={14} color={ACCENT} />
+                <span style={{ fontWeight: 600, fontSize: 13 }}>Contact Section</span>
               </div>
               <div style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
-                {(siteCfg.stats || DEFAULT_CFG.stats).map((s, i) => (
-                  <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 5, width: 80 }}>
-                      <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 1 }}>Value</span>
-                      <input type="number" value={s.val}
-                        onChange={e => setSiteCfg(c => { const stats = [...c.stats]; stats[i] = { ...stats[i], val: Number(e.target.value) }; return { ...c, stats }; })}
-                        style={{ background: '#161616', border: '1px solid #2a2a2a', borderRadius: 8, padding: '8px 10px', color: '#fff', fontSize: 13, outline: 'none', fontFamily: 'inherit', width: '100%' }} />
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 5, width: 60 }}>
-                      <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 1 }}>Suffix</span>
-                      <input value={s.suffix}
-                        onChange={e => setSiteCfg(c => { const stats = [...c.stats]; stats[i] = { ...stats[i], suffix: e.target.value }; return { ...c, stats }; })}
-                        style={{ background: '#161616', border: '1px solid #2a2a2a', borderRadius: 8, padding: '8px 10px', color: '#fff', fontSize: 13, outline: 'none', fontFamily: 'inherit', width: '100%' }} />
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 5, flex: 1 }}>
-                      <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 1 }}>Label</span>
-                      <input value={s.label}
-                        onChange={e => setSiteCfg(c => { const stats = [...c.stats]; stats[i] = { ...stats[i], label: e.target.value }; return { ...c, stats }; })}
-                        style={{ background: '#161616', border: '1px solid #2a2a2a', borderRadius: 8, padding: '8px 10px', color: '#fff', fontSize: 13, outline: 'none', fontFamily: 'inherit', width: '100%' }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div style={{ background: '#111', border: `1px solid ${ACCENT_BORD}`, borderRadius: 14, overflow: 'hidden' }}>
-              <div style={{ padding: '12px 18px', borderBottom: `1px solid ${ACCENT_BORD}`, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Layout size={14} color={ACCENT} />
-                <span style={{ fontWeight: 600, fontSize: 13 }}>CTA Section</span>
-              </div>
-              <div style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
-                <SInput label="Title"   value={siteCfg.cta_title} onChange={v => setSiteCfg(c => ({ ...c, cta_title: v }))} />
-                <SInput label="Subtext" value={siteCfg.cta_sub}   onChange={v => setSiteCfg(c => ({ ...c, cta_sub: v }))} rows={2} />
+                <SInput label="Contact line" value={siteCfg.contact_line} onChange={v => setSiteCfg(c => ({ ...c, contact_line: v }))} rows={2} />
               </div>
             </div>
 
