@@ -52,6 +52,7 @@ export default function Admin() {
   const [genCustom, setGenCustom]     = useState('');
   const [expiryInput, setExpiryInput] = useState('');
   const [siteCfg, setSiteCfg]         = useState(DEFAULT_CFG);
+  const [skillsText, setSkillsText]   = useState((DEFAULT_CFG.skills || []).join(', '));
   const [cfgSaved, setCfgSaved]       = useState(false);
   const [waitlist, setWaitlist]       = useState([]);
   const [wlSearch, setWlSearch]       = useState('');
@@ -73,7 +74,11 @@ export default function Admin() {
       setUsers(u);
       setKeys(k);
       setWaitlist(wl);
-      if (cfg && Object.keys(cfg).length > 0) setSiteCfg({ ...DEFAULT_CFG, ...cfg, links: { ...DEFAULT_CFG.links, ...(cfg.links || {}) } });
+      if (cfg && Object.keys(cfg).length > 0) {
+        const merged = { ...DEFAULT_CFG, ...cfg, links: { ...DEFAULT_CFG.links, ...(cfg.links || {}) } };
+        setSiteCfg(merged);
+        setSkillsText((merged.skills || []).join(', '));
+      }
     } catch { navigate('/dashboard'); }
   }
 
@@ -266,8 +271,11 @@ export default function Admin() {
                 <SInput label="Status line (green dot)" value={siteCfg.hero_badge} onChange={v => setSiteCfg(c => ({ ...c, hero_badge: v }))} />
                 <SInput label="Bio line" value={siteCfg.hero_sub} onChange={v => setSiteCfg(c => ({ ...c, hero_sub: v }))} rows={2} />
                 <SInput label="Skills (comma separated)"
-                  value={(siteCfg.skills || []).join(', ')}
-                  onChange={v => setSiteCfg(c => ({ ...c, skills: v.split(',').map(s => s.trim()).filter(Boolean) }))} />
+                  value={skillsText}
+                  onChange={v => {
+                    setSkillsText(v);
+                    setSiteCfg(c => ({ ...c, skills: v.split(',').map(s => s.trim()).filter(Boolean) }));
+                  }} />
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                   {[
                     ['email',     'Email',     'you@example.com'],
