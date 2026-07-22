@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Github, Linkedin, Twitter, Mail } from 'lucide-react';
+import { Github, Linkedin, Twitter, Mail, Instagram, Youtube, Twitch, MessageCircle, Globe } from 'lucide-react';
 import { api } from '../utils/api';
 import { DEFAULT_SITE_CFG } from '../utils/siteConfig';
 
@@ -36,25 +36,38 @@ export default function Landing() {
       .finally(() => setReady(true));
   }, []);
 
-  const onCardMove = (e) => {
-    const el = cardRef.current;
-    if (!el) return;
-    const r = el.getBoundingClientRect();
-    const x = (e.clientX - r.left) / r.width - 0.5;
-    const y = (e.clientY - r.top) / r.height - 0.5;
-    setTilt({ x: y * -5, y: x * 5 });
-  };
-  const onCardLeave = () => setTilt({ x: 0, y: 0 });
+  useEffect(() => {
+    const onMove = (e) => {
+      const el = cardRef.current;
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      const cx = r.left + r.width / 2;
+      const cy = r.top + r.height / 2;
+      // Normalize against half the viewport so the tilt stays gentle even
+      // when the cursor is far from the card, then clamp to a sane max.
+      const x = (e.clientX - cx) / (window.innerWidth / 2);
+      const y = (e.clientY - cy) / (window.innerHeight / 2);
+      const clamp = (v) => Math.max(-1, Math.min(1, v));
+      setTilt({ x: clamp(y) * -14, y: clamp(x) * 14 });
+    };
+    window.addEventListener('mousemove', onMove);
+    return () => window.removeEventListener('mousemove', onMove);
+  }, []);
 
   const skills = cfg.skills?.length ? cfg.skills : DEFAULT_SITE_CFG.skills;
   const links = cfg.links || DEFAULT_SITE_CFG.links;
   const mailHref = links.email ? `mailto:${links.email}` : undefined;
 
   const socials = [
-    { key: 'github',   label: 'GitHub',   href: links.github,   Icon: Github },
-    { key: 'twitter',  label: 'Twitter',  href: links.twitter,  Icon: Twitter },
-    { key: 'linkedin', label: 'LinkedIn', href: links.linkedin, Icon: Linkedin },
-    { key: 'email',    label: 'Email',    href: mailHref,       Icon: Mail },
+    { key: 'github',    label: 'GitHub',    href: links.github,    Icon: Github },
+    { key: 'twitter',   label: 'Twitter',   href: links.twitter,   Icon: Twitter },
+    { key: 'linkedin',  label: 'LinkedIn',  href: links.linkedin,  Icon: Linkedin },
+    { key: 'instagram', label: 'Instagram', href: links.instagram, Icon: Instagram },
+    { key: 'youtube',   label: 'YouTube',   href: links.youtube,   Icon: Youtube },
+    { key: 'twitch',    label: 'Twitch',    href: links.twitch,    Icon: Twitch },
+    { key: 'discord',   label: 'Discord',   href: links.discord,   Icon: MessageCircle },
+    { key: 'website',   label: 'Website',   href: links.website,   Icon: Globe },
+    { key: 'email',     label: 'Email',     href: mailHref,        Icon: Mail },
   ].filter(s => s.href);
 
   return (
@@ -117,8 +130,6 @@ export default function Landing() {
       {/* Profile card */}
       <div
         ref={cardRef}
-        onMouseMove={onCardMove}
-        onMouseLeave={onCardLeave}
         style={{
           position: 'relative', zIndex: 2,
           width: 'min(100%, 400px)',
@@ -129,12 +140,19 @@ export default function Landing() {
           borderRadius: 24,
           padding: '44px 34px 38px',
           textAlign: 'center',
-          boxShadow: '0 30px 90px -20px rgba(0,0,0,0.85), 0 0 70px -28px rgba(255,30,30,0.4), inset 0 1px 0 rgba(255,255,255,0.06)',
-          transform: `perspective(900px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
-          transition: tilt.x === 0 && tilt.y === 0 ? 'transform 0.6s cubic-bezier(.22,1,.36,1)' : 'transform 0.12s ease-out',
+          boxShadow: `0 30px 90px -20px rgba(0,0,0,0.85), 0 0 70px -28px rgba(255,30,30,0.4), inset 0 1px 0 rgba(255,255,255,0.06), ${tilt.y * 1.4}px ${-tilt.x * 1.4}px 40px -18px rgba(255,30,30,0.35)`,
+          transform: `perspective(700px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
+          transition: 'transform 0.15s ease-out, box-shadow 0.15s ease-out',
           animation: ready ? 'cardIn 0.8s cubic-bezier(.22,1,.36,1) both' : 'none',
           opacity: ready ? undefined : 0,
         }}>
+
+        {/* Sheen — a light source that moves opposite the tilt, like glare on glass */}
+        <div style={{
+          position: 'absolute', inset: 0, borderRadius: 24, pointerEvents: 'none', zIndex: 1,
+          background: `radial-gradient(480px circle at ${50 - tilt.y * 3.2}% ${50 + tilt.x * 3.2}%, rgba(255,255,255,0.09), transparent 55%)`,
+          transition: 'background 0.15s ease-out',
+        }} />
 
         {/* Avatar */}
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 22 }}>

@@ -266,11 +266,24 @@ export default function Admin() {
                   value={(siteCfg.skills || []).join(', ')}
                   onChange={v => setSiteCfg(c => ({ ...c, skills: v.split(',').map(s => s.trim()).filter(Boolean) }))} />
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                  <SInput label="Email"    value={siteCfg.links?.email    || ''} onChange={v => setSiteCfg(c => ({ ...c, links: { ...c.links, email: v } }))} />
-                  <SInput label="GitHub"   value={siteCfg.links?.github   || ''} onChange={v => setSiteCfg(c => ({ ...c, links: { ...c.links, github: v } }))} />
-                  <SInput label="LinkedIn" value={siteCfg.links?.linkedin || ''} onChange={v => setSiteCfg(c => ({ ...c, links: { ...c.links, linkedin: v } }))} />
-                  <SInput label="Twitter"  value={siteCfg.links?.twitter  || ''} onChange={v => setSiteCfg(c => ({ ...c, links: { ...c.links, twitter: v } }))} />
+                  {[
+                    ['email',     'Email'],
+                    ['github',    'GitHub'],
+                    ['twitter',   'Twitter'],
+                    ['linkedin',  'LinkedIn'],
+                    ['instagram', 'Instagram'],
+                    ['youtube',   'YouTube'],
+                    ['twitch',    'Twitch'],
+                    ['discord',   'Discord'],
+                    ['website',   'Website'],
+                  ].map(([key, label]) => (
+                    <SInput key={key} label={label} value={siteCfg.links?.[key] || ''}
+                      onChange={v => setSiteCfg(c => ({ ...c, links: { ...c.links, [key]: v } }))} />
+                  ))}
                 </div>
+                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>
+                  Leave any field blank to hide that icon on the card. Email uses mailto:, everything else expects a full URL.
+                </span>
               </div>
             </div>
 
