@@ -81,6 +81,19 @@ export default function Landing() {
     return () => { cancelled = true; clearInterval(t); };
   }, []);
 
+  // Rotating browser-tab title: o -> l -> i -> k -> loop, 0.5s each.
+  useEffect(() => {
+    const original = document.title;
+    const letters = ['o', 'l', 'i', 'k'];
+    let i = 0;
+    document.title = letters[0];
+    const t = setInterval(() => {
+      i = (i + 1) % letters.length;
+      document.title = letters[i];
+    }, 500);
+    return () => { clearInterval(t); document.title = original; };
+  }, []);
+
   useEffect(() => {
     const onMove = (e) => {
       const el = cardRef.current;
