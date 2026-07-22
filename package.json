@@ -1,5 +1,5 @@
 {
-  "name": "biolink",
+  "name": "olik-app",
   "version": "1.0.0",
   "scripts": {
     "build": "cd client && npm install --include=dev && npm run build",
