@@ -46,6 +46,8 @@ export default function Landing() {
   const [cfg, setCfg] = useState(DEFAULT_SITE_CFG);
   const [ready, setReady] = useState(false);
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
+  const [viewCount, setViewCount] = useState(null);
+  const [nowPlaying, setNowPlaying] = useState(null);
   const cardRef = useRef(null);
 
   useEffect(() => {
@@ -57,6 +59,25 @@ export default function Landing() {
       })
       .catch(() => {})
       .finally(() => setReady(true));
+  }, []);
+
+  // Count once per tab session — a refresh or client-side nav back to "/"
+  // shouldn't inflate the number, so it reads as visits, not page loads.
+  useEffect(() => {
+    const already = sessionStorage.getItem('olik_viewed');
+    const req = already ? api.getViewCount() : api.recordView();
+    req.then(d => setViewCount(d.count)).catch(() => {});
+    if (!already) sessionStorage.setItem('olik_viewed', '1');
+  }, []);
+
+  // Poll Spotify now-playing. The widget only renders when isPlaying is
+  // true, so it silently appears/disappears as music starts and stops.
+  useEffect(() => {
+    let cancelled = false;
+    const poll = () => api.getNowPlaying().then(d => { if (!cancelled) setNowPlaying(d); }).catch(() => {});
+    poll();
+    const t = setInterval(poll, 20000);
+    return () => { cancelled = true; clearInterval(t); };
   }, []);
 
   useEffect(() => {
@@ -124,6 +145,11 @@ export default function Landing() {
           box-shadow: 0 8px 24px -8px rgba(255,30,30,0.45);
         }
         a:focus-visible { outline: 2px solid #ff3333; outline-offset: 3px; border-radius: 50%; }
+
+        @keyframes eqBounce { 0%, 100% { height: 3px; } 50% { height: 13px; } }
+        .eq-bar { width: 3px; border-radius: 2px; background: #1DB954; animation: eqBounce 0.9s ease-in-out infinite; }
+        .now-playing { transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease; }
+        .now-playing:hover { border-color: rgba(29,185,84,0.5); background: rgba(29,185,84,0.1); transform: translateY(-2px); }
       `}</style>
 
       {/* Halo behind the card */}
@@ -147,8 +173,9 @@ export default function Landing() {
         ))}
       </div>
 
-      {/* Grain */}
-      <div style={{ position: 'fixed', inset: 0, zIndex: 4, pointerEvents: 'none', backgroundImage: NOISE, opacity: 0.03 }} />
+      {/* Grain — sits behind the card so the backdrop-blur softens it naturally,
+          instead of texturing the sheen/text on top like an "orange peel". */}
+      <div style={{ position: 'fixed', inset: 0, zIndex: 1, pointerEvents: 'none', backgroundImage: NOISE, opacity: 0.025 }} />
 
       {/* Profile card */}
       <div
@@ -173,7 +200,7 @@ export default function Landing() {
         {/* Sheen — a light source that moves opposite the tilt, like glare on glass */}
         <div style={{
           position: 'absolute', inset: 0, borderRadius: 24, pointerEvents: 'none', zIndex: 1,
-          background: `radial-gradient(480px circle at ${50 - tilt.y * 3.2}% ${50 + tilt.x * 3.2}%, rgba(255,255,255,0.09), transparent 55%)`,
+          background: `radial-gradient(600px circle at ${50 - tilt.y * 3.2}% ${50 + tilt.x * 3.2}%, rgba(255,255,255,0.06), transparent 60%)`,
           transition: 'background 0.15s ease-out',
         }} />
 
@@ -257,6 +284,40 @@ export default function Landing() {
             ))}
           </div>
         )}
+
+        {/* Now playing — only rendered while music is actually playing */}
+        {nowPlaying?.isPlaying && (
+          <div style={{ marginTop: 22 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, marginBottom: 9 }}>
+              <span style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 13 }}>
+                <span className="eq-bar" style={{ animationDelay: '0s' }} />
+                <span className="eq-bar" style={{ animationDelay: '0.2s' }} />
+                <span className="eq-bar" style={{ animationDelay: '0.4s' }} />
+              </span>
+              <span style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(29,185,84,0.85)' }}>
+                Now playing
+              </span>
+            </div>
+            <a href={nowPlaying.trackUrl} target="_blank" rel="noreferrer" className="now-playing" style={{
+              display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left', textDecoration: 'none',
+              background: 'rgba(29,185,84,0.05)', border: '1px solid rgba(29,185,84,0.22)',
+              borderRadius: 13, padding: '9px 12px',
+            }}>
+              {nowPlaying.albumArt && (
+                <img src={nowPlaying.albumArt} alt="" style={{ width: 34, height: 34, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }}
+                  onError={e => { e.currentTarget.style.display = 'none'; }} />
+              )}
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ fontSize: 12.5, color: '#fff', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {nowPlaying.track}
+                </div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {nowPlaying.artist}
+                </div>
+              </div>
+            </a>
+          </div>
+        )}
       </div>
 
       {/* Watermark */}
@@ -266,6 +327,7 @@ export default function Landing() {
         pointerEvents: 'none',
       }}>
         © {new Date().getFullYear()} {(cfg.hero_name || 'olik').toLowerCase()}.app
+        {viewCount != null && <> · {viewCount.toLocaleString()} visits</>}
       </div>
     </div>
   );

@@ -48,6 +48,10 @@ export const api = {
     waitlist: () => apiFetch('/admin/waitlist'),
     deleteWaitlistEntry: (id) => apiFetch(`/admin/waitlist/${id}`, { method: 'DELETE' }),
     clearWaitlist: () => apiFetch('/admin/waitlist/all', { method: 'DELETE' }),
+    spotifyStatus: () => apiFetch('/spotify/status'),
   },
   getSiteConfig: () => apiFetch('/site-config'),
+  recordView: () => apiFetch('/view', { method: 'POST' }),
+  getViewCount: () => apiFetch('/view'),
+  getNowPlaying: () => apiFetch('/spotify/now-playing'),
 };
