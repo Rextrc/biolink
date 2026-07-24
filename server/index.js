@@ -24,6 +24,7 @@ app.use('/api/admin',   require('./routes/admin'));
 app.use('/api/inbox',   require('./routes/inbox'));
 app.use('/api/upload',  require('./routes/upload'));
 app.use('/api/spotify', require('./routes/spotify'));
+app.use('/api/pages',   require('./routes/pages'));
 
 // Coming soon mode flag
 app.get('/api/mode', (req, res) => {

@@ -49,9 +49,17 @@ export const api = {
     deleteWaitlistEntry: (id) => apiFetch(`/admin/waitlist/${id}`, { method: 'DELETE' }),
     clearWaitlist: () => apiFetch('/admin/waitlist/all', { method: 'DELETE' }),
     spotifyStatus: () => apiFetch('/spotify/status'),
+    listPages: () => apiFetch('/pages'),
+    createPage: (body) => apiFetch('/pages', { method: 'POST', body: JSON.stringify(body) }),
+    deletePage: (id) => apiFetch(`/pages/${id}`, { method: 'DELETE' }),
   },
   getSiteConfig: () => apiFetch('/site-config'),
   recordView: () => apiFetch('/view', { method: 'POST' }),
   getViewCount: () => apiFetch('/view'),
   getNowPlaying: () => apiFetch('/spotify/now-playing'),
+  // Per-user pages (olik.app/<slug>)
+  getPage: (slug) => apiFetch(`/pages/${encodeURIComponent(slug)}`),
+  recordPageView: (slug) => apiFetch(`/pages/${encodeURIComponent(slug)}/view`, { method: 'POST' }),
+  verifyPageCode: (code) => apiFetch('/pages/edit/verify', { method: 'POST', body: JSON.stringify({ code }) }),
+  savePageByCode: (code, data) => apiFetch('/pages/edit/save', { method: 'PUT', body: JSON.stringify({ code, data }) }),
 };
