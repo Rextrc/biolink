@@ -32,6 +32,25 @@ export function resolveSocialUrl(platform, raw) {
   return base ? `${base}${v.replace(/^\/+/, '')}` : `https://${v}`;
 }
 
+/* Accent theming — every red in the card derives from cfg.accent, so a page can
+   pick its own colour without forking the design. */
+const DEFAULT_ACCENT = '#ff3333';
+
+function hexToRgb(hex) {
+  const m = /^#?([a-f\d]{3}|[a-f\d]{6})$/i.exec(String(hex || '').trim());
+  if (!m) return null;
+  let h = m[1];
+  if (h.length === 3) h = h.split('').map(c => c + c).join('');
+  const n = parseInt(h, 16);
+  return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+}
+
+/** rgba() string for the accent, falling back to the default red if unparseable. */
+function accentRgba(hex, alpha) {
+  const rgb = hexToRgb(hex) || hexToRgb(DEFAULT_ACCENT);
+  return `rgba(${rgb.r},${rgb.g},${rgb.b},${alpha})`;
+}
+
 /* Ember particles drifting up behind the card — fixed layout so it never reshuffles */
 const EMBERS = [
   { l: 8,  s: 3, d: 0,    t: 13 }, { l: 16, s: 2, d: 4.2, t: 16 },
@@ -60,6 +79,9 @@ export default function ProfileCard({ cfg, ready = true, viewCount = null, nowPl
   const [clock, setClock] = useState('');
   const [bursts, setBursts] = useState([]);
   const cardRef = useRef(null);
+
+  const accent = hexToRgb(cfg.accent) ? cfg.accent : DEFAULT_ACCENT;
+  const A = (a) => accentRgba(accent, a);
 
   // Live clock in the card's own timezone (not the visitor's) — ticks every second.
   useEffect(() => {
@@ -139,7 +161,7 @@ export default function ProfileCard({ cfg, ready = true, viewCount = null, nowPl
           60%  { opacity: 0.35; }
           100% { transform: translateY(-108vh) translateX(14px); opacity: 0; }
         }
-        ::selection { background: #e01212; color: #fff; }
+        ::selection { background: ${A(0.85)}; color: #fff; }
 
         .icon-btn {
           display: inline-flex; align-items: center; justify-content: center;
@@ -150,10 +172,10 @@ export default function ProfileCard({ cfg, ready = true, viewCount = null, nowPl
         }
         .icon-btn:hover {
           transform: translateY(-4px); color: #fff;
-          border-color: rgba(255,51,51,0.65); background: rgba(255,40,40,0.08);
-          box-shadow: 0 8px 24px -8px rgba(255,30,30,0.45);
+          border-color: ${A(0.65)}; background: ${A(0.08)};
+          box-shadow: 0 8px 24px -8px ${A(0.45)};
         }
-        a:focus-visible { outline: 2px solid #ff3333; outline-offset: 3px; border-radius: 50%; }
+        a:focus-visible { outline: 2px solid ${accent}; outline-offset: 3px; border-radius: 50%; }
 
         @keyframes eqBounce { 0%, 100% { height: 3px; } 50% { height: 13px; } }
         .eq-bar { width: 3px; border-radius: 2px; background: #1DB954; animation: eqBounce 0.9s ease-in-out infinite; }
@@ -175,7 +197,7 @@ export default function ProfileCard({ cfg, ready = true, viewCount = null, nowPl
       <div style={{
         position: 'fixed', top: '50%', left: '50%', width: 640, height: 640, zIndex: 0,
         transform: 'translate(-50%,-50%)', pointerEvents: 'none',
-        background: 'radial-gradient(circle, rgba(255,26,26,0.1) 0%, transparent 62%)',
+        background: `radial-gradient(circle, ${A(0.1)} 0%, transparent 62%)`,
         animation: 'haloPulse 9s ease-in-out infinite',
       }} />
 
@@ -184,8 +206,8 @@ export default function ProfileCard({ cfg, ready = true, viewCount = null, nowPl
         {EMBERS.map((p, i) => (
           <span key={i} style={{
             position: 'absolute', bottom: -12, left: `${p.l}%`, width: p.s, height: p.s,
-            borderRadius: '50%', background: 'rgba(255,70,70,0.55)',
-            boxShadow: `0 0 ${p.s * 3}px rgba(255,40,40,0.5)`,
+            borderRadius: '50%', background: A(0.55),
+            boxShadow: `0 0 ${p.s * 3}px ${A(0.5)}`,
             animation: `ember ${p.t}s linear ${p.d}s infinite`,
             opacity: 0,
           }} />
@@ -201,8 +223,8 @@ export default function ProfileCard({ cfg, ready = true, viewCount = null, nowPl
           {burst.particles.map((p, i) => (
             <span key={i} className="burst-particle" style={{
               '--dx': `${p.dx}px`, '--dy': `${p.dy}px`,
-              background: p.warm ? '#ff3333' : '#ff9999',
-              boxShadow: `0 0 6px ${p.warm ? 'rgba(255,40,40,0.7)' : 'rgba(255,140,140,0.6)'}`,
+              background: p.warm ? accent : A(0.55),
+              boxShadow: `0 0 6px ${p.warm ? A(0.7) : A(0.45)}`,
             }} />
           ))}
         </div>
@@ -221,7 +243,7 @@ export default function ProfileCard({ cfg, ready = true, viewCount = null, nowPl
           borderRadius: 24,
           padding: '44px 34px 38px',
           textAlign: 'center',
-          boxShadow: `0 30px 90px -20px rgba(0,0,0,0.85), 0 0 70px -28px rgba(255,30,30,0.4), inset 0 1px 0 rgba(255,255,255,0.06), ${tilt.y * 1.4}px ${-tilt.x * 1.4}px 40px -18px rgba(255,30,30,0.35)`,
+          boxShadow: `0 30px 90px -20px rgba(0,0,0,0.85), 0 0 70px -28px ${A(0.4)}, inset 0 1px 0 rgba(255,255,255,0.06), ${tilt.y * 1.4}px ${-tilt.x * 1.4}px 40px -18px ${A(0.35)}`,
           transform: `perspective(700px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
           transition: 'transform 0.15s ease-out, box-shadow 0.15s ease-out',
           animation: ready ? 'cardIn 0.8s cubic-bezier(.22,1,.36,1) both' : 'none',
@@ -239,8 +261,8 @@ export default function ProfileCard({ cfg, ready = true, viewCount = null, nowPl
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 22 }}>
           <div style={{
             width: 96, height: 96, borderRadius: '50%', overflow: 'hidden',
-            border: '2px solid rgba(255,51,51,0.75)',
-            boxShadow: '0 0 28px -4px rgba(255,30,30,0.55)',
+            border: `2px solid ${A(0.75)}`,
+            boxShadow: `0 0 28px -4px ${A(0.55)}`,
             background: '#0b0b0d',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
@@ -248,7 +270,7 @@ export default function ProfileCard({ cfg, ready = true, viewCount = null, nowPl
               <img src={cfg.avatar_url} alt={cfg.hero_name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
             ) : (
               <span style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: 40, lineHeight: 1, color: '#fff', letterSpacing: '-0.03em' }}>
-                {(cfg.hero_name || 'O')[0].toLowerCase()}<span style={{ color: '#ff3333' }}>.</span>
+                {(cfg.hero_name || 'O')[0].toLowerCase()}<span style={{ color: accent }}>.</span>
               </span>
             )}
           </div>
@@ -260,7 +282,7 @@ export default function ProfileCard({ cfg, ready = true, viewCount = null, nowPl
           margin: 0, lineHeight: 1.1, textShadow: '0 0 26px rgba(255,255,255,0.22)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
         }}>
-          <span>{cfg.hero_name}<span style={{ color: '#ff3333' }}>.</span></span>
+          <span>{cfg.hero_name}<span style={{ color: accent }}>.</span></span>
           {cfg.verified && (
             <svg width="22" height="22" viewBox="0 0 40 40" fill="none" title="Verified" style={{ flexShrink: 0 }}>
               <path d="M20 2.5L24.33 7.13L30.5 5.77L31.87 11.94L37.5 16.27L34.9 22L37.5 27.73L31.87 32.06L30.5 38.23L24.33 36.87L20 41.5L15.67 36.87L9.5 38.23L8.13 32.06L2.5 27.73L5.1 22L2.5 16.27L8.13 11.94L9.5 5.77L15.67 7.13L20 2.5Z" fill="#0095F6"/>
@@ -304,7 +326,7 @@ export default function ProfileCard({ cfg, ready = true, viewCount = null, nowPl
             {skills.map((s, i) => (
               <span key={s} style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                 {s}
-                {i < skills.length - 1 && <span style={{ color: 'rgba(255,60,60,0.55)' }}>·</span>}
+                {i < skills.length - 1 && <span style={{ color: A(0.55) }}>·</span>}
               </span>
             ))}
           </div>

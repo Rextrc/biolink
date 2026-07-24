@@ -70,4 +70,52 @@ async function describeVisitor(req, esc = (x) => x) {
   ].filter(Boolean).join('\n');
 }
 
-module.exports = { lookupLocation, parseUserAgent, describeVisitor };
+/* ── Country lookup for per-page analytics ──────────────────────────────
+   Cached per IP for a day and globally throttled, so a burst of traffic
+   can't hammer the free geo API (or slow anything down — callers
+   fire-and-forget this). Unknown just means the country column stays null. */
+const countryCache = new Map(); // ip -> { code, expires }
+const COUNTRY_TTL = 24 * 60 * 60 * 1000;
+let lookupsThisMinute = 0;
+let minuteResetAt = 0;
+
+async function lookupCountry(ip) {
+  if (!ip || ip === 'unknown' || PRIVATE_IP.test(ip)) return null;
+
+  const hit = countryCache.get(ip);
+  if (hit && Date.now() < hit.expires) return hit.code;
+
+  const now = Date.now();
+  if (now > minuteResetAt) { minuteResetAt = now + 60_000; lookupsThisMinute = 0; }
+  if (lookupsThisMinute >= 30) return null; // stay well under free-tier limits
+  lookupsThisMinute += 1;
+
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 2500);
+    const res = await fetch(`https://ipwho.is/${encodeURIComponent(ip)}?fields=success,country_code`, { signal: ctrl.signal });
+    clearTimeout(t);
+    if (!res.ok) return null;
+    const d = await res.json();
+    const code = (d && d.success !== false && d.country_code) ? String(d.country_code).toUpperCase() : null;
+    if (countryCache.size > 10000) countryCache.clear();
+    countryCache.set(ip, { code, expires: Date.now() + COUNTRY_TTL });
+    return code;
+  } catch {
+    return null;
+  }
+}
+
+/** Bare hostname of a referring URL, or null for direct/self traffic. */
+function referrerHost(referer, selfHost) {
+  if (!referer) return null;
+  try {
+    const host = new URL(referer).hostname.replace(/^www\./, '');
+    if (!host || (selfHost && host === String(selfHost).replace(/^www\./, ''))) return null;
+    return host.slice(0, 120);
+  } catch {
+    return null;
+  }
+}
+
+module.exports = { lookupLocation, parseUserAgent, describeVisitor, lookupCountry, referrerHost };

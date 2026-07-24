@@ -15,6 +15,33 @@ const RESERVED = new Set([
 
 const SLUG_RE = /^[a-z0-9](?:[a-z0-9-]{0,30})$/;
 
+// Substrings that can't appear anywhere in a slug. Two groups:
+//  - impersonation: names that would let a page pass as official
+//  - abuse: slurs / harassment terms we don't want on the domain
+// Matched against a de-leeted, separator-stripped form so "0l1k-supp0rt" and
+// "s_u_p_p_o_r_t" are caught too.
+const BLOCKED_SUBSTRINGS = [
+  // impersonation / official-looking
+  'admin', 'administrator', 'support', 'official', 'staff', 'moderator', 'billing',
+  'security', 'payment', 'helpdesk', 'root', 'sysadmin', 'webmaster', 'noreply',
+  'olikapp', 'olikofficial', 'realolik', 'theolik',
+  // abuse
+  'nigger', 'nigga', 'faggot', 'retard', 'tranny', 'kike', 'chink', 'spic',
+  'rapist', 'pedophile', 'childporn',
+];
+
+// Short tokens that would false-positive as substrings ("cp" inside "cpu"),
+// so they only block when they are the entire slug.
+const BLOCKED_EXACT = new Set(['cp', 'pedo', 'mod', 'help', 'team', 'system', 'api', 'www', 'mail']);
+
+const LEET = { '0': 'o', '1': 'i', '3': 'e', '4': 'a', '5': 's', '7': 't', '8': 'b', '$': 's', '@': 'a' };
+
+function canonicalise(slug) {
+  return String(slug).toLowerCase()
+    .replace(/[0134578$@]/g, (c) => LEET[c] || c)
+    .replace(/[^a-z]/g, ''); // drop hyphens/digits so separators can't hide a word
+}
+
 // Every social field a card can show, in the order they render.
 const LINK_KEYS = [
   'email', 'github', 'twitter', 'linkedin', 'instagram',
@@ -31,6 +58,9 @@ function slugError(slug) {
     return 'Slug must be 1–31 chars: lowercase letters, numbers, hyphens; starting with a letter or number.';
   }
   if (RESERVED.has(slug)) return 'That slug is reserved.';
+  if (BLOCKED_EXACT.has(slug)) return 'That slug isn’t available.';
+  const canon = canonicalise(slug);
+  if (BLOCKED_SUBSTRINGS.some(word => canon.includes(word))) return 'That slug isn’t available.';
   if (db.prepare('SELECT 1 FROM landing_pages WHERE slug = ?').get(slug)) {
     return 'That slug is already taken.';
   }
@@ -66,6 +96,7 @@ function blankConfig(overrides = {}) {
   return {
     avatar_url: '',
     verified: false,
+    accent: '#ff3333',
     timezone: 'America/New_York',
     hero_badge: 'available for work',
     hero_name: '',
@@ -95,4 +126,7 @@ function createPage(rawSlug, data) {
   return db.prepare('SELECT id, slug, edit_code, views, created_at FROM landing_pages WHERE slug = ?').get(slug);
 }
 
-module.exports = { RESERVED, SLUG_RE, LINK_KEYS, normalizeSlug, slugError, uniqueCode, blankConfig, createPage };
+module.exports = {
+  RESERVED, SLUG_RE, LINK_KEYS, BLOCKED_SUBSTRINGS, BLOCKED_EXACT,
+  normalizeSlug, slugError, uniqueCode, blankConfig, createPage, canonicalise,
+};

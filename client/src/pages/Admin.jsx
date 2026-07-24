@@ -287,6 +287,14 @@ export default function Admin() {
                     style={{ width: 15, height: 15, accentColor: ACCENT, cursor: 'pointer' }} />
                   <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>Show verified badge next to name</span>
                 </label>
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 12 }}>
+                  <input type="color" value={/^#[0-9a-f]{6}$/i.test(siteCfg.accent || '') ? siteCfg.accent : '#ff3333'}
+                    onChange={e => setSiteCfg(c => ({ ...c, accent: e.target.value }))}
+                    style={{ width: 44, height: 36, background: 'transparent', border: '1px solid #2a2a2a', borderRadius: 8, padding: 2, cursor: 'pointer', flexShrink: 0 }} />
+                  <div style={{ flex: 1 }}>
+                    <SInput label="Accent colour" value={siteCfg.accent || ''} onChange={v => setSiteCfg(c => ({ ...c, accent: v }))} placeholder="#ff3333" />
+                  </div>
+                </div>
                 <SInput label="Status line (green dot)" value={siteCfg.hero_badge} onChange={v => setSiteCfg(c => ({ ...c, hero_badge: v }))} />
                 <SInput label="Timezone (IANA, drives the live clock)" value={siteCfg.timezone || ''} placeholder="America/New_York"
                   onChange={v => setSiteCfg(c => ({ ...c, timezone: v }))} />

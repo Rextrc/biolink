@@ -2,6 +2,7 @@ require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 const express     = require('express');
 const cors        = require('cors');
 const path        = require('path');
+const fs          = require('fs');
 const compression = require('compression');
 const app         = express();
 
@@ -82,9 +83,32 @@ app.use('/uploads', require('express').static(UPLOAD_DIR));
 // Serve the built Vite client in production
 const clientDist = path.join(__dirname, '../client/dist');
 app.use(express.static(clientDist));
-// SPA fallback — all non-API routes return index.html
+
+/* ── Link previews ──────────────────────────────────────────────────────
+   Discord/Twitter/Slack/iMessage crawlers don't run JavaScript, so the SPA
+   can't set its own og: tags — they have to be in the HTML we serve. Inject
+   per-page tags before the SPA fallback. The preview image is the same
+   screenshot service used for edit alerts, so cards show the real page. */
+const { ogTagsFor } = require('./ogTags');
+const INDEX_HTML = path.join(clientDist, 'index.html');
+
 app.get(/^(?!\/api).*/, (req, res) => {
-  res.sendFile(path.join(clientDist, 'index.html'));
+  const segments = req.path.split('/').filter(Boolean);
+  const slug = segments.length === 0 ? '' : (segments.length === 1 ? segments[0].toLowerCase() : null);
+
+  // Only the root and single-segment slugs get custom previews.
+  if (slug === null) return res.sendFile(INDEX_HTML);
+
+  let tags = null;
+  try { tags = ogTagsFor(slug, req); } catch { tags = null; }
+  if (!tags) return res.sendFile(INDEX_HTML);
+
+  fs.readFile(INDEX_HTML, 'utf8', (err, html) => {
+    if (err) return res.sendFile(INDEX_HTML);
+    // Drop the static og:/twitter: tags from index.html so ours aren't duplicated.
+    const stripped = html.replace(/\s*<meta\s+(?:property|name)="(?:og:|twitter:)[^"]*"[^>]*>/gi, '');
+    res.type('html').send(stripped.replace('</head>', `${tags}\n</head>`));
+  });
 });
 
 const PORT = process.env.PORT || 3001;

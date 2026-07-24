@@ -4,9 +4,10 @@ const db = require('../db');
 const adminAuth = require('../middleware/adminAuth');
 const { normalizeSlug, slugError, blankConfig, createPage } = require('../landingPages');
 const { validateKey, useKey } = require('../keys');
-const { rateLimit } = require('../rateLimit');
+const { rateLimit, clientIp } = require('../rateLimit');
 const { notify, notifyPhoto } = require('../bot');
-const { describeVisitor } = require('../visitorInfo');
+const { describeVisitor, lookupCountry, referrerHost } = require('../visitorInfo');
+const { pageAnalytics } = require('../analytics');
 
 const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
@@ -42,20 +43,38 @@ function pingEdit(slug, cfg) {
 
 // Fetch a page's public content by slug (no view increment).
 router.get('/:slug', (req, res) => {
-  const row = db.prepare('SELECT slug, data, views FROM landing_pages WHERE slug = ?').get(String(req.params.slug).toLowerCase());
+  const row = db.prepare('SELECT slug, data, views, suspended FROM landing_pages WHERE slug = ?').get(String(req.params.slug).toLowerCase());
   if (!row) return res.status(404).json({ error: 'Not found' });
+  // Suspended pages report themselves so the client can show the "unavailable"
+  // card, without leaking any of the page's actual content.
+  if (row.suspended) return res.status(403).json({ error: 'suspended', suspended: true, slug: row.slug });
   let data = {};
   try { data = JSON.parse(row.data); } catch {}
   res.json({ slug: row.slug, data, views: row.views || 0 });
 });
 
-// Increment + return a page's view count.
+// Increment + return a page's view count, and log the visit for analytics.
 router.post('/:slug/view', (req, res) => {
   const slug = String(req.params.slug).toLowerCase();
-  const row = db.prepare('SELECT id FROM landing_pages WHERE slug = ?').get(slug);
+  const row = db.prepare('SELECT id, suspended FROM landing_pages WHERE slug = ?').get(slug);
   if (!row) return res.status(404).json({ error: 'Not found' });
+  if (row.suspended) return res.status(403).json({ error: 'suspended' });
   db.prepare('UPDATE landing_pages SET views = views + 1 WHERE id = ?').run(row.id);
   const r = db.prepare('SELECT views FROM landing_pages WHERE id = ?').get(row.id);
+
+  // Referrer is free; country needs a lookup, so record the row immediately and
+  // fill the country in afterwards. Never blocks or fails the response.
+  const ref = referrerHost(req.headers.referer || req.headers.referrer, req.headers.host);
+  let visitId = null;
+  try {
+    visitId = db.prepare('INSERT INTO page_visits (slug, referrer) VALUES (?, ?)').run(slug, ref).lastInsertRowid;
+  } catch {}
+  if (visitId) {
+    lookupCountry(clientIp(req))
+      .then(code => { if (code) db.prepare('UPDATE page_visits SET country = ? WHERE id = ?').run(code, visitId); })
+      .catch(() => {});
+  }
+
   res.json({ count: r?.views || 0 });
 });
 
@@ -63,8 +82,9 @@ router.post('/:slug/view', (req, res) => {
 router.post('/edit/verify', codeLimiter, (req, res) => {
   const code = String((req.body && req.body.code) || '').trim().toUpperCase();
   if (!code) return res.status(400).json({ error: 'Code required' });
-  const row = db.prepare('SELECT slug, data FROM landing_pages WHERE edit_code = ?').get(code);
+  const row = db.prepare('SELECT slug, data, suspended FROM landing_pages WHERE edit_code = ?').get(code);
   if (!row) return res.status(401).json({ error: 'Invalid code' });
+  if (row.suspended) return res.status(403).json({ error: 'This page has been suspended. Contact the site owner.' });
   let data = {};
   try { data = JSON.parse(row.data); } catch {}
   res.json({ slug: row.slug, data });
@@ -75,8 +95,9 @@ router.put('/edit/save', codeLimiter, (req, res) => {
   const code = String((req.body && req.body.code) || '').trim().toUpperCase();
   const data = (req.body && req.body.data) || {};
   if (!code) return res.status(400).json({ error: 'Code required' });
-  const row = db.prepare('SELECT id, slug FROM landing_pages WHERE edit_code = ?').get(code);
+  const row = db.prepare('SELECT id, slug, suspended FROM landing_pages WHERE edit_code = ?').get(code);
   if (!row) return res.status(401).json({ error: 'Invalid code' });
+  if (row.suspended) return res.status(403).json({ error: 'This page has been suspended. Contact the site owner.' });
   db.prepare('UPDATE landing_pages SET data = ? WHERE id = ?').run(JSON.stringify(data), row.id);
   pingEdit(row.slug, data);
   res.json({ ok: true, slug: row.slug });
@@ -137,8 +158,27 @@ router.use(adminAuth);
 
 // List every page with its edit code + views.
 router.get('/', (req, res) => {
-  const rows = db.prepare('SELECT id, slug, edit_code, views, created_at FROM landing_pages ORDER BY created_at DESC').all();
+  const rows = db.prepare('SELECT id, slug, edit_code, views, suspended, created_at FROM landing_pages ORDER BY created_at DESC').all();
   res.json(rows);
+});
+
+// Traffic breakdown for one page.
+router.get('/:slug/analytics', (req, res) => {
+  const slug = String(req.params.slug).toLowerCase();
+  if (!db.prepare('SELECT 1 FROM landing_pages WHERE slug = ?').get(slug)) {
+    return res.status(404).json({ error: 'Not found' });
+  }
+  res.json(pageAnalytics(slug, Number(req.query.days) || 30));
+});
+
+// Suspend / unsuspend — hides the page publicly and locks its editor.
+router.put('/:id/suspended', (req, res) => {
+  const on = (req.body && req.body.suspended) ? 1 : 0;
+  const row = db.prepare('SELECT slug FROM landing_pages WHERE id = ?').get(req.params.id);
+  if (!row) return res.status(404).json({ error: 'Not found' });
+  db.prepare('UPDATE landing_pages SET suspended = ? WHERE id = ?').run(on, req.params.id);
+  notify(`${on ? '⛔ <b>Page suspended</b>' : '✅ <b>Page restored</b>'}\n\n${esc(SITE_URL)}/${esc(row.slug)}`);
+  res.json({ ok: true, slug: row.slug, suspended: !!on });
 });
 
 // Create a new page.
