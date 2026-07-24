@@ -62,4 +62,7 @@ export const api = {
   recordPageView: (slug) => apiFetch(`/pages/${encodeURIComponent(slug)}/view`, { method: 'POST' }),
   verifyPageCode: (code) => apiFetch('/pages/edit/verify', { method: 'POST', body: JSON.stringify({ code }) }),
   savePageByCode: (code, data) => apiFetch('/pages/edit/save', { method: 'PUT', body: JSON.stringify({ code, data }) }),
+  // Self-serve claim: redeem an invite key for a page
+  checkInviteKey: (invite_key) => apiFetch('/pages/claim/check', { method: 'POST', body: JSON.stringify({ invite_key }) }),
+  claimPage: (body) => apiFetch('/pages/claim', { method: 'POST', body: JSON.stringify(body) }),
 };

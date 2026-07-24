@@ -3,12 +3,13 @@
  * Imported by BOTH the HTTP admin API (routes/pages.js) and the Telegram bot
  * (bot.js), so slug rules / code generation can never drift between the two.
  */
+const crypto = require('crypto');
 const db = require('./db');
 
 // Slugs that would collide with real client routes or server paths.
 const RESERVED = new Set([
   'login', 'signup', 'verify', 'forgot-password', 'reset-password',
-  'dashboard', 'god', 'inbox', 'create', 'edit', 'api', 'uploads', 'u',
+  'dashboard', 'god', 'inbox', 'create', 'edit', 'claim', 'api', 'uploads', 'u',
   'assets', 'favicon.ico', 'robots.txt', 'sitemap.xml',
 ]);
 
@@ -36,8 +37,18 @@ function slugError(slug) {
   return null;
 }
 
+// Unambiguous alphabet — no O/0, I/1/L — so codes survive being read aloud or
+// copied off a screen. 8 chars over 31 symbols ≈ 8.5e11 combinations, which
+// (together with the rate limit on /edit/verify) makes guessing impractical.
+// Codes issued before this change were 5 digits; lookups are by exact string,
+// so those keep working and are never rewritten.
+const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+const CODE_LEN = 8;
+
 function uniqueCode() {
-  const gen = () => String(Math.floor(10000 + Math.random() * 90000)); // 5 digits
+  const gen = () => Array.from(crypto.randomBytes(CODE_LEN))
+    .map(b => CODE_ALPHABET[b % CODE_ALPHABET.length])
+    .join('');
   for (let i = 0; i < 60; i++) {
     const c = gen();
     if (!db.prepare('SELECT 1 FROM landing_pages WHERE edit_code = ?').get(c)) return c;

@@ -11,6 +11,7 @@ import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import Create from './pages/Create';
 import Edit from './pages/Edit';
+import Claim from './pages/Claim';
 import UserPage from './pages/UserPage';
 import { getAuth } from './utils/auth';
 
@@ -42,6 +43,7 @@ export default function App() {
         <Route path="/inbox" element={<AdminRoute><Inbox /></AdminRoute>} />
         <Route path="/create" element={<AdminRoute><Create /></AdminRoute>} />
         <Route path="/edit" element={<Edit />} />
+        <Route path="/claim" element={<Claim />} />
         {/* Catch-all: any other single-segment path is a user page (olik.app/<slug>),
             falling back to the owner's main card when the slug doesn't exist. */}
         <Route path="/:slug" element={<UserPage />} />

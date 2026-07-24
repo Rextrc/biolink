@@ -245,7 +245,8 @@ function startBot() {
       const key = generateKey('', dur);
       const label = dur ? `${dur} days` : 'Lifetime';
       bot.editMessageText(
-        `✅ <b>New invite key</b> (${label}):\n\n<code>${key}</code>`,
+        `✅ <b>New invite key</b> (${label}):\n\n<code>${key}</code>\n\n` +
+        `Send it with <b>olik.app/claim</b> — they redeem it there for their own page.`,
         { chat_id: chatId, message_id: query.message.message_id, parse_mode: 'HTML' }
       );
     }
@@ -262,7 +263,8 @@ function startBot() {
     awaitingCustom.delete(msg.chat.id);
     const key = generateKey('', days);
     bot.sendMessage(msg.chat.id,
-      `✅ <b>New invite key</b> (${days} days):\n\n<code>${key}</code>`,
+      `✅ <b>New invite key</b> (${days} days):\n\n<code>${key}</code>\n\n` +
+      `Send it with <b>olik.app/claim</b> — they redeem it there for their own page.`,
       { parse_mode: 'HTML' }
     );
   });
