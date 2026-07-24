@@ -10,6 +10,9 @@ import Verify from './pages/Verify';
 import Inbox from './pages/Inbox';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
+import Create from './pages/Create';
+import Edit from './pages/Edit';
+import UserPage from './pages/UserPage';
 import { getAuth } from './utils/auth';
 
 function PrivateRoute({ children }) {
@@ -42,6 +45,11 @@ export default function App() {
         <Route path="/dashboard" element={<PrivateRoute><HudPage /></PrivateRoute>} />
         <Route path="/god" element={<AdminRoute><Admin /></AdminRoute>} />
         <Route path="/inbox" element={<AdminRoute><Inbox /></AdminRoute>} />
+        <Route path="/create" element={<AdminRoute><Create /></AdminRoute>} />
+        <Route path="/edit" element={<Edit />} />
+        {/* Catch-all: any other single-segment path is a user page (olik.app/<slug>),
+            falling back to the owner's main card when the slug doesn't exist. */}
+        <Route path="/:slug" element={<UserPage />} />
       </Routes>
     </BrowserRouter>
   );

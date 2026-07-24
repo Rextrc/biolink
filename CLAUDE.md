@@ -23,6 +23,12 @@ git add . && git commit -m "..." && git push   # deploy
 - `/` — Landing page (always public; the old `VITE_COMING_SOON` radar coming-soon gate and
   `pages/ComingSoon.jsx` were removed entirely. `Login.jsx` still checks the flag to block
   non-admin login.)
+- `/create` — Admin-only. Creates additional copies of the landing card at `olik.app/<slug>`,
+  each with a 5-digit edit code. Lists/deletes existing ones. (`pages/Create.jsx`)
+- `/edit` — Hidden (NO link anywhere on the site — reachable only by typing it). A page owner
+  enters their 5-digit code to edit their own `olik.app/<slug>` card. (`pages/Edit.jsx`)
+- `/<slug>` — Public per-user card (`pages/UserPage.jsx`), catch-all route (declared last).
+  Unknown slugs fall back to rendering the owner's main `/` card.
 - `/dashboard` — User dashboard (mobile bottom nav on iPhone)
 - `/god` — Admin panel (admin only)
 - `/inbox` — Email inbox (admin only)
@@ -95,6 +101,19 @@ git add . && git commit -m "..." && git push   # deploy
   by `Landing.jsx` on load), PUT `/api/admin/site-config` (admin). Shared defaults live in
   `client/src/utils/siteConfig.js` (`DEFAULT_SITE_CFG`) — imported by both Landing and Admin so
   they never drift.
+- Multi-page ("create a page for someone"): the card itself lives in `components/ProfileCard.jsx`,
+  a presentational component driven entirely by a `cfg` (same shape as `DEFAULT_SITE_CFG`). Both
+  `Landing.jsx` (`/`, owner's page — also polls Spotify + rotates the o/l/i/k title) and
+  `UserPage.jsx` (`/<slug>`) render it. Per-user pages are stored in the `landing_pages` table
+  {slug, edit_code (5-digit), data (JSON), views}. Routes in `server/routes/pages.js` (mounted
+  `/api/pages`): public `GET /:slug`, `POST /:slug/view` (per-slug counter), `POST /edit/verify`
+  + `PUT /edit/save` (code-authorized, no login — the code alone identifies the page); admin-only
+  (below `router.use(adminAuth)`) `GET /` (list), `POST /` (create, validates slug against a
+  RESERVED set + `SLUG_RE`, generates a unique code, seeds neutral content — NOT the owner's), and
+  `DELETE /:id`. `UserPage` renders `page.data` verbatim (never merged with the owner's
+  `DEFAULT_SITE_CFG`, or an unset field would leak the owner's bio/skills/email). NOTE: 5-digit
+  code-only auth is brute-forceable (~90k combos, no rate-limit yet) — fine for vanity cards, but
+  don't reuse this pattern for anything sensitive.
 - Admin.jsx gotcha: any input-rendering helper component (`SInput`, `Row`) MUST be defined at
   module scope, not inside the `Admin()` function body — defining them inline makes React treat
   them as a new component type on every re-render (every keystroke), which unmounts/remounts the
