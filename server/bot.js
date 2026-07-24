@@ -13,6 +13,20 @@ function notify(text) {
   _bot.sendMessage(adminId, text, { parse_mode: 'HTML' }).catch(() => {});
 }
 
+/**
+ * Send a photo by URL with a caption. Telegram fetches the URL itself, so this
+ * costs the server nothing — no headless browser in the container.
+ * Falls back to a plain text message if Telegram can't fetch the image
+ * (rendering service down, page slow, rate-limited…).
+ */
+function notifyPhoto(photoUrl, caption) {
+  const token   = process.env.TELEGRAM_BOT_TOKEN;
+  const adminId = process.env.TELEGRAM_ADMIN_ID;
+  if (!token || !adminId || !_bot) return;
+  _bot.sendPhoto(adminId, photoUrl, { caption, parse_mode: 'HTML' })
+    .catch(() => notify(caption));
+}
+
 /* ── /newpage wizard config ──────────────────────────────────────────── */
 
 // Escape anything the admin types before echoing it back into HTML messages.
@@ -343,4 +357,4 @@ function startBot() {
   console.log('✅ Telegram bot started');
 }
 
-module.exports = { startBot, notify };
+module.exports = { startBot, notify, notifyPhoto };

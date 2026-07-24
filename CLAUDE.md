@@ -42,20 +42,30 @@ git add . && git commit -m "..." && git push   # deploy
 - `/god` — Admin panel (admin only). Logging in (and signup/verify) redirects straight here;
   `AdminRoute` bounces non-admins to `/`.
 - `/inbox` — Email inbox (admin only)
-- `/verify` — Email verification
+- `/verify` — Email verification (vestigial; only the owner account can exist now)
 - `/forgot-password` + `/reset-password` — Password reset
+- `/signup` — **removed.** The path now falls through the `/:slug` catch-all to the landing card.
 
 ## Admin
 - Email `oliverk5578@gmail.com` auto-gets `is_admin=1` + `email_verified=1` on server start
-- Invite keys (`invite_keys` table, `server/keys.js`) are single-use and now have TWO uses:
-  redeeming one at `/claim` mints a page (recorded as `used_by = page:<slug>`), and they still
-  gate `/signup`. Either use burns the key for both. Key `duration_days` only ever meant a
-  time-limited *account* (and was never actually enforced at login) — it means nothing for
-  claimed pages, which are permanent.
-- Telegram alerts fire on page activity via `notify()`: 🎉 on a `/claim`, 🆕 on an admin create
-  from `/create`, ✏️ on an edit (debounced to one message per page per 60s so double-taps on
-  Save don't spam). Bot-created pages (`/newpage`) don't notify — you already see the wizard's
-  confirmation in the same chat.
+- **Public signup is closed.** `pages/Signup.jsx` and the `/signup` route are deleted, and
+  `POST /api/auth/signup` 403s any email that isn't the owner's. The endpoint survives only so
+  the owner can re-bootstrap an admin account if the DB is ever wiped; once that row exists it
+  409s, so it's inert. Accounts granted access to nothing after the radar was removed.
+- Invite keys (`invite_keys` table, `server/keys.js`) are single-use and now exist purely to mint
+  pages: redeeming one at `/claim` creates a page and records `used_by = page:<slug>`. They no
+  longer gate signup (there is no signup). Key `duration_days` meant a time-limited *account*
+  (never actually enforced at login) — it means nothing for claimed pages, which are permanent.
+- Telegram alerts on page activity: 🎉 on a `/claim` (with the claimer's IP, geo-located city/ISP
+  and parsed device — see `server/visitorInfo.js`, which fails soft to just the IP), 🆕 on an
+  admin create from `/create`, ✏️ on an edit — the edit alert is a **screenshot of the live page**
+  via `notifyPhoto()`. Telegram fetches the screenshot URL itself, so there's no headless browser
+  in the container; the renderer is `SCREENSHOT_TEMPLATE` (default thum.io, `{url}` substituted)
+  and it falls back to a plain text message if the fetch fails. Edits are debounced to one
+  message per page per 60s. Bot-created pages (`/newpage`) don't notify — you already see the
+  wizard's confirmation in the same chat.
+- Optional env: `PUBLIC_BASE_URL` (default `https://olik.app`) is used to build the links and
+  screenshot targets in notifications, and `SCREENSHOT_TEMPLATE` swaps the screenshot provider.
 - Telegram bot in `server/bot.js` (same process as the server, started after `db.init()`):
   - `/newpage` — conversational wizard that creates an `olik.app/<slug>` card. 6 text steps
     (slug → name → role → status → bio → skills; the optional ones take `/skip`), then an inline
