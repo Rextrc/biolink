@@ -92,7 +92,7 @@ export default function Admin() {
         setSiteCfg(merged);
         setSkillsText((merged.skills || []).join(', '));
       }
-    } catch { navigate('/dashboard'); }
+    } catch { navigate('/'); }
   }
 
   async function genKey() {
@@ -161,9 +161,9 @@ export default function Admin() {
         <span style={{ fontWeight: 800, letterSpacing: '0.1em' }}>OLIK</span>
         <span style={{ color: '#333', margin: '0 4px' }}>/</span>
         <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, letterSpacing: '0.08em' }}>God Mode</span>
-        <button onClick={() => navigate('/dashboard')}
+        <button onClick={() => navigate('/')}
           style={{ marginLeft: 'auto', background: ACCENT_FILL, border: `1px solid ${ACCENT_BORD}`, color: ACCENT_SOFT, borderRadius: 8, padding: '5px 12px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
-          Open HUD
+          View site
         </button>
       </div>
 

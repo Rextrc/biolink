@@ -19,7 +19,7 @@ export default function Verify() {
     try {
       const data = await apiFetch('/auth/verify', { method: 'POST', body: JSON.stringify({ username, code }) });
       setAuth(data.token, data.username, data.isAdmin);
-      navigate('/dashboard');
+      navigate('/god');
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
   };
