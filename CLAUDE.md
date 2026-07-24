@@ -45,7 +45,19 @@ git add . && git commit -m "..." && git push   # deploy
 ## Admin
 - Email `oliverk5578@gmail.com` auto-gets `is_admin=1` + `email_verified=1` on server start
 - Invite keys required for all other signups
-- Telegram bot in `server/bot.js` — `/genkey` with inline duration buttons
+- Telegram bot in `server/bot.js` (same process as the server, started after `db.init()`):
+  - `/newpage` — conversational wizard that creates an `olik.app/<slug>` card. 6 text steps
+    (slug → name → role → status → bio → skills; the optional ones take `/skip`), then an inline
+    keyboard to fill in any of the 10 social links + toggle the verified badge, then "Create page"
+    replies with the URL and 5-digit edit code. `/cancel` aborts. Wizard state is an in-memory
+    `Map` keyed by chatId, so it resets on redeploy — fine, it's a <1min flow.
+  - `/pages` (list slugs + codes + views), `/genkey` (inline duration buttons), `/keys`, `/stats`
+  - Gotcha: `bot.on('message')` fires for EVERY message, so both the `/genkey` custom-days handler
+    and the wizard handler must guard on their own state. The wizard also ignores anything
+    starting with `/` (except `/skip`) so other commands aren't swallowed as answers.
+- Page-creation logic (slug rules, RESERVED list, unique 5-digit code, neutral `blankConfig`)
+  lives in `server/landingPages.js` and is imported by BOTH `routes/pages.js` and `bot.js` — put
+  new validation there, not in one caller, or the web and bot paths drift.
 
 ## Notable features
 - GIF banners, video backgrounds, card glow, Spotify embed on profiles

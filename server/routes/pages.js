@@ -2,38 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const adminAuth = require('../middleware/adminAuth');
-
-// Slugs that would collide with real client routes / server paths.
-const RESERVED = new Set([
-  'login', 'signup', 'verify', 'forgot-password', 'reset-password',
-  'dashboard', 'god', 'inbox', 'create', 'edit', 'api', 'uploads', 'u',
-  'assets', 'favicon.ico', 'robots.txt', 'sitemap.xml',
-]);
-
-const SLUG_RE = /^[a-z0-9](?:[a-z0-9-]{0,30})$/;
-
-function genCode() {
-  return String(Math.floor(10000 + Math.random() * 90000)); // 5 digits
-}
-function uniqueCode() {
-  for (let i = 0; i < 60; i++) {
-    const c = genCode();
-    if (!db.prepare('SELECT 1 FROM landing_pages WHERE edit_code = ?').get(c)) return c;
-  }
-  return genCode(); // extremely unlikely fallback
-}
-
-// Starter config for a freshly-created page — same shape as site_config,
-// but neutral so a new page isn't pre-filled with the owner's details.
-function seedConfig(name, slug) {
-  return {
-    avatar_url: '', verified: false, timezone: 'America/New_York',
-    hero_badge: 'available for work', hero_name: name || slug, hero_role: 'Developer',
-    hero_sub: '', skills: [],
-    links: { github: '', twitter: '', linkedin: '', instagram: '', photography: '',
-             youtube: '', twitch: '', discord: '', website: '', email: '' },
-  };
-}
+const { normalizeSlug, slugError, blankConfig, createPage } = require('../landingPages');
 
 /* ── Public ─────────────────────────────────────────────────────────── */
 
@@ -89,20 +58,15 @@ router.get('/', (req, res) => {
 
 // Create a new page.
 router.post('/', (req, res) => {
-  const slug = String((req.body && req.body.slug) || '').trim().toLowerCase();
+  const slug = normalizeSlug((req.body && req.body.slug) || '');
   const name = String((req.body && req.body.name) || '').trim();
-  if (!SLUG_RE.test(slug)) {
-    return res.status(400).json({ error: 'Slug must be 1–31 chars: lowercase letters, numbers, hyphens; starting with a letter or number.' });
+  const err = slugError(slug);
+  if (err) return res.status(err.includes('taken') ? 409 : 400).json({ error: err });
+  try {
+    res.json(createPage(slug, blankConfig({ hero_name: name || slug })));
+  } catch (e) {
+    res.status(e.slugError ? 400 : 500).json({ error: e.slugError ? e.message : 'Server error' });
   }
-  if (RESERVED.has(slug)) return res.status(400).json({ error: 'That slug is reserved.' });
-  if (db.prepare('SELECT 1 FROM landing_pages WHERE slug = ?').get(slug)) {
-    return res.status(409).json({ error: 'That slug is already taken.' });
-  }
-  const code = uniqueCode();
-  db.prepare('INSERT INTO landing_pages (slug, edit_code, data) VALUES (?, ?, ?)')
-    .run(slug, code, JSON.stringify(seedConfig(name, slug)));
-  const row = db.prepare('SELECT id, slug, edit_code, views, created_at FROM landing_pages WHERE slug = ?').get(slug);
-  res.json(row);
 });
 
 // Delete a page.
