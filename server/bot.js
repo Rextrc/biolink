@@ -2,6 +2,9 @@ const TelegramBot = require('node-telegram-bot-api');
 const { generateKey } = require('./keys');
 const db = require('./db');
 const { LINK_KEYS, normalizeSlug, slugError, blankConfig, createPage } = require('./landingPages');
+const { pageAnalytics } = require('./analytics');
+
+const SITE_URL = (process.env.PUBLIC_BASE_URL || 'https://olik.app').replace(/\/+$/, '');
 
 let _bot = null;
 
@@ -52,6 +55,18 @@ const LINK_PROMPTS = {
   website:     'the website domain (or full URL)',
 };
 
+// Fields exposed by the /editpage keyboard, in display order.
+const EDIT_FIELDS = [
+  { key: 'hero_name',  label: 'Name',    prompt: 'the display name' },
+  { key: 'hero_role',  label: 'Role',    prompt: 'the role / title' },
+  { key: 'hero_badge', label: 'Status',  prompt: 'the status line (next to the green dot)' },
+  { key: 'hero_sub',   label: 'Bio',     prompt: 'the bio line' },
+  { key: 'skills',     label: 'Skills',  prompt: 'the skills, comma separated' },
+  { key: 'avatar_url', label: 'Avatar',  prompt: 'the avatar image URL' },
+  { key: 'accent',     label: 'Accent',  prompt: 'the accent colour as a hex code, e.g. #ff3333' },
+  { key: 'timezone',   label: 'Timezone', prompt: 'the IANA timezone, e.g. America/New_York' },
+];
+
 // Ordered questions asked before the links step.
 const STEPS = [
   { key: 'slug',       q: "What should the URL be?\n\nolik.app/<b>___</b>\n\nLowercase letters, numbers and hyphens." },
@@ -84,6 +99,42 @@ function linksKeyboard(cfg) {
   return { inline_keyboard: rows };
 }
 
+function editKeyboard(cfg, mode) {
+  const rows = [];
+  if (mode === 'links') {
+    for (let i = 0; i < LINK_KEYS.length; i += 2) {
+      rows.push(LINK_KEYS.slice(i, i + 2).map(k => ({
+        text: `${cfg.links?.[k] ? '✅ ' : ''}${LINK_LABELS[k]}`,
+        callback_data: `ep:l:${k}`,
+      })));
+    }
+    rows.push([{ text: '⬅️ Back', callback_data: 'ep:main' }]);
+    return { inline_keyboard: rows };
+  }
+  for (let i = 0; i < EDIT_FIELDS.length; i += 2) {
+    rows.push(EDIT_FIELDS.slice(i, i + 2).map(f => ({ text: `✏️ ${f.label}`, callback_data: `ep:f:${f.key}` })));
+  }
+  rows.push([
+    { text: `${cfg.verified ? '✅' : '☑️'} Verified`, callback_data: 'ep:v' },
+    { text: '🔗 Links', callback_data: 'ep:links' },
+  ]);
+  rows.push([{ text: '✅ Done', callback_data: 'ep:done' }]);
+  return { inline_keyboard: rows };
+}
+
+function fieldValue(cfg, key) {
+  if (key === 'skills') return (cfg.skills || []).join(', ');
+  return cfg[key] || '';
+}
+
+function editSummary(slug, cfg) {
+  const shown = EDIT_FIELDS
+    .map(f => `${f.label}: ${fieldValue(cfg, f.key) ? esc(String(fieldValue(cfg, f.key)).slice(0, 40)) : '<i>—</i>'}`)
+    .join('\n');
+  const linkCount = LINK_KEYS.filter(k => cfg.links?.[k]).length;
+  return `<b>olik.app/${esc(slug)}</b>\n\n${shown}\nVerified: ${cfg.verified ? 'yes' : 'no'}\nLinks: ${linkCount}`;
+}
+
 function summary(cfg) {
   const filled = LINK_KEYS.filter(k => cfg.links[k]);
   return [
@@ -110,6 +161,8 @@ function startBot() {
 
   // chatId -> { step, cfg, awaitingLink, kbMsgId } for the /newpage wizard
   const wizards = new Map();
+  // chatId -> { slug, cfg, awaiting, mode, kbMsgId } for the /editpage editor
+  const editors = new Map();
 
   const askStep = (chatId, i) => {
     const w = wizards.get(chatId);
@@ -153,10 +206,15 @@ function startBot() {
   bot.onText(/\/start/, (msg) => {
     bot.sendMessage(msg.chat.id,
       `👋 <b>olik bot</b>\n\n` +
+      `<b>Pages</b>\n` +
       `/newpage — create an olik.app/&lt;slug&gt; page\n` +
       `/pages — list pages + edit codes\n` +
+      `/page &lt;slug&gt; — details + traffic\n` +
+      `/editpage &lt;slug&gt; — edit a page\n` +
+      `/suspend &lt;slug&gt; · /unsuspend &lt;slug&gt;\n\n` +
+      `<b>Invites</b>\n` +
       `/genkey — generate invite key\n` +
-      `/keys — list unused keys\n` +
+      `/keys — list unused keys\n\n` +
       `/stats — platform stats`,
       { parse_mode: 'HTML' }
     );
@@ -171,16 +229,100 @@ function startBot() {
       .then(() => askStep(msg.chat.id, 0));
   });
 
-  bot.onText(/\/pages/, (msg) => {
+  bot.onText(/^\/pages\b/, (msg) => {
     if (!isAdmin(msg.from)) return bot.sendMessage(msg.chat.id, '❌ Unauthorized');
-    const rows = db.prepare('SELECT slug, edit_code, views FROM landing_pages ORDER BY created_at DESC LIMIT 30').all();
+    const rows = db.prepare('SELECT slug, edit_code, views, suspended FROM landing_pages ORDER BY created_at DESC LIMIT 30').all();
     if (!rows.length) return bot.sendMessage(msg.chat.id, 'No pages yet. Use /newpage to make one.');
-    const list = rows.map(r => `<b>olik.app/${esc(r.slug)}</b>\n  🔑 <code>${r.edit_code}</code> · ${r.views || 0} visits`).join('\n\n');
-    bot.sendMessage(msg.chat.id, `📄 <b>Pages</b>\n\n${list}`, { parse_mode: 'HTML' });
+    const list = rows.map(r =>
+      `<b>olik.app/${esc(r.slug)}</b>${r.suspended ? ' ⛔' : ''}\n  🔑 <code>${r.edit_code}</code> · ${r.views || 0} visits`
+    ).join('\n\n');
+    bot.sendMessage(msg.chat.id, `📄 <b>Pages</b>\n\n${list}\n\n<i>/page &lt;slug&gt; for details</i>`, { parse_mode: 'HTML' });
+  });
+
+  /* ── /page <slug> — details + traffic ──────────────────────────────── */
+  bot.onText(/^\/page(?:@\S+)?\s+(\S+)/, (msg, match) => {
+    if (!isAdmin(msg.from)) return bot.sendMessage(msg.chat.id, '❌ Unauthorized');
+    const slug = normalizeSlug(match[1]);
+    const row = db.prepare('SELECT slug, edit_code, views, suspended, created_at FROM landing_pages WHERE slug = ?').get(slug);
+    if (!row) return bot.sendMessage(msg.chat.id, `❌ No page at olik.app/${esc(slug)}`, { parse_mode: 'HTML' });
+
+    let cfg = {};
+    try { cfg = JSON.parse(db.prepare('SELECT data FROM landing_pages WHERE slug = ?').get(slug).data); } catch {}
+    const a = pageAnalytics(slug, 30);
+    const topCountries = a.countries.length ? a.countries.map(c => `${c.country} ${c.c}`).join(', ') : '—';
+    const refs = [...a.referrers.map(r => `${r.referrer} ${r.c}`), ...(a.direct ? [`direct ${a.direct}`] : [])];
+    const links = LINK_KEYS.filter(k => cfg.links?.[k]);
+
+    bot.sendMessage(msg.chat.id,
+      `📄 <b>olik.app/${esc(row.slug)}</b>${row.suspended ? ' — ⛔ <b>SUSPENDED</b>' : ''}\n` +
+      `🔑 <code>${row.edit_code}</code>\n\n` +
+      `<b>${esc(cfg.hero_name || row.slug)}</b> — ${esc(cfg.hero_role || '—')}\n` +
+      `${cfg.hero_badge ? `🟢 ${esc(cfg.hero_badge)}\n` : ''}` +
+      `${cfg.hero_sub ? `<i>${esc(cfg.hero_sub)}</i>\n` : ''}` +
+      `${(cfg.skills || []).length ? `🛠 ${esc(cfg.skills.join(' · '))}\n` : ''}` +
+      `🔗 ${links.length ? esc(links.join(', ')) : 'none'}\n` +
+      `🎨 ${esc(cfg.accent || '#ff3333')}${cfg.verified ? ' · ✅ verified' : ''}\n\n` +
+      `<b>Traffic</b> (30d: ${a.window}, all time: ${a.total})\n` +
+      `🌍 ${esc(topCountries)}\n` +
+      `↗️ ${refs.length ? esc(refs.join(', ')) : '—'}\n\n` +
+      `<i>/editpage ${esc(row.slug)} to change it</i>`,
+      { parse_mode: 'HTML' }
+    );
+  });
+
+  /* ── /suspend + /unsuspend ─────────────────────────────────────────── */
+  const setSuspended = (msg, slugRaw, on) => {
+    if (!isAdmin(msg.from)) return bot.sendMessage(msg.chat.id, '❌ Unauthorized');
+    const slug = normalizeSlug(slugRaw);
+    const row = db.prepare('SELECT id FROM landing_pages WHERE slug = ?').get(slug);
+    if (!row) return bot.sendMessage(msg.chat.id, `❌ No page at olik.app/${esc(slug)}`, { parse_mode: 'HTML' });
+    db.prepare('UPDATE landing_pages SET suspended = ? WHERE id = ?').run(on ? 1 : 0, row.id);
+    bot.sendMessage(msg.chat.id,
+      on ? `⛔ <b>Suspended</b> olik.app/${esc(slug)}\n\nIt now shows an "unavailable" card and its owner can't edit it.`
+         : `✅ <b>Restored</b> olik.app/${esc(slug)}`,
+      { parse_mode: 'HTML' });
+  };
+  bot.onText(/^\/suspend(?:@\S+)?\s+(\S+)/, (msg, m) => setSuspended(msg, m[1], true));
+  bot.onText(/^\/unsuspend(?:@\S+)?\s+(\S+)/, (msg, m) => setSuspended(msg, m[1], false));
+
+  /* ── /editpage <slug> ──────────────────────────────────────────────── */
+  const showEditor = (chatId, replaceMsgId) => {
+    const e = editors.get(chatId);
+    if (!e) return;
+    if (replaceMsgId) bot.deleteMessage(chatId, replaceMsgId).catch(() => {});
+    else if (e.kbMsgId) bot.deleteMessage(chatId, e.kbMsgId).catch(() => {});
+    bot.sendMessage(chatId,
+      `${editSummary(e.slug, e.cfg)}\n\n<i>Changes save instantly.</i>`,
+      { parse_mode: 'HTML', reply_markup: editKeyboard(e.cfg, e.mode) }
+    ).then(m => { const cur = editors.get(chatId); if (cur) cur.kbMsgId = m.message_id; }).catch(() => {});
+  };
+
+  const persist = (chatId) => {
+    const e = editors.get(chatId);
+    if (!e) return;
+    db.prepare('UPDATE landing_pages SET data = ? WHERE slug = ?').run(JSON.stringify(e.cfg), e.slug);
+  };
+
+  bot.onText(/^\/editpage(?:@\S+)?\s+(\S+)/, (msg, match) => {
+    if (!isAdmin(msg.from)) return bot.sendMessage(msg.chat.id, '❌ Unauthorized');
+    const slug = normalizeSlug(match[1]);
+    const row = db.prepare('SELECT slug, data FROM landing_pages WHERE slug = ?').get(slug);
+    if (!row) return bot.sendMessage(msg.chat.id, `❌ No page at olik.app/${esc(slug)}`, { parse_mode: 'HTML' });
+    let cfg = {};
+    try { cfg = JSON.parse(row.data); } catch {}
+    if (!cfg.links) cfg.links = {};
+    editors.set(msg.chat.id, { slug: row.slug, cfg, awaiting: null, mode: 'main', kbMsgId: null });
+    showEditor(msg.chat.id);
+  });
+
+  bot.onText(/^\/editpage(?:@\S+)?\s*$/, (msg) => {
+    if (!isAdmin(msg.from)) return;
+    bot.sendMessage(msg.chat.id, 'Usage: <code>/editpage &lt;slug&gt;</code>\n\n/pages to see them all.', { parse_mode: 'HTML' });
   });
 
   bot.onText(/\/cancel/, (msg) => {
-    if (wizards.delete(msg.chat.id)) bot.sendMessage(msg.chat.id, '🚫 Cancelled.');
+    const had = wizards.delete(msg.chat.id) | editors.delete(msg.chat.id);
+    if (had) bot.sendMessage(msg.chat.id, '🚫 Cancelled.');
   });
 
   /* ── /genkey ───────────────────────────────────────────────────────── */
@@ -242,6 +384,46 @@ function startBot() {
       return;
     }
 
+    /* /editpage keyboard */
+    if (query.data.startsWith('ep:')) {
+      bot.answerCallbackQuery(query.id);
+      const e = editors.get(chatId);
+      if (!e) return bot.sendMessage(chatId, 'That editor expired. Send /editpage <slug> again.');
+
+      if (query.data === 'ep:done') {
+        editors.delete(chatId);
+        bot.deleteMessage(chatId, query.message.message_id).catch(() => {});
+        return bot.sendMessage(chatId, `✅ Saved — ${SITE_URL}/${e.slug}`);
+      }
+      if (query.data === 'ep:links') { e.mode = 'links'; return showEditor(chatId, query.message.message_id); }
+      if (query.data === 'ep:main')  { e.mode = 'main';  return showEditor(chatId, query.message.message_id); }
+      if (query.data === 'ep:v') {
+        e.cfg.verified = !e.cfg.verified;
+        persist(chatId);
+        return showEditor(chatId, query.message.message_id);
+      }
+      if (query.data.startsWith('ep:f:')) {
+        const key = query.data.slice(5);
+        const field = EDIT_FIELDS.find(f => f.key === key);
+        if (!field) return;
+        e.awaiting = { kind: 'field', key };
+        const cur = fieldValue(e.cfg, key);
+        return bot.sendMessage(chatId,
+          `✏️ Send ${field.prompt}.${cur ? `\n\nCurrently: <code>${esc(String(cur))}</code>` : ''}\n\n<i>/skip to clear it</i>`,
+          { parse_mode: 'HTML' });
+      }
+      if (query.data.startsWith('ep:l:')) {
+        const key = query.data.slice(5);
+        if (!LINK_KEYS.includes(key)) return;
+        e.awaiting = { kind: 'link', key };
+        const cur = e.cfg.links?.[key];
+        return bot.sendMessage(chatId,
+          `${LINK_LABELS[key]} — send ${LINK_PROMPTS[key]}.${cur ? `\n\nCurrently: <code>${esc(cur)}</code>` : ''}\n\n<i>/skip to clear it</i>`,
+          { parse_mode: 'HTML' });
+      }
+      return;
+    }
+
     /* /genkey durations */
     if (query.data.startsWith('dur:')) {
       const val = query.data.slice(4);
@@ -281,6 +463,30 @@ function startBot() {
       `Send it with <b>olik.app/claim</b> — they redeem it there for their own page.`,
       { parse_mode: 'HTML' }
     );
+  });
+
+  // Handle /editpage field input
+  bot.on('message', (msg) => {
+    const chatId = msg.chat.id;
+    const e = editors.get(chatId);
+    if (!e || !e.awaiting || !isAdmin(msg.from)) return;
+
+    const text = (msg.text || '').trim();
+    if (!text) return;
+    const isSkip = text.toLowerCase() === '/skip';
+    if (text.startsWith('/') && !isSkip) return; // let other commands through
+
+    const { kind, key } = e.awaiting;
+    if (kind === 'link') {
+      e.cfg.links[key] = isSkip ? '' : text;
+    } else if (key === 'skills') {
+      e.cfg.skills = isSkip ? [] : text.split(',').map(s => s.trim()).filter(Boolean);
+    } else {
+      e.cfg[key] = isSkip ? '' : text;
+    }
+    e.awaiting = null;
+    persist(chatId);
+    showEditor(chatId);
   });
 
   // Handle /newpage wizard answers

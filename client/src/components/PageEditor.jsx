@@ -87,6 +87,14 @@ export default function PageEditor({ slug, initialData, code }) {
             style={{ width: 15, height: 15, accentColor: '#ff2222', cursor: 'pointer' }} />
           <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>Show verified badge next to name</span>
         </label>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <input type="color" value={/^#[0-9a-f]{6}$/i.test(cfg.accent || '') ? cfg.accent : '#ff3333'}
+            onChange={e => setField('accent', e.target.value)}
+            style={{ width: 44, height: 38, background: 'transparent', border: `1px solid ${BORD}`, borderRadius: 8, padding: 2, cursor: 'pointer', flexShrink: 0 }} />
+          <div style={{ flex: 1 }}>
+            <Field label="Accent colour" value={cfg.accent || ''} onChange={v => setField('accent', v)} placeholder="#ff3333" />
+          </div>
+        </div>
         <Field label="Status line (green dot)" value={cfg.hero_badge || ''} onChange={v => setField('hero_badge', v)} />
         <Field label="Timezone (IANA, drives the live clock)" value={cfg.timezone || ''} onChange={v => setField('timezone', v)} placeholder="America/New_York" />
         <Area label="Bio line" value={cfg.hero_sub || ''} onChange={v => setField('hero_sub', v)} />

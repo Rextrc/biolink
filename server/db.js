@@ -269,6 +269,21 @@ async function init() {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
   } catch {}
+  // Suspending hides a page publicly (and locks its editor) without deleting it.
+  try { _sql.run('ALTER TABLE landing_pages ADD COLUMN suspended INTEGER NOT NULL DEFAULT 0'); } catch {}
+  try {
+    // One row per counted view, for the per-page referrer/country breakdown.
+    // `views` on landing_pages stays the authoritative total.
+    _sql.run(`CREATE TABLE IF NOT EXISTS page_visits (
+      id       INTEGER PRIMARY KEY AUTOINCREMENT,
+      slug     TEXT NOT NULL,
+      country  TEXT,
+      referrer TEXT,
+      ts       DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
+    _sql.run('CREATE INDEX IF NOT EXISTS idx_page_visits_slug ON page_visits(slug)');
+    _sql.run('CREATE INDEX IF NOT EXISTS idx_page_visits_ts ON page_visits(ts)');
+  } catch {}
 
   // Grant admin + verified to the owner account
   try { _sql.run(`UPDATE users SET is_admin = 1, email_verified = 1 WHERE email = 'oliverk5578@gmail.com'`); } catch {}

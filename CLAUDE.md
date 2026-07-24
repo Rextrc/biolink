@@ -72,7 +72,10 @@ git add . && git commit -m "..." && git push   # deploy
     keyboard to fill in any of the 10 social links + toggle the verified badge, then "Create page"
     replies with the URL and 5-digit edit code. `/cancel` aborts. Wizard state is an in-memory
     `Map` keyed by chatId, so it resets on redeploy — fine, it's a <1min flow.
-  - `/pages` (list slugs + codes + views), `/genkey` (inline duration buttons), `/keys`, `/stats`
+  - `/pages` (list slugs + codes + views), `/page <slug>` (full detail + 30-day traffic),
+    `/editpage <slug>` (inline-keyboard editor — tap a field, send the value; every change saves
+    to the DB immediately, `🔗 Links` opens a submenu), `/suspend <slug>` + `/unsuspend <slug>`,
+    `/genkey` (inline duration buttons), `/keys`, `/stats`
   - Gotcha: `bot.on('message')` fires for EVERY message, so both the `/genkey` custom-days handler
     and the wizard handler must guard on their own state. The wizard also ignores anything
     starting with `/` (except `/skip`) so other commands aren't swallowed as answers.
@@ -155,6 +158,27 @@ git add . && git commit -m "..." && git push   # deploy
   is successfully created, so a rejected slug never eats someone's invite. `UserPage` renders
   `page.data` verbatim (never merged with the owner's `DEFAULT_SITE_CFG`, or an unset field
   would leak the owner's bio/skills/email).
+- **Suspension**: `landing_pages.suspended`. A suspended page 403s on public fetch (leaking none
+  of its content), shows a "Temporarily unavailable" card, blocks its own editor, stops counting
+  views, and drops its OG screenshot. Toggle from `/create` (⃠ button), the bot, or
+  `PUT /api/pages/:id/suspended`.
+- **Slug blocklist** (`BLOCKED_SUBSTRINGS` / `BLOCKED_EXACT` in `landingPages.js`): rejects
+  impersonation (admin/support/official/olikapp…) and slurs. Matching runs on a de-leeted,
+  separator-stripped form via `canonicalise()`, so `0lik-supp0rt` and `s-u-p-p-o-r-t` are caught.
+  Short tokens that would false-positive as substrings (`cp` inside `cpu`) live in BLOCKED_EXACT
+  and only match a whole slug — don't move them into the substring list.
+- **Per-page analytics**: every counted view inserts into `page_visits` (slug, country, referrer).
+  Referrer comes free from the header; country is an async, IP-cached (24h), globally throttled
+  (30/min) geo lookup that fires *after* the response and fails soft to null. `server/analytics.js`
+  aggregates; surfaced in `/create` (📊 per row) and the bot's `/page <slug>`.
+- **Accent colour**: `accent` (hex) in the config themes the whole card — halo, avatar ring, glows,
+  name period, embers, click bursts, skill dots, icon hover, selection. `ProfileCard` derives every
+  shade via `accentRgba()`; there are no hardcoded reds left in it, so don't reintroduce any.
+  Invalid/missing values fall back to `#ff3333`.
+- **Link previews**: crawlers don't run JS, so `server/ogTags.js` injects per-page og:/twitter:
+  tags into `index.html` server-side (see the SPA fallback in `index.js`, which also strips the
+  static tags to avoid duplicates). The preview image is the same screenshot service used for edit
+  alerts. Unknown slugs are served untouched; suspended pages get a neutral card and no image.
 - Edit codes are 8 chars from an unambiguous alphabet (`ABCDEFGHJKMNPQRSTUVWXYZ23456789` — no
   O/0/I/1/L), generated with `crypto.randomBytes`. Codes issued before this change were 5
   digits; lookup is by exact string so they still work and are never rewritten. `/edit/verify`

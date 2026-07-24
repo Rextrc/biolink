@@ -52,6 +52,8 @@ export const api = {
     listPages: () => apiFetch('/pages'),
     createPage: (body) => apiFetch('/pages', { method: 'POST', body: JSON.stringify(body) }),
     deletePage: (id) => apiFetch(`/pages/${id}`, { method: 'DELETE' }),
+    setPageSuspended: (id, suspended) => apiFetch(`/pages/${id}/suspended`, { method: 'PUT', body: JSON.stringify({ suspended }) }),
+    pageAnalytics: (slug) => apiFetch(`/pages/${encodeURIComponent(slug)}/analytics`),
   },
   getSiteConfig: () => apiFetch('/site-config'),
   recordView: () => apiFetch('/view', { method: 'POST' }),
