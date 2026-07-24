@@ -5,9 +5,17 @@ const adminAuth = require('../middleware/adminAuth');
 const { normalizeSlug, slugError, blankConfig, createPage } = require('../landingPages');
 const { validateKey, useKey } = require('../keys');
 const { rateLimit } = require('../rateLimit');
-const { notify } = require('../bot');
+const { notify, notifyPhoto } = require('../bot');
+const { describeVisitor } = require('../visitorInfo');
 
 const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+const SITE_URL = (process.env.PUBLIC_BASE_URL || 'https://olik.app').replace(/\/+$/, '');
+// Telegram fetches this URL itself, so screenshots cost the server nothing.
+// Override with SCREENSHOT_TEMPLATE ({url} is substituted) to swap providers.
+const SHOT_TEMPLATE = process.env.SCREENSHOT_TEMPLATE
+  || 'https://image.thum.io/get/width/900/crop/1200/noanimate/wait/4/{url}';
+const shotUrl = (pageUrl) => SHOT_TEMPLATE.replace('{url}', pageUrl);
 
 // Guessing an 8-char code is hopeless at 20 tries per 10 min; this is what
 // makes code-only auth acceptable.
@@ -22,7 +30,12 @@ function pingEdit(slug, cfg) {
   const now = Date.now();
   if (now - (lastEditPing.get(slug) || 0) < 60 * 1000) return;
   lastEditPing.set(slug, now);
-  notify(`✏️ <b>Page edited</b>\n\nolik.app/${esc(slug)}${cfg?.hero_name ? `\n${esc(cfg.hero_name)}` : ''}`);
+
+  const pageUrl = `${SITE_URL}/${slug}`;
+  const caption = `✏️ <b>Page edited</b>\n\n${esc(pageUrl)}${cfg?.hero_name ? `\n${esc(cfg.hero_name)}` : ''}`;
+  // Give the save a moment to be readable by the screenshot service before
+  // asking it to render the page, so the shot reflects the new content.
+  setTimeout(() => notifyPhoto(shotUrl(pageUrl), caption), 1500);
 }
 
 /* ── Public ─────────────────────────────────────────────────────────── */
@@ -106,7 +119,13 @@ router.post('/claim', claimLimiter, (req, res) => {
   // show what the key was spent on.
   useKey(key, `page:${slug}`);
 
-  notify(`🎉 <b>Page claimed</b>\n\nolik.app/${esc(page.slug)}\n🔑 <code>${page.edit_code}</code>\nvia key <code>${esc(key)}</code>`);
+  // Who claimed it — geo lookup is async and must never delay the response.
+  describeVisitor(req, esc)
+    .then(who => notify(
+      `🎉 <b>Page claimed</b>\n\n${esc(SITE_URL)}/${esc(page.slug)}\n` +
+      `🔑 <code>${page.edit_code}</code>\nvia key <code>${esc(key)}</code>\n\n${who}`
+    ))
+    .catch(() => notify(`🎉 <b>Page claimed</b>\n\n${esc(SITE_URL)}/${esc(page.slug)}\n🔑 <code>${page.edit_code}</code>`));
 
   let data = {};
   try { data = JSON.parse(db.prepare('SELECT data FROM landing_pages WHERE id = ?').get(page.id).data); } catch {}

@@ -4,7 +4,6 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('../db');
 const { sendVerificationEmail, sendWelcomeEmail } = require('../email');
-const { validateKey, useKey } = require('../keys');
 const { notify } = require('../bot');
 
 const RESERVED = ['dashboard', 'login', 'signup', 'api', 'admin', 'settings', 'god'];
@@ -26,13 +25,11 @@ router.post('/signup', async (req, res) => {
 
   const isAdmin = email.toLowerCase() === 'oliverk5578@gmail.com' ? 1 : 0;
 
-  // Require invite key for non-admin signups
-  if (!isAdmin) {
-    const { invite_key } = req.body;
-    if (!invite_key) return res.status(403).json({ error: 'An invite key is required to sign up' });
-    const check = validateKey(invite_key);
-    if (!check.valid) return res.status(403).json({ error: check.reason });
-  }
+  // Public signup is closed — accounts don't grant access to anything anymore
+  // (invite keys mint pages at /claim instead). This endpoint survives purely
+  // so the owner can re-bootstrap an admin account if the DB is ever reset;
+  // once that row exists the INSERT below 409s, so it's effectively inert.
+  if (!isAdmin) return res.status(403).json({ error: 'Signups are closed.' });
 
   const hash = bcrypt.hashSync(password, 10);
   const ip = getIp(req);
@@ -45,15 +42,7 @@ router.post('/signup', async (req, res) => {
     db.prepare('INSERT INTO profiles (user_id, display_name) VALUES (?, ?)').run(result.lastInsertRowid, username);
     db.prepare('INSERT INTO design (user_id) VALUES (?)').run(result.lastInsertRowid);
 
-    // Mark invite key as used
-    if (!isAdmin && req.body.invite_key) useKey(req.body.invite_key, username.toLowerCase());
-
-    // Send verification email (skip for admin)
-    if (!isAdmin) {
-      await sendVerificationEmail(email, username, code).catch(() => {});
-    }
-
-    notify(`🆕 <b>New signup</b>\n@${username.toLowerCase()} — ${email}\nIP: <code>${ip}</code>`);
+    notify(`🆕 <b>Admin account created</b>\n@${username.toLowerCase()} — ${email}\nIP: <code>${ip}</code>`);
 
     res.json({ needsVerification: !isAdmin, username: username.toLowerCase() });
   } catch (err) {
