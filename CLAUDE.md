@@ -33,7 +33,10 @@ git add . && git commit -m "..." && git push   # deploy
 - `/create` — Admin-only. Creates additional copies of the landing card at `olik.app/<slug>`,
   each with a 5-digit edit code. Lists/deletes existing ones. (`pages/Create.jsx`)
 - `/edit` — Hidden (NO link anywhere on the site — reachable only by typing it). A page owner
-  enters their 5-digit code to edit their own `olik.app/<slug>` card. (`pages/Edit.jsx`)
+  enters their edit code to edit their own `olik.app/<slug>` card. (`pages/Edit.jsx`)
+- `/claim` — Also unlinked; you hand out the URL together with an invite key. Self-serve:
+  redeem an invite key → pick a slug → page is created, key is burned, and the claimer lands in
+  the editor already unlocked with their edit code shown. (`pages/Claim.jsx`)
 - `/<slug>` — Public per-user card (`pages/UserPage.jsx`), catch-all route (declared last).
   Unknown slugs fall back to rendering the owner's main `/` card.
 - `/god` — Admin panel (admin only). Logging in (and signup/verify) redirects straight here;
@@ -44,7 +47,15 @@ git add . && git commit -m "..." && git push   # deploy
 
 ## Admin
 - Email `oliverk5578@gmail.com` auto-gets `is_admin=1` + `email_verified=1` on server start
-- Invite keys required for all other signups
+- Invite keys (`invite_keys` table, `server/keys.js`) are single-use and now have TWO uses:
+  redeeming one at `/claim` mints a page (recorded as `used_by = page:<slug>`), and they still
+  gate `/signup`. Either use burns the key for both. Key `duration_days` only ever meant a
+  time-limited *account* (and was never actually enforced at login) — it means nothing for
+  claimed pages, which are permanent.
+- Telegram alerts fire on page activity via `notify()`: 🎉 on a `/claim`, 🆕 on an admin create
+  from `/create`, ✏️ on an edit (debounced to one message per page per 60s so double-taps on
+  Save don't spam). Bot-created pages (`/newpage`) don't notify — you already see the wizard's
+  confirmation in the same chat.
 - Telegram bot in `server/bot.js` (same process as the server, started after `db.init()`):
   - `/newpage` — conversational wizard that creates an `olik.app/<slug>` card. 6 text steps
     (slug → name → role → status → bio → skills; the optional ones take `/skip`), then an inline
@@ -129,10 +140,18 @@ git add . && git commit -m "..." && git push   # deploy
   + `PUT /edit/save` (code-authorized, no login — the code alone identifies the page); admin-only
   (below `router.use(adminAuth)`) `GET /` (list), `POST /` (create, validates slug against a
   RESERVED set + `SLUG_RE`, generates a unique code, seeds neutral content — NOT the owner's), and
-  `DELETE /:id`. `UserPage` renders `page.data` verbatim (never merged with the owner's
-  `DEFAULT_SITE_CFG`, or an unset field would leak the owner's bio/skills/email). NOTE: 5-digit
-  code-only auth is brute-forceable (~90k combos, no rate-limit yet) — fine for vanity cards, but
-  don't reuse this pattern for anything sensitive.
+  `DELETE /:id`. Public claim endpoints `POST /claim/check` (is this key valid?) and
+  `POST /claim` (burn key + create page) power `/claim`; the key is only burned AFTER the page
+  is successfully created, so a rejected slug never eats someone's invite. `UserPage` renders
+  `page.data` verbatim (never merged with the owner's `DEFAULT_SITE_CFG`, or an unset field
+  would leak the owner's bio/skills/email).
+- Edit codes are 8 chars from an unambiguous alphabet (`ABCDEFGHJKMNPQRSTUVWXYZ23456789` — no
+  O/0/I/1/L), generated with `crypto.randomBytes`. Codes issued before this change were 5
+  digits; lookup is by exact string so they still work and are never rewritten. `/edit/verify`
+  and `/edit/save` are rate-limited (20 per IP per 10 min, `server/rateLimit.js`) — that limit
+  is what makes code-only auth acceptable, so don't remove it. Codes are uppercased server-side.
+- The editor form lives in `components/PageEditor.jsx`, shared by `/edit` (after entering a
+  code) and `/claim` (immediately after claiming) so the two can't drift.
 - Admin.jsx gotcha: any input-rendering helper component (`SInput`, `Row`) MUST be defined at
   module scope, not inside the `Admin()` function body — defining them inline makes React treat
   them as a new component type on every re-render (every keystroke), which unmounts/remounts the
