@@ -1,8 +1,15 @@
-# olik.app — Personal Dev Landing Page + Bio Link Platform
+# olik.app — Personal Dev Landing Page
 
-`/` is Olik's personal developer landing page (hero, skills, about me, contact). The invite-only
-bio link/dashboard platform (auth, `/dashboard`, `/god`, invite keys) still runs underneath —
-only the public landing page content changed. Owner: oli (oliverk5578@gmail.com).
+`/` is Olik's personal developer profile card, plus admin-created copies at `olik.app/<slug>`.
+Auth + the `/god` admin panel + invite keys still run underneath. Owner: oli
+(oliverk5578@gmail.com).
+
+**The radar/HUD is gone.** The J.A.R.V.I.S police-scanner dashboard (`pages/Hud.jsx`, `Hud.css`),
+its FastAPI backend (`api/`: main.py, Procfile, requirements.txt), the `/dashboard` route, and
+the `mapbox-gl` dependency were all deleted — it was unrelated to the landing page and confusing.
+Don't reintroduce them. (`pages/Dashboard.jsx` + `components/dashboard/*` + `pages/Profile.jsx` +
+`components/ProfileView.jsx` are leftover bio-link-era files that nothing imports — dead code,
+kept only in case that platform is ever revived.)
 
 ## Deploy
 Push to `master` → Railway auto-deploys. GitHub: `Rextrc/biolink`.
@@ -29,8 +36,8 @@ git add . && git commit -m "..." && git push   # deploy
   enters their 5-digit code to edit their own `olik.app/<slug>` card. (`pages/Edit.jsx`)
 - `/<slug>` — Public per-user card (`pages/UserPage.jsx`), catch-all route (declared last).
   Unknown slugs fall back to rendering the owner's main `/` card.
-- `/dashboard` — User dashboard (mobile bottom nav on iPhone)
-- `/god` — Admin panel (admin only)
+- `/god` — Admin panel (admin only). Logging in (and signup/verify) redirects straight here;
+  `AdminRoute` bounces non-admins to `/`.
 - `/inbox` — Email inbox (admin only)
 - `/verify` — Email verification
 - `/forgot-password` + `/reset-password` — Password reset

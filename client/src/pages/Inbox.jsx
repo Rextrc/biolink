@@ -26,7 +26,7 @@ export default function InboxPage() {
     try {
       const data = await apiFetch(`/inbox?dir=${dir}`);
       setEmails(data);
-    } catch { navigate('/dashboard'); }
+    } catch { navigate('/'); }
     finally { setLoading(false); }
   }
 
@@ -73,7 +73,7 @@ export default function InboxPage() {
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
           <button onClick={load} style={{ background: 'rgba(255,255,255,0.05)', border: `1px solid ${BORDER}`, color: 'rgba(255,255,255,0.5)', borderRadius: 8, padding: '6px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}><RefreshCw size={13} /></button>
           <button onClick={() => setComposing(true)} style={{ background: ACCENT, border: 'none', color: '#fff', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}><Pencil size={13} /> Compose</button>
-          <button onClick={() => navigate('/dashboard')} style={{ background: 'rgba(255,255,255,0.05)', border: `1px solid ${BORDER}`, color: 'rgba(255,255,255,0.4)', borderRadius: 8, padding: '6px 12px', fontSize: 12, cursor: 'pointer' }}>Dashboard</button>
+          <button onClick={() => navigate('/god')} style={{ background: 'rgba(255,255,255,0.05)', border: `1px solid ${BORDER}`, color: 'rgba(255,255,255,0.4)', borderRadius: 8, padding: '6px 12px', fontSize: 12, cursor: 'pointer' }}>God Mode</button>
         </div>
       </div>
 

@@ -4,7 +4,6 @@ import { api } from './utils/api';
 import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
-import HudPage from './pages/Hud';
 import Admin from './pages/Admin';
 import Verify from './pages/Verify';
 import Inbox from './pages/Inbox';
@@ -15,11 +14,6 @@ import Edit from './pages/Edit';
 import UserPage from './pages/UserPage';
 import { getAuth } from './utils/auth';
 
-function PrivateRoute({ children }) {
-  const { isLoggedIn } = getAuth();
-  return isLoggedIn ? children : <Navigate to="/login" />;
-}
-
 function AdminRoute({ children }) {
   const { isLoggedIn } = getAuth();
   const [status, setStatus] = useState('loading');
@@ -28,7 +22,9 @@ function AdminRoute({ children }) {
     api.admin.stats().then(() => setStatus('ok')).catch(() => setStatus('deny'));
   }, []);
   if (status === 'loading') return null;
-  if (status === 'deny') return <Navigate to={isLoggedIn ? '/dashboard' : '/login'} />;
+  // Non-admins have nowhere to land now that the radar dashboard is gone,
+  // so send them to the public landing page instead.
+  if (status === 'deny') return <Navigate to={isLoggedIn ? '/' : '/login'} />;
   return children;
 }
 
@@ -42,7 +38,6 @@ export default function App() {
         <Route path="/verify" element={<Verify />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/dashboard" element={<PrivateRoute><HudPage /></PrivateRoute>} />
         <Route path="/god" element={<AdminRoute><Admin /></AdminRoute>} />
         <Route path="/inbox" element={<AdminRoute><Inbox /></AdminRoute>} />
         <Route path="/create" element={<AdminRoute><Create /></AdminRoute>} />

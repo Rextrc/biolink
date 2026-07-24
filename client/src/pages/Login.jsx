@@ -24,7 +24,8 @@ export default function Login() {
           return;
         }
         setAuth(data.token, data.username, data.isAdmin);
-        navigate('/dashboard');
+        // Straight into the admin panel; non-admins get bounced to / by AdminRoute.
+        navigate('/god');
       }
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }

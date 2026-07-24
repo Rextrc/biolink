@@ -25,7 +25,7 @@ export default function Signup() {
         navigate(`/verify?username=${data.username}`);
       } else {
         setAuth(data.token, data.username, data.isAdmin);
-        navigate('/dashboard');
+        navigate('/god');
       }
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
