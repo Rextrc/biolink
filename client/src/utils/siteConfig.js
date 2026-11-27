@@ -7,7 +7,7 @@ export const DEFAULT_SITE_CFG = {
   accent: '#ff3333',
   timezone: 'America/New_York',
   hero_badge: 'available for work',
-  hero_name:  'Olik',
+  hero_name:  '@olik',
   hero_role:  'Developer',
   hero_sub:   'I build things for the web — fast, minimal, made with care.',
   skills: ['JavaScript', 'React', 'Node.js', 'Python', 'SQL', 'Tailwind'],

@@ -58,9 +58,9 @@ function ogTagsFor(slug, req) {
   if (!slug) {
     let cfg = {};
     try { cfg = JSON.parse(db.prepare('SELECT data FROM site_config WHERE id=1').get()?.data || '{}'); } catch {}
-    const name = cfg.hero_name || 'Olik';
+    const name = cfg.hero_name || '@olik';
     return build({
-      title: `${name} — ${cfg.hero_role || 'Developer'}`,
+      title: cfg.hero_role ? `${name} — ${cfg.hero_role}` : name,
       description: describe(cfg, 'Personal developer page.'),
       url: `${base}/`,
       image: SHOT_TEMPLATE.replace('{url}', `${SITE_URL}/`),
