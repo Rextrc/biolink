@@ -89,8 +89,10 @@ git add . && git commit -m "..." && git push   # deploy
 - Landing page (`client/src/pages/Landing.jsx`): e-z.bio-style profile card (per owner request,
   modeled on e-z.bio/8ball). Fullscreen `#050505` viewport, single centered glass card
   (blur 24px, red glow shadow, cursor-tracked tilt up to ±14° from anywhere on the page, moving
-  glare sheen + directional shadow): red-ringed circular avatar (image URL or "o." monogram
-  fallback), name + red period + optional verified badge, spaced mono uppercase role, green
+  glare sheen + directional shadow): red-ringed circular avatar (image URL, or a monogram
+  fallback — the first *alphanumeric* char of `hero_name` + a red period, so the default
+  `@olik` renders "o." and not "@."), name + red period + optional verified badge, spaced
+  mono uppercase role, green
   status dot, one-line bio, wrapping mono skills row with red dots, circular social icon
   buttons, optional "Now playing" Spotify row, small ember-burst micro-interaction when a social
   icon is clicked (10 particles radiating out via `bursts` state + `.burst-particle`/`burstFly`
@@ -104,8 +106,14 @@ git add . && git commit -m "..." && git push   # deploy
   card IS the page. NOT SaaS-styled.
 - Browser tab title rotates o -> l -> i -> k (0.5s each) while the tab is active/visible; pauses
   on a static "OLIK" via the `visibilitychange` event when the tab isn't focused, so switching
-  away is what actually shows in the tab strip. Restores the static "Olik — Developer" title on
-  unmount.
+  away is what actually shows in the tab strip. On unmount it restores whatever the title was at
+  mount — i.e. `<title>@olik</title>` from `client/index.html`.
+- The owner's display name is **`@olik`** (not "Olik" / "Olik — Developer"). It's set in three
+  places that must agree: `DEFAULT_SITE_CFG.hero_name`, `<title>`/`og:title` in
+  `client/index.html`, and the fallback in `server/ogTags.js`. The live card actually reads
+  `hero_name` out of the `site_config` DB row, so the code default only applies until that row
+  is saved from `/god` → Front Page — change the Name field there too, or the old saved value
+  wins. `ogTags.js` omits the `— role` suffix when `hero_role` is blank.
 - Verified badge: blue Instagram-style checkmark next to the name (reuses the exact SVG from
   `ProfileView.jsx`'s admin badge). Toggle: `verified` in site config / "Show verified badge"
   checkbox in `/god`.

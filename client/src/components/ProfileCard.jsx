@@ -83,6 +83,10 @@ export default function ProfileCard({ cfg, ready = true, viewCount = null, nowPl
   const accent = hexToRgb(cfg.accent) ? cfg.accent : DEFAULT_ACCENT;
   const A = (a) => accentRgba(accent, a);
 
+  // First letter for the fallback avatar. Skip leading punctuation so an
+  // @-prefixed handle shows "o." rather than "@.".
+  const monogram = ((cfg.hero_name || '').match(/[a-z0-9]/i)?.[0] || 'o').toLowerCase();
+
   // Live clock in the card's own timezone (not the visitor's) — ticks every second.
   useEffect(() => {
     const tz = cfg.timezone || DEFAULT_SITE_CFG.timezone;
@@ -270,7 +274,7 @@ export default function ProfileCard({ cfg, ready = true, viewCount = null, nowPl
               <img src={cfg.avatar_url} alt={cfg.hero_name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
             ) : (
               <span style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: 40, lineHeight: 1, color: '#fff', letterSpacing: '-0.03em' }}>
-                {(cfg.hero_name || 'O')[0].toLowerCase()}<span style={{ color: accent }}>.</span>
+                {monogram}<span style={{ color: accent }}>.</span>
               </span>
             )}
           </div>
